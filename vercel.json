@@ -12,5 +12,11 @@
         { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/sync/fdic",
+      "schedule": "0 6 * * 0"
+    }
   ]
 }

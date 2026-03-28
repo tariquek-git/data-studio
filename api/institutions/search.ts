@@ -75,14 +75,22 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     return res.status(500).json({ error: 'Search failed' });
   }
 
-  // Aggregations placeholder — full aggregations require a separate query or RPC
+  // Compute aggregations from the returned page (lightweight — full aggs via RPC if needed)
+  const pageInstitutions = institutions || [];
+  const totalAssetsSum = pageInstitutions.reduce((sum: number, i: any) => sum + (i.total_assets || 0), 0);
+  const stateMap: Record<string, number> = {};
+  const charterMap: Record<string, number> = {};
+  for (const inst of pageInstitutions) {
+    if ((inst as any).state) stateMap[(inst as any).state] = (stateMap[(inst as any).state] || 0) + 1;
+    if ((inst as any).charter_type) charterMap[(inst as any).charter_type] = (charterMap[(inst as any).charter_type] || 0) + 1;
+  }
   const aggregations = {
     total_count: count || 0,
-    total_assets_sum: 0,
-    total_deposits_sum: 0,
-    avg_assets: 0,
-    by_state: {} as Record<string, number>,
-    by_charter_type: {} as Record<string, number>,
+    total_assets_sum: totalAssetsSum,
+    total_deposits_sum: pageInstitutions.reduce((sum: number, i: any) => sum + (i.total_deposits || 0), 0),
+    avg_assets: pageInstitutions.length > 0 ? totalAssetsSum / pageInstitutions.length : 0,
+    by_state: stateMap,
+    by_charter_type: charterMap,
   };
 
   res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');

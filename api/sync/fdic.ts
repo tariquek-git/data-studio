@@ -5,11 +5,26 @@ import { getSupabase } from '../../lib/supabase';
 const FDIC_API = 'https://banks.data.fdic.gov/api';
 
 const FIELDS = [
+  // Core institution fields
   'CERT', 'REPDTE', 'INSTNAME', 'CITY', 'STALP', 'ZIP', 'COUNTY',
   'ASSET', 'DEP', 'NETLOANS', 'EQ', 'NETINC', 'ROA', 'ROE',
   'OFFDOM', 'NAMEHCR', 'HCTMULT', 'BKCLASS', 'WEBADDR', 'ESTYMD',
   'REGAGENT', 'LATITUDE', 'LONGITUDE', 'NUMEMP', 'LNCRCD',
   'STNAME', 'ACTIVE',
+  // Income statement fields (for Sankey / Waterfall visualizations)
+  'INTINC',   // Interest income
+  'NONII',    // Non-interest income
+  'EINTEXP',  // Interest expense
+  'ELNATR',   // Non-interest expense
+  'ELNANTR',  // Provision for loan losses
+  // Asset breakdown fields (for $1-of-assets treemap)
+  'SC',       // Securities
+  'LNRE',     // Real estate loans
+  'LNCI',     // Commercial & industrial loans
+  'LNCON',    // Consumer loans
+  'LNAG',     // Agricultural loans
+  // Charge-offs
+  'NCLNLS',   // Net charge-offs
 ].join(',');
 
 export default apiHandler({ methods: ['POST'] }, async (req: VercelRequest, res: VercelResponse) => {
