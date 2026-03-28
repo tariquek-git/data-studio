@@ -33,6 +33,7 @@ export interface Institution {
   // Metadata
   data_as_of: string | null;
   last_synced_at: string | null;
+  raw_data: Record<string, unknown> | null;
 }
 
 export interface FinancialHistory {
