@@ -88,18 +88,28 @@ async function main() {
 
   const { data, error } = await supabase
     .from('registry_entities')
-    .select('id', { count: 'exact', head: true })
+    .select('id')
     .limit(1);
 
-  if (error && error.code !== '42P01') {
-    console.error('Unexpected post-migration probe error:', error.message);
-  } else {
+  if (!error) {
     console.log('Post-migration probe complete.');
+    console.log('registry_entities table is reachable.');
+    return;
   }
 
-  if (data) {
-    console.log('registry_entities table is reachable.');
+  if (
+    error.code === '42P01' ||
+    error.code === 'PGRST205' ||
+    /schema cache/i.test(error.message ?? '')
+  ) {
+    console.warn(
+      'Post-migration probe could not see registry_entities yet. ' +
+      'If you just ran the SQL in the dashboard, refresh PostgREST with: NOTIFY pgrst, \'reload schema\';'
+    );
+    return;
   }
+
+  console.error('Unexpected post-migration probe error:', error.message);
 }
 
 main().catch((err) => {

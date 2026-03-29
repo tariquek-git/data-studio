@@ -71,7 +71,7 @@ export async function finishSyncJob(supabase, jobId, payload) {
 export async function tableExists(supabase, table, probeColumn = 'id') {
   const { error } = await supabase
     .from(table)
-    .select(probeColumn, { count: 'exact', head: true })
+    .select(probeColumn)
     .limit(1);
 
   if (!error) return true;
