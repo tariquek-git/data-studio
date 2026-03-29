@@ -2,8 +2,9 @@ import type { Institution } from './institution';
 
 export interface SearchFilters {
   query: string;
+  country: 'US' | 'CA' | null;  // null = All
   states: string[];
-  source: ('fdic' | 'ncua' | 'osfi' | 'rpaa')[];
+  source: ('fdic' | 'ncua' | 'osfi' | 'rpaa' | 'ciro')[];
   charter_types: string[];
   regulators: string[];
   min_assets: number | null;
@@ -56,6 +57,7 @@ export interface SearchAggregations {
 // Default empty filters
 export const DEFAULT_FILTERS: SearchFilters = {
   query: '',
+  country: null,
   states: [],
   source: [],
   charter_types: [],

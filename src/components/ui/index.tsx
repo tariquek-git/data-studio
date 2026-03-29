@@ -41,7 +41,7 @@ export function Button({
 
 /* ─── Badge ─── */
 
-type BadgeColor = 'blue' | 'green' | 'red' | 'yellow' | 'gray' | 'purple' | 'indigo';
+type BadgeColor = 'blue' | 'green' | 'red' | 'yellow' | 'gray' | 'purple' | 'indigo' | 'orange';
 
 interface BadgeProps {
   children: ReactNode;
@@ -57,6 +57,7 @@ const badgeColors: Record<BadgeColor, string> = {
   gray: 'bg-surface-100 text-surface-600 ring-surface-500/20',
   purple: 'bg-purple-50 text-purple-700 ring-purple-600/20',
   indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
+  orange: 'bg-orange-50 text-orange-700 ring-orange-600/20',
 };
 
 export function Badge({ children, color = 'gray', className = '' }: BadgeProps) {

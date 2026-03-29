@@ -98,13 +98,16 @@ CREATE TABLE IF NOT EXISTS branches (
   city TEXT,
   state TEXT,
   zip TEXT,
+  county TEXT,
   latitude DOUBLE PRECISION,
   longitude DOUBLE PRECISION,
   established_date TEXT,
   acquired_date TEXT,
   main_office BOOLEAN DEFAULT false,
   total_deposits BIGINT,
-  created_at TIMESTAMPTZ DEFAULT now()
+  data_as_of DATE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(cert_number, branch_number)
 );
 
 

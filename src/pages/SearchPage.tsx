@@ -1,15 +1,16 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Filter, ChevronLeft, ChevronRight, LayoutList, LayoutGrid, Download } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
 import { FilterPanel } from '@/components/search/FilterPanel';
 import { ResultsTable } from '@/components/search/ResultsTable';
+import { ResultsCards } from '@/components/search/ResultsCards';
 import { QuickStats } from '@/components/search/QuickStats';
 import { Button, Skeleton } from '@/components/ui';
 import { useSearchStore } from '@/stores/searchStore';
+import { exportSearchResultsToExcel } from '@/lib/export';
 import type { SearchFilters, SearchResult, SortField } from '@/types/filters';
-// DEFAULT_FILTERS is available from '@/types/filters' if needed
 
 async function fetchInstitutions(filters: SearchFilters): Promise<SearchResult> {
   const params = new URLSearchParams();
@@ -40,6 +41,7 @@ async function fetchInstitutions(filters: SearchFilters): Promise<SearchResult> 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const { filters, setFilters, resetFilters } = useSearchStore();
 
   // Sync URL params to store on mount
@@ -139,6 +141,36 @@ export default function SearchPage() {
               onSubmit={handleQueryChange}
               className="flex-1"
             />
+            {/* View toggle */}
+            <div className="flex items-center rounded-lg border border-surface-300 overflow-hidden shrink-0">
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-2 transition-colors ${viewMode === 'table' ? 'bg-primary-600 text-white' : 'bg-white text-surface-500 hover:bg-surface-50'}`}
+                aria-label="Table view"
+              >
+                <LayoutList className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`p-2 transition-colors ${viewMode === 'cards' ? 'bg-primary-600 text-white' : 'bg-white text-surface-500 hover:bg-surface-50'}`}
+                aria-label="Card view"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Export Results */}
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!data?.institutions?.length}
+              onClick={() => exportSearchResultsToExcel(data?.institutions ?? [])}
+              title="Export current results to Excel"
+              className="shrink-0"
+            >
+              <Download className="h-4 w-4" />
+              Export Results
+            </Button>
           </div>
 
           {/* Quick stats */}
@@ -158,13 +190,15 @@ export default function SearchPage() {
                 Failed to load results. Please try again.
               </p>
             </div>
-          ) : (
+          ) : viewMode === 'table' ? (
             <ResultsTable
               institutions={data?.institutions ?? []}
               sortBy={filters.sort_by}
               sortDir={filters.sort_dir}
               onSort={handleSort}
             />
+          ) : (
+            <ResultsCards institutions={data?.institutions ?? []} />
           )}
 
           {/* Pagination */}

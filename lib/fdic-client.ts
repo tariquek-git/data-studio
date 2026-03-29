@@ -172,6 +172,7 @@ function mapInstitution(row: Record<string, unknown>): Institution {
     net_income: thousands(row.NETINC),
     credit_card_loans: thousands(row.LNCRCD),
     credit_card_charge_offs: thousands(row.NCLNLS),
+    country: 'US',
     data_as_of: str(row.REPDTE),
     last_synced_at: new Date().toISOString(),
     raw_data: row as Record<string, unknown>,

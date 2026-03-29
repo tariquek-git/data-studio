@@ -1,9 +1,18 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { Menu, X, Database, ExternalLink } from 'lucide-react';
+
+const NAV_LINKS = [
+  { to: '/search', label: 'Search' },
+  { to: '/compare', label: 'Compare' },
+  { to: '/market', label: 'Market Map' },
+  { to: '/analytics', label: 'Analytics' },
+  { to: '/sources', label: 'Sources' },
+];
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-surface-200">
@@ -22,18 +31,19 @@ export function Header() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
-            <Link
-              to="/search"
-              className="px-3 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-100 transition-colors"
-            >
-              Search
-            </Link>
-            <Link
-              to="/analytics"
-              className="px-3 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-100 transition-colors"
-            >
-              Analytics
-            </Link>
+            {NAV_LINKS.map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === link.to
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-surface-600 hover:text-surface-900 hover:bg-surface-100'
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
             <a
               href="https://fintechcommons.com"
               target="_blank"
@@ -60,20 +70,20 @@ export function Header() {
       {mobileOpen && (
         <div className="md:hidden border-t border-surface-200 bg-white">
           <nav className="px-4 py-3 space-y-1">
-            <Link
-              to="/search"
-              onClick={() => setMobileOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-100"
-            >
-              Search
-            </Link>
-            <Link
-              to="/analytics"
-              onClick={() => setMobileOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-100"
-            >
-              Analytics
-            </Link>
+            {NAV_LINKS.map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={() => setMobileOpen(false)}
+                className={`block px-3 py-2 rounded-lg text-sm font-medium ${
+                  location.pathname === link.to
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-surface-600 hover:text-surface-900 hover:bg-surface-100'
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
             <a
               href="https://fintechcommons.com"
               target="_blank"

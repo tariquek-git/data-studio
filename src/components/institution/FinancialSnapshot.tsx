@@ -65,23 +65,38 @@ export function FinancialSnapshot({ institution }: FinancialSnapshotProps) {
     },
   ];
 
+  function getSourceLabel(source: Institution['source']): string {
+    if (source === 'osfi') return 'OSFI';
+    if (source === 'rpaa') return 'Bank of Canada';
+    if (source === 'ncua') return 'NCUA';
+    return 'FDIC';
+  }
+
+  const sourceLabel = getSourceLabel(institution.source);
+  const dataLabel = institution.data_as_of
+    ? `As of ${institution.data_as_of} · Source: ${sourceLabel}`
+    : `As of Q4 2025 · Source: ${sourceLabel}`;
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      {metrics.map((metric) => {
-        const Icon = metric.icon;
-        return (
-          <Card key={metric.label}>
-            <div className="flex items-center gap-2 mb-2">
-              <Icon className="h-4 w-4 text-primary-500" />
-              <span className="text-xs font-medium text-surface-500">{metric.label}</span>
-            </div>
-            <p className={`text-lg font-bold ${metric.color}`}>{metric.value}</p>
-            {metric.subtitle && (
-              <p className="text-xs text-surface-400 mt-0.5">{metric.subtitle}</p>
-            )}
-          </Card>
-        );
-      })}
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {metrics.map((metric) => {
+          const Icon = metric.icon;
+          return (
+            <Card key={metric.label}>
+              <div className="flex items-center gap-2 mb-2">
+                <Icon className="h-4 w-4 text-primary-500" />
+                <span className="text-xs font-medium text-surface-500">{metric.label}</span>
+              </div>
+              <p className={`text-lg font-bold ${metric.color}`}>{metric.value}</p>
+              {metric.subtitle && (
+                <p className="text-xs text-surface-400 mt-0.5">{metric.subtitle}</p>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+      <p className="text-xs text-surface-400 text-right">{dataLabel}</p>
     </div>
   );
 }

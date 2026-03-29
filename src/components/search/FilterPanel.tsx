@@ -4,6 +4,15 @@ import { Button, Input } from '@/components/ui';
 import type { SearchFilters } from '@/types/filters';
 import { US_STATES, CA_PROVINCES } from '@/types/filters';
 
+// Asset size quick-filter presets (values in dollars, null = no bound)
+const ASSET_SIZE_PRESETS = [
+  { label: 'All Sizes', min: null, max: null },
+  { label: '< $1B',     min: null,        max: 1_000_000_000 },
+  { label: '$1B–$10B',  min: 1_000_000_000, max: 10_000_000_000 },
+  { label: '$10B–$50B', min: 10_000_000_000, max: 50_000_000_000 },
+  { label: '> $50B',    min: 50_000_000_000, max: null },
+] as const;
+
 interface FilterPanelProps {
   filters: SearchFilters;
   onChange: (filters: Partial<SearchFilters>) => void;
@@ -42,6 +51,17 @@ function FilterSection({
 export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
   const [stateSearch, setStateSearch] = useState('');
 
+  // Determine which asset size preset is currently active (if any)
+  function activePresetIndex(): number {
+    return ASSET_SIZE_PRESETS.findIndex(
+      (p) => p.min === filters.min_assets && p.max === filters.max_assets,
+    );
+  }
+
+  function applyAssetPreset(min: number | null, max: number | null) {
+    onChange({ min_assets: min, max_assets: max });
+  }
+
   const allRegions = [
     ...US_STATES.map((s) => ({ code: s.code, name: s.name })),
     ...CA_PROVINCES.map((p) => ({ code: p.code, name: p.name })),
@@ -62,7 +82,7 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
     onChange({ states });
   }
 
-  function toggleSource(src: 'fdic' | 'ncua' | 'osfi' | 'rpaa') {
+  function toggleSource(src: 'fdic' | 'ncua' | 'osfi' | 'rpaa' | 'ciro') {
     const source = filters.source.includes(src)
       ? filters.source.filter((s) => s !== src)
       : [...filters.source, src];
@@ -77,6 +97,7 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
   }
 
   const hasFilters =
+    filters.country !== null ||
     filters.states.length > 0 ||
     filters.source.length > 0 ||
     filters.charter_types.length > 0 ||
@@ -89,6 +110,12 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
     filters.min_roi !== null ||
     filters.max_roi !== null ||
     filters.has_credit_card_program !== null;
+
+  const COUNTRY_OPTIONS: { label: string; value: 'US' | 'CA' | null }[] = [
+    { label: 'All', value: null },
+    { label: '🇺🇸 United States', value: 'US' },
+    { label: '🇨🇦 Canada', value: 'CA' },
+  ];
 
   return (
     <div className="space-y-0">
@@ -103,6 +130,24 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
             Clear all
           </button>
         )}
+      </div>
+
+      {/* Country quick-filter */}
+      <div className="flex gap-1.5 pb-3 border-b border-surface-100">
+        {COUNTRY_OPTIONS.map((opt) => (
+          <button
+            key={String(opt.value)}
+            type="button"
+            onClick={() => onChange({ country: opt.value })}
+            className={`flex-1 px-2 py-1 rounded-full text-xs font-medium border transition-colors ${
+              filters.country === opt.value
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'bg-white text-surface-600 border-surface-300 hover:border-primary-400 hover:text-primary-700'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
       {/* State / Province */}
@@ -137,7 +182,7 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
 
       {/* Source */}
       <FilterSection title="Source" defaultOpen>
-        {(['fdic', 'ncua', 'osfi', 'rpaa'] as const).map((src) => (
+        {(['fdic', 'ncua', 'osfi', 'rpaa', 'ciro'] as const).map((src) => (
           <label
             key={src}
             className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-50 cursor-pointer"
@@ -150,12 +195,14 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
             />
             <span className="text-xs text-surface-700">
               {src === 'fdic'
-                ? 'FDIC Banks'
+                ? 'FDIC Banks (US)'
                 : src === 'ncua'
-                  ? 'NCUA Credit Unions'
+                  ? 'NCUA Credit Unions (US)'
                   : src === 'osfi'
                     ? 'OSFI (Canada)'
-                    : 'RPAA (Canada)'}
+                    : src === 'rpaa'
+                      ? 'RPAA PSPs (Canada)'
+                      : 'CIRO Dealers (Canada)'}
             </span>
           </label>
         ))}
@@ -183,6 +230,27 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
 
       {/* Asset Range */}
       <FilterSection title="Total Assets">
+        {/* Quick-select size pills */}
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {ASSET_SIZE_PRESETS.map((preset, i) => {
+            const isActive = activePresetIndex() === i;
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => applyAssetPreset(preset.min, preset.max)}
+                className={`px-2.5 py-0.5 rounded-full text-xs font-medium border transition-colors ${
+                  isActive
+                    ? 'bg-primary-600 text-white border-primary-600'
+                    : 'bg-white text-surface-600 border-surface-300 hover:border-primary-400 hover:text-primary-700'
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+        {/* Custom min/max inputs */}
         <div className="grid grid-cols-2 gap-2">
           <Input
             type="number"

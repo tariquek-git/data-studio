@@ -1,19 +1,28 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CreditCard, GitBranch, BarChart3, DollarSign, Users, TrendingUp } from 'lucide-react';
+import { ArrowLeft, CreditCard, GitBranch, BarChart3, DollarSign, Users, TrendingUp, Activity, Globe, ShieldCheck } from 'lucide-react';
 import { ProfileHeader } from '@/components/institution/ProfileHeader';
+import { ExportButton } from '@/components/institution/ExportButton';
 import { FinancialSnapshot } from '@/components/institution/FinancialSnapshot';
 import { HistoryChart } from '@/components/institution/HistoryChart';
 import { IncomeFlow } from '@/components/institution/IncomeFlow';
 import { BalanceSheetFlow } from '@/components/institution/BalanceSheetFlow';
+import { LoanSunburst } from '@/components/institution/LoanSunburst';
 import { SankeyFlow } from '@/components/institution/SankeyFlow';
 import { WaterfallChart } from '@/components/institution/WaterfallChart';
 import { DollarBreakdown } from '@/components/institution/DollarBreakdown';
 import { PeerRadar } from '@/components/institution/PeerRadar';
 import { PercentileRanks } from '@/components/institution/PercentileRanks';
-import { Card, Skeleton, Badge } from '@/components/ui';
-import { formatCurrency, formatNumber } from '@/lib/format';
+import { EfficiencyGauge } from '@/components/institution/EfficiencyGauge';
+import { KeyMetrics } from '@/components/institution/KeyMetrics';
+import { StrengthsFlags } from '@/components/institution/StrengthsFlags';
+import { CAMELSScore } from '@/components/institution/CAMELSScore';
+import { AISummary } from '@/components/institution/AISummary';
+import { EnrichmentPanel } from '@/components/institution/EnrichmentPanel';
+import { RegistryProfile } from '@/components/institution/RegistryProfile';
+import { Card, Skeleton } from '@/components/ui';
+import { formatCurrency, formatNumber, formatPercent } from '@/lib/format';
 import type { Institution, FinancialHistory } from '@/types/institution';
 
 interface InstitutionDetail {
@@ -33,12 +42,13 @@ interface PeerData {
   }>;
 }
 
-type Tab = 'overview' | 'flows' | 'peers' | 'history';
+type Tab = 'overview' | 'flows' | 'peers' | 'risk' | 'history';
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'overview', label: 'Overview', icon: <BarChart3 className="w-4 h-4" /> },
   { id: 'flows', label: 'Money Flows', icon: <DollarSign className="w-4 h-4" /> },
   { id: 'peers', label: 'Peer Comparison', icon: <Users className="w-4 h-4" /> },
+  { id: 'risk', label: 'Risk & Quality', icon: <ShieldCheck className="w-4 h-4" /> },
   { id: 'history', label: 'Trends', icon: <TrendingUp className="w-4 h-4" /> },
 ];
 
@@ -51,6 +61,20 @@ async function fetchInstitution(certNumber: string): Promise<InstitutionDetail> 
 async function fetchPeers(certNumber: string): Promise<PeerData> {
   const res = await fetch(`/api/institutions/${certNumber}/peers`);
   if (!res.ok) throw new Error('Failed to load peer data');
+  return res.json();
+}
+
+interface Benchmarks {
+  institution_count: number;
+  roa: { mean: number | null; median: number | null; p25: number | null; p75: number | null };
+  roe: { mean: number | null; median: number | null; p25: number | null; p75: number | null };
+  equity_ratio: { mean: number | null; median: number | null };
+  loan_to_deposit: { mean: number | null; median: number | null };
+}
+
+async function fetchBenchmarks(): Promise<Benchmarks> {
+  const res = await fetch('/api/analytics/benchmarks');
+  if (!res.ok) throw new Error('Failed to load benchmarks');
   return res.json();
 }
 
@@ -73,6 +97,12 @@ export default function InstitutionPage() {
     queryKey: ['institution-peers', certNumber],
     queryFn: () => fetchPeers(certNumber!),
     enabled: !!certNumber && activeTab === 'peers',
+  });
+
+  const { data: benchmarks } = useQuery({
+    queryKey: ['industry-benchmarks'],
+    queryFn: fetchBenchmarks,
+    staleTime: 2 * 60 * 60 * 1000, // 2 hours
   });
 
   if (isLoading) {
@@ -107,12 +137,16 @@ export default function InstitutionPage() {
   const raw = institution.raw_data;
   const hasCreditCards = institution.credit_card_loans != null && institution.credit_card_loans > 0;
 
+  // Registry-only institutions (no financial statements)
+  const REGISTRY_SOURCES: Institution['source'][] = ['rpaa', 'ciro', 'fintrac', 'fincen'];
+  const isRegistryOnly = REGISTRY_SOURCES.includes(institution.source);
+
   const incomeData = {
     interest_income: getRawField(raw, 'INTINC'),
     noninterest_income: getRawField(raw, 'NONII'),
     interest_expense: getRawField(raw, 'EINTEXP'),
-    noninterest_expense: getRawField(raw, 'ELNATR'),
-    provision_for_losses: getRawField(raw, 'ELNANTR'),
+    noninterest_expense: getRawField(raw, 'ELNANTR'),
+    provision_for_losses: getRawField(raw, 'ELNATR'),
     net_income: institution.net_income,
   };
 
@@ -142,83 +176,259 @@ export default function InstitutionPage() {
       </Link>
 
       {/* Profile header */}
-      <ProfileHeader institution={institution} />
+      <ProfileHeader
+        institution={institution}
+        actions={<ExportButton institution={institution} history={history} />}
+      />
 
-      {/* Tabs */}
-      <div className="border-b border-surface-200">
-        <nav className="flex gap-1 -mb-px">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300'
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+      {/* Tabs — only shown for deposit-taking institutions with financial data */}
+      {!isRegistryOnly && (
+        <div className="border-b border-surface-200">
+          <nav className="flex gap-1 -mb-px">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-primary-600 text-primary-600'
+                    : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300'
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
 
-      {/* Tab Content */}
-      {activeTab === 'overview' && (
+      {/* Registry-only profile (RPAA PSPs, CIRO, FINTRAC, FinCEN) */}
+      {isRegistryOnly && (
+        <RegistryProfile institution={institution} />
+      )}
+
+      {/* Tab Content — deposit-takers only */}
+      {!isRegistryOnly && activeTab === 'overview' && (
         <div className="space-y-6">
           <FinancialSnapshot institution={institution} />
 
-          {/* Branch + Credit Card info row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Public records enrichment: CRA, enforcement actions, SEC filings, Wikipedia */}
+          <EnrichmentPanel institution={institution} />
+
+          {/* AI-powered analyst summary */}
+          <AISummary certNumber={institution.cert_number} />
+
+          {/* Operational metrics row */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {institution.num_branches != null && (
               <Card className="flex items-center gap-3">
-                <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary-50 shrink-0">
+                <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-primary-50 shrink-0">
                   <GitBranch className="h-5 w-5 text-primary-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-surface-900">
-                    {formatNumber(institution.num_branches)} Branches
+                  <p className="text-xs text-surface-500">Branches</p>
+                  <p className="text-lg font-bold text-surface-900">{formatNumber(institution.num_branches)}</p>
+                  <p className="text-xs text-surface-400">{institution.state ?? 'Multiple locations'}</p>
+                  <p className="text-xs text-surface-400 mt-0.5">
+                    Branch locations via FDIC SOD{' '}
+                    <a
+                      href={`https://banks.data.fdic.gov/api/branches?filters=CERT:${institution.cert_number}&limit=100`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-600 hover:underline"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      View on FDIC →
+                    </a>
                   </p>
-                  <p className="text-xs text-surface-500">
-                    Across {institution.state ?? 'multiple locations'}
-                  </p>
+                </div>
+              </Card>
+            )}
+            {institution.num_employees != null && (
+              <Card className="flex items-center gap-3">
+                <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-purple-50 shrink-0">
+                  <Users className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-surface-500">Employees</p>
+                  <p className="text-lg font-bold text-surface-900">{formatNumber(institution.num_employees)}</p>
+                  <p className="text-xs text-surface-400">Full-time equivalent</p>
                 </div>
               </Card>
             )}
             {hasCreditCards && (
               <Card className="flex items-center gap-3">
-                <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-green-50 shrink-0">
+                <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-green-50 shrink-0">
                   <CreditCard className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-surface-900">
-                    {formatCurrency(institution.credit_card_loans)} CC Receivables
-                  </p>
-                  <p className="text-xs text-surface-500">Active credit card program</p>
+                  <p className="text-xs text-surface-500">CC Receivables</p>
+                  <p className="text-lg font-bold text-surface-900">{formatCurrency(institution.credit_card_loans)}</p>
+                  <p className="text-xs text-surface-400">Active CC program</p>
                 </div>
-                <Badge color="green" className="ml-auto">Active</Badge>
+              </Card>
+            )}
+            {institution.total_assets && institution.total_loans && (
+              <Card className="flex items-center gap-3">
+                <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-cyan-50 shrink-0">
+                  <Activity className="h-5 w-5 text-cyan-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-surface-500">Loan / Deposit</p>
+                  <p className={`text-lg font-bold ${
+                    institution.total_deposits && (institution.total_loans / institution.total_deposits) > 0.9
+                      ? 'text-amber-600' : 'text-surface-900'
+                  }`}>
+                    {institution.total_deposits
+                      ? formatPercent((institution.total_loans / institution.total_deposits) * 100, 0)
+                      : '—'}
+                  </p>
+                  <p className="text-xs text-surface-400">Optimal: 70–85%</p>
+                </div>
+              </Card>
+            )}
+            {institution.website && (
+              <Card className="flex items-center gap-3">
+                <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-surface-50 shrink-0">
+                  <Globe className="h-5 w-5 text-surface-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-surface-500">Website</p>
+                  <a
+                    href={institution.website.startsWith('http') ? institution.website : `https://${institution.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-primary-600 hover:underline truncate block"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {institution.website.replace(/^https?:\/\//, '')}
+                  </a>
+                </div>
               </Card>
             )}
           </div>
 
-          {/* Quick income + balance side-by-side */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <IncomeFlow data={incomeData} />
-            <BalanceSheetFlow
-              data={{
-                total_assets: institution.total_assets,
-                total_deposits: institution.total_deposits,
-                total_loans: institution.total_loans,
-                equity_capital: institution.equity_capital,
-                credit_card_loans: institution.credit_card_loans,
-              }}
-            />
+          {/* Efficiency gauge + quick income side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="flex flex-col items-center justify-center py-4">
+              {(() => {
+                const totalRevenue = (incomeData.interest_income ?? 0) + (incomeData.noninterest_income ?? 0);
+                const effRatio = totalRevenue > 0 && incomeData.noninterest_expense != null
+                  ? (incomeData.noninterest_expense / totalRevenue) * 100
+                  : null;
+                return (
+                  <>
+                    <h3 className="text-sm font-semibold text-surface-700 mb-4">Efficiency Ratio</h3>
+                    <EfficiencyGauge efficiencyRatio={effRatio} />
+                    <p className="text-xs text-surface-400 text-center mt-3 max-w-[200px]">
+                      Non-interest expense as % of total revenue. Lower = more efficient.
+                    </p>
+                  </>
+                );
+              })()}
+            </Card>
+            <div className="lg:col-span-2">
+              <IncomeFlow data={incomeData} />
+            </div>
           </div>
+
+          {/* Balance sheet */}
+          <BalanceSheetFlow
+            data={{
+              total_assets: institution.total_assets,
+              total_deposits: institution.total_deposits,
+              total_loans: institution.total_loans,
+              equity_capital: institution.equity_capital,
+              credit_card_loans: institution.credit_card_loans,
+            }}
+          />
+
+          {/* Quick benchmarks vs live national averages */}
+          <Card>
+            <h3 className="text-sm font-semibold text-surface-700 mb-1">vs. Industry Benchmarks</h3>
+            {benchmarks && (
+              <p className="text-xs text-surface-400 mb-4">
+                Computed live from {formatNumber(benchmarks.institution_count)} active FDIC-insured banks
+              </p>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                {
+                  label: 'Return on Assets',
+                  value: institution.roa,
+                  benchmark: benchmarks?.roa.median ?? null,
+                  p25: benchmarks?.roa.p25 ?? null,
+                  p75: benchmarks?.roa.p75 ?? null,
+                  format: (v: number) => formatPercent(v),
+                  higher_is_better: true,
+                },
+                {
+                  label: 'Return on Equity',
+                  value: institution.roi,
+                  benchmark: benchmarks?.roe.median ?? null,
+                  p25: benchmarks?.roe.p25 ?? null,
+                  p75: benchmarks?.roe.p75 ?? null,
+                  format: (v: number) => formatPercent(v),
+                  higher_is_better: true,
+                },
+                {
+                  label: 'Equity / Assets',
+                  value: institution.total_assets && institution.equity_capital
+                    ? (institution.equity_capital / institution.total_assets) * 100
+                    : null,
+                  benchmark: benchmarks?.equity_ratio.median ?? null,
+                  p25: null,
+                  p75: null,
+                  format: (v: number) => formatPercent(v),
+                  higher_is_better: true,
+                },
+              ].map(metric => {
+                if (metric.value == null) return null;
+                const bm = metric.benchmark;
+                if (bm == null) return (
+                  <div key={metric.label} className="bg-surface-50 rounded-xl p-4">
+                    <p className="text-xs text-surface-500 mb-1">{metric.label}</p>
+                    <p className={`text-2xl font-bold ${metric.value >= 0 ? 'text-surface-900' : 'text-red-600'}`}>
+                      {metric.format(metric.value)}
+                    </p>
+                    <p className="text-xs text-surface-400 mt-2">Loading industry avg…</p>
+                  </div>
+                );
+                const diff = metric.value - bm;
+                const better = metric.higher_is_better ? diff >= 0 : diff <= 0;
+                const inTopQuartile = metric.p75 != null && metric.value >= metric.p75;
+                const inBottomQuartile = metric.p25 != null && metric.value <= metric.p25;
+                return (
+                  <div key={metric.label} className="bg-surface-50 rounded-xl p-4">
+                    <p className="text-xs text-surface-500 mb-1">{metric.label}</p>
+                    <p className={`text-2xl font-bold ${metric.value >= 0 ? 'text-surface-900' : 'text-red-600'}`}>
+                      {metric.format(metric.value)}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        inTopQuartile ? 'bg-green-100 text-green-700' :
+                        inBottomQuartile ? 'bg-red-100 text-red-700' :
+                        better ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {better ? '▲' : '▼'} {metric.format(Math.abs(diff))} vs median
+                      </span>
+                    </div>
+                    <p className="text-xs text-surface-400 mt-1">
+                      Industry median: {metric.format(bm)}
+                      {metric.p25 != null && metric.p75 != null && (
+                        <> · IQR {metric.format(metric.p25)}–{metric.format(metric.p75)}</>
+                      )}
+                    </p>
+                  </div>
+                );
+              }).filter(Boolean)}
+            </div>
+          </Card>
         </div>
       )}
 
-      {activeTab === 'flows' && (
+      {!isRegistryOnly && activeTab === 'flows' && (
         <div className="space-y-6">
           {/* Sankey Diagram — full-width */}
           <SankeyFlow data={incomeData} />
@@ -238,6 +448,9 @@ export default function InstitutionPage() {
             <DollarBreakdown data={assetBreakdownData} />
           </div>
 
+          {/* Loan portfolio breakdown */}
+          <LoanSunburst raw={raw} totalLoans={institution.total_loans} />
+
           {/* Detailed income + balance below */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <IncomeFlow data={incomeData} />
@@ -254,7 +467,7 @@ export default function InstitutionPage() {
         </div>
       )}
 
-      {activeTab === 'peers' && (
+      {!isRegistryOnly && activeTab === 'peers' && (
         <div className="space-y-6">
           {peerData ? (
             <>
@@ -295,7 +508,20 @@ export default function InstitutionPage() {
         </div>
       )}
 
-      {activeTab === 'history' && (
+      {!isRegistryOnly && activeTab === 'risk' && (
+        <div className="space-y-6">
+          <KeyMetrics raw={raw} institution={institution} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <StrengthsFlags institution={institution} raw={raw} />
+            <CAMELSScore institution={institution} raw={raw} />
+          </div>
+          <p className="text-xs text-surface-400 text-center">
+            Data sourced from FDIC Call Reports (BankFind Suite). CAMELS approximation uses public financial ratios only.
+          </p>
+        </div>
+      )}
+
+      {!isRegistryOnly && activeTab === 'history' && (
         <div className="space-y-6">
           <HistoryChart history={history} />
         </div>

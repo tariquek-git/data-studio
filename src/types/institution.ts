@@ -1,7 +1,7 @@
 export interface Institution {
   id: string;
   cert_number: number;
-  source: 'fdic' | 'ncua' | 'osfi' | 'rpaa';
+  source: 'fdic' | 'ncua' | 'osfi' | 'rpaa' | 'ciro' | 'fintrac' | 'fincen';
   name: string;
   legal_name: string | null;
   charter_type: string | null; // 'commercial', 'savings', 'savings_association', 'credit_union', etc.
@@ -31,6 +31,7 @@ export interface Institution {
   credit_card_loans: number | null;
   credit_card_charge_offs: number | null;
   // Metadata
+  country: string | null;  // 'US' or 'CA' — null treated as 'US'
   data_as_of: string | null;
   last_synced_at: string | null;
   raw_data: Record<string, unknown> | null;

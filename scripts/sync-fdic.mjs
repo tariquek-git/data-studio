@@ -30,6 +30,11 @@ const FIELDS = [
   'REGAGENT', 'LATITUDE', 'LONGITUDE', 'NUMEMP', 'LNCRCD',
   'STNAME', 'ACTIVE',
   'INTINC', 'NONII', 'EINTEXP', 'ELNATR', 'ELNANTR',
+  'ERNAST',                               // Earning assets — NIM denominator
+  'NIMY',                                 // Pre-computed NIM (uses avg earning assets)
+  'EEFFR',                                // Pre-computed Efficiency Ratio
+  'NPAM', 'NPLNLS', 'OREO', 'LNLSRES',   // Texas Ratio components
+  'RBCT1',                                // Tier 1 capital (dollar amount)
   'SC', 'LNRE', 'LNCI', 'LNCON', 'LNAG', 'NCLNLS',
 ].join(',');
 
@@ -73,14 +78,35 @@ async function main() {
 
     if (!latestDate) throw new Error('Could not determine latest reporting date');
 
-    // Fetch all institutions
+    // Pass 1: Fetch all institution names from /institutions endpoint (NAME not in /financials)
+    console.log('Fetching institution names...');
+    const nameMap = {};
+    let nameOffset = 0;
+    const nameLimit = 10000;
+    while (true) {
+      const url = `${FDIC_API}/institutions?fields=CERT,NAME&limit=${nameLimit}&offset=${nameOffset}&active=1`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data.data || data.data.length === 0) break;
+      for (const row of data.data) {
+        if (row.data?.CERT && row.data?.NAME) {
+          nameMap[Number(row.data.CERT)] = row.data.NAME;
+        }
+      }
+      console.log(`  Names fetched: ${Object.keys(nameMap).length}`);
+      if (data.data.length < nameLimit) break;
+      nameOffset += nameLimit;
+    }
+    console.log(`Total institution names fetched: ${Object.keys(nameMap).length}`);
+
+    // Pass 2: Fetch all financial data for the latest reporting period
     let offset = 0;
     const limit = 10000;
     let allRecords = [];
 
     while (true) {
       const url = `${FDIC_API}/financials?filters=REPDTE:${latestDate}&fields=${FIELDS}&limit=${limit}&offset=${offset}`;
-      console.log(`Fetching offset=${offset}...`);
+      console.log(`Fetching financials offset=${offset}...`);
       const res = await fetch(url);
       const data = await res.json();
 
@@ -97,10 +123,11 @@ async function main() {
     // Map to our schema
     const institutions = allRecords.map((record) => {
       const d = record.data;
+      const cert = Number(d.CERT);
       return {
-        cert_number: Number(d.CERT),
+        cert_number: cert,
         source: 'fdic',
-        name: d.INSTNAME || '',
+        name: nameMap[cert] || d.INSTNAME || '',
         city: d.CITY || null,
         state: d.STALP || null,
         zip: d.ZIP || null,
