@@ -1,158 +1,109 @@
-#!/usr/bin/env node
-/**
- * Data Sources Migration Runner
- *
- * 1. Attempts to create the data_sources table via the Supabase Management API
- *    (requires SUPABASE_ACCESS_TOKEN env var).
- * 2. Falls back to printing manual SQL instructions if the access token is not
- *    available.
- * 3. Seeds / upserts all data source records using the Supabase JS client.
- *
- * Usage:
- *   SUPABASE_ACCESS_TOKEN=<pat> node scripts/run-migration-data-sources.mjs
- *   node scripts/run-migration-data-sources.mjs   # prints instructions + seeds data
- */
+import type { DataSourceCategory, DataSourceCoverageType, DataSourceStatus } from '../src/types/data-source';
 
-import { createClient } from '@supabase/supabase-js';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// ---------------------------------------------------------------------------
-// Load .env.local
-// ---------------------------------------------------------------------------
-const envPath = join(__dirname, '..', '.env.local');
-const envContent = readFileSync(envPath, 'utf-8');
-const env = {};
-for (const line of envContent.split('\n')) {
-  const match = line.match(/^([^#=]+)=(.*)$/);
-  if (match) env[match[1].trim()] = match[2].trim();
+export interface SourceCatalogEntry {
+  source_key: string;
+  display_name: string;
+  description: string;
+  country: string;
+  regulator_url: string;
+  data_url: string;
+  update_frequency: string;
+  status: DataSourceStatus;
+  notes: string | null;
+  category: DataSourceCategory;
+  coverage_type: DataSourceCoverageType;
 }
 
-const SUPABASE_URL = env.SUPABASE_URL;
-const SERVICE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
+export const SOURCE_CATEGORY_LABELS: Record<DataSourceCategory, string> = {
+  institution_registry: 'Institution Registry',
+  financial_filings: 'Financial Filings',
+  holding_company: 'Holding Company',
+  community_reinvestment: 'Community Reinvestment',
+  payments_infrastructure: 'Payments Infrastructure',
+  market_data: 'Market Data',
+  complaint_data: 'Complaint Data',
+  corporate_filings: 'Corporate Filings',
+  licensing_registry: 'Licensing Registry',
+};
 
-if (!SUPABASE_URL || !SERVICE_KEY) {
-  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local');
-  process.exit(1);
-}
-
-const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
-const ref = SUPABASE_URL.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
-
-// ---------------------------------------------------------------------------
-// Step 1 — Create table via Management API (if access token present)
-// ---------------------------------------------------------------------------
-const sqlFile = join(__dirname, 'add-data-sources-table.sql');
-const sql = readFileSync(sqlFile, 'utf-8');
-
-async function runViaMgmtApi(accessToken) {
-  console.log(`Applying migration via Supabase Management API (project: ${ref})...`);
-  const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ query: sql }),
-  });
-
-  const body = await res.text();
-  if (res.ok) {
-    console.log('Migration applied successfully.');
-    return true;
-  } else {
-    console.error(`Management API error (${res.status}):`, body.slice(0, 500));
-    return false;
-  }
-}
-
-function printManualInstructions() {
-  console.log('\n=== MANUAL MIGRATION — data_sources table ===');
-  console.log('Apply the SQL migration manually using one of these methods:\n');
-  console.log('OPTION 1 — Supabase Dashboard SQL Editor:');
-  console.log(`  1. Open: https://supabase.com/dashboard/project/${ref}/sql/new`);
-  console.log(`  2. Paste the contents of: ${sqlFile}`);
-  console.log('  3. Click "Run"\n');
-  console.log('OPTION 2 — Supabase CLI:');
-  console.log('  supabase login && supabase link --project-ref', ref);
-  console.log('  supabase db push\n');
-  console.log('SQL preview:\n---');
-  console.log(sql.split('\n').slice(0, 20).join('\n'));
-  console.log('...\n---\n');
-}
-
-// ---------------------------------------------------------------------------
-// Step 2 — Seed / upsert data source records using the JS client
-// ---------------------------------------------------------------------------
-const DATA_SOURCES = [
+export const SOURCE_CATALOG: SourceCatalogEntry[] = [
   {
     source_key: 'fdic',
     display_name: 'FDIC BankFind Suite',
-    description: 'All FDIC-insured U.S. commercial banks and savings institutions',
+    description: 'FDIC-insured U.S. commercial banks and savings institutions with quarterly condition and branch data.',
     country: 'US',
     regulator_url: 'https://banks.data.fdic.gov',
     data_url: 'https://banks.data.fdic.gov/api/institutions',
     update_frequency: 'quarterly',
     status: 'active',
-    notes: '4,408 active institutions as of Q4 2025',
+    notes: 'Primary bank core for U.S. depository institutions.',
+    category: 'institution_registry',
+    coverage_type: 'institutions',
   },
   {
     source_key: 'ncua',
     display_name: 'NCUA Call Report Data',
-    description: 'All federally-insured U.S. credit unions (5300 Call Report)',
+    description: 'Federally insured U.S. credit union filings and quarterly financial condition data.',
     country: 'US',
     regulator_url: 'https://www.ncua.gov',
-    data_url: 'https://www.ncua.gov/analysis/credit-union-corporate/call-report-data-download',
+    data_url: 'https://www.ncua.gov/analysis/credit-union-corporate-call-report-data',
     update_frequency: 'quarterly',
     status: 'active',
-    notes: '4,287 credit unions loaded Q4 2025',
+    notes: 'Quarterly 5300-style credit union coverage.',
+    category: 'financial_filings',
+    coverage_type: 'institutions',
   },
   {
     source_key: 'osfi',
     display_name: 'OSFI Who We Regulate',
-    description: 'Federally-regulated Canadian financial institutions',
+    description: 'Federally regulated Canadian financial institutions supervised by OSFI.',
     country: 'CA',
     regulator_url: 'https://www.osfi-bsif.gc.ca',
-    data_url: 'https://www.osfi-bsif.gc.ca/en/supervised-institutions-activities/federally-regulated-financial-institutions',
+    data_url: 'https://www.osfi-bsif.gc.ca/en/supervision/who-we-regulate',
     update_frequency: 'daily',
     status: 'active',
-    notes: null,
+    notes: 'Canadian regulated bank and insurer authority list.',
+    category: 'institution_registry',
+    coverage_type: 'institutions',
   },
   {
     source_key: 'rpaa',
     display_name: 'Bank of Canada RPAA Registry',
-    description: 'Registered Payment Service Providers under the Retail Payments Activities Act',
+    description: 'Registered payment service providers under the Retail Payment Activities Act.',
     country: 'CA',
-    regulator_url: 'https://rps.bankofcanada.ca',
-    data_url: 'https://www.bankofcanada.ca/rps-api/cif2/accounts/list',
+    regulator_url: 'https://www.bankofcanada.ca',
+    data_url: 'https://www.bankofcanada.ca/core-functions/funds-management/retail-payments-supervision/',
     update_frequency: 'realtime',
     status: 'active',
-    notes: '~320 PSPs registered',
+    notes: 'Registry-backed PSP coverage for Canada.',
+    category: 'licensing_registry',
+    coverage_type: 'entities',
   },
   {
     source_key: 'ciro',
     display_name: 'CIRO Member Registry',
-    description: 'Canadian Investment Regulatory Organization — investment and mutual fund dealers',
+    description: 'Canadian Investment Regulatory Organization member firms and dealer lookup data.',
     country: 'CA',
     regulator_url: 'https://www.ciro.ca',
     data_url: 'https://www.ciro.ca/investors/check-your-advisor-dealer',
     update_frequency: 'monthly',
     status: 'active',
-    notes: null,
+    notes: 'Dealer registry for securities and mutual fund participants.',
+    category: 'licensing_registry',
+    coverage_type: 'entities',
   },
   {
     source_key: 'fintrac',
     display_name: 'FINTRAC MSB Registry',
-    description: 'Money Services Businesses including crypto exchanges',
+    description: 'Canadian money services businesses and foreign MSBs registered with FINTRAC.',
     country: 'CA',
-    regulator_url: 'https://www10.fintrac-canafe.gc.ca',
+    regulator_url: 'https://fintrac-canafe.canada.ca',
     data_url: 'https://www10.fintrac-canafe.gc.ca/msb-esm/public/msb-list/',
     update_frequency: 'realtime',
     status: 'active',
-    notes: null,
+    notes: 'Includes Canadian MSBs and crypto-adjacent entities.',
+    category: 'licensing_registry',
+    coverage_type: 'entities',
   },
   {
     source_key: 'fincen',
@@ -164,6 +115,8 @@ const DATA_SOURCES = [
     update_frequency: 'realtime',
     status: 'active',
     notes: 'Current repo has a starter loaded subset.',
+    category: 'licensing_registry',
+    coverage_type: 'entities',
   },
   {
     source_key: 'ffiec_cdr',
@@ -175,6 +128,8 @@ const DATA_SOURCES = [
     update_frequency: 'quarterly',
     status: 'pending',
     notes: 'Planned deeper call report field coverage beyond the FDIC subset.',
+    category: 'financial_filings',
+    coverage_type: 'institutions',
   },
   {
     source_key: 'ffiec_nic',
@@ -186,6 +141,8 @@ const DATA_SOURCES = [
     update_frequency: 'quarterly',
     status: 'pending',
     notes: 'Planned holding-company and affiliate structure layer.',
+    category: 'holding_company',
+    coverage_type: 'entities',
   },
   {
     source_key: 'ffiec_hmda',
@@ -197,6 +154,8 @@ const DATA_SOURCES = [
     update_frequency: 'annual',
     status: 'pending',
     notes: 'Planned mortgage-market and fair-lending context.',
+    category: 'market_data',
+    coverage_type: 'records',
   },
   {
     source_key: 'ffiec_census',
@@ -208,6 +167,8 @@ const DATA_SOURCES = [
     update_frequency: 'annual',
     status: 'pending',
     notes: 'Planned geographic benchmarking and tract overlays.',
+    category: 'market_data',
+    coverage_type: 'records',
   },
   {
     source_key: 'ffiec_cra',
@@ -219,6 +180,8 @@ const DATA_SOURCES = [
     update_frequency: 'quarterly',
     status: 'pending',
     notes: 'Current app uses some live enrichment but does not persist the source yet.',
+    category: 'community_reinvestment',
+    coverage_type: 'records',
   },
   {
     source_key: 'occ',
@@ -230,6 +193,8 @@ const DATA_SOURCES = [
     update_frequency: 'monthly',
     status: 'pending',
     notes: 'Planned charter-family and trust-bank expansion source.',
+    category: 'institution_registry',
+    coverage_type: 'institutions',
   },
   {
     source_key: 'frb_routing',
@@ -241,6 +206,8 @@ const DATA_SOURCES = [
     update_frequency: 'daily',
     status: 'pending',
     notes: 'Planned payments-infrastructure context for rails and routing status.',
+    category: 'payments_infrastructure',
+    coverage_type: 'records',
   },
   {
     source_key: 'sec_edgar',
@@ -252,6 +219,8 @@ const DATA_SOURCES = [
     update_frequency: 'daily',
     status: 'pending',
     notes: 'Planned public-company parent, issuer, and fintech filing context.',
+    category: 'corporate_filings',
+    coverage_type: 'filings',
   },
   {
     source_key: 'cfpb_complaints',
@@ -263,6 +232,8 @@ const DATA_SOURCES = [
     update_frequency: 'daily',
     status: 'pending',
     notes: 'Planned reputation and complaint-signal layer.',
+    category: 'complaint_data',
+    coverage_type: 'complaints',
   },
   {
     source_key: 'nmls',
@@ -274,76 +245,33 @@ const DATA_SOURCES = [
     update_frequency: 'daily',
     status: 'pending',
     notes: 'Planned state-licensed nonbank expansion.',
+    category: 'licensing_registry',
+    coverage_type: 'entities',
   },
   {
     source_key: 'cmhc',
     display_name: 'CMHC Housing Data',
-    description: 'Canada Mortgage and Housing Corporation — housing starts, prices, arrears',
+    description: 'Canadian housing and mortgage market data from Canada Mortgage and Housing Corporation.',
     country: 'CA',
     regulator_url: 'https://www.cmhc-schl.gc.ca',
     data_url: 'https://www.cmhc-schl.gc.ca/en/data-and-research',
     update_frequency: 'monthly',
     status: 'active',
-    notes: 'Aggregate market data only',
+    notes: 'Aggregate Canadian housing and mortgage context.',
+    category: 'market_data',
+    coverage_type: 'series',
   },
   {
     source_key: 'boc',
     display_name: 'Bank of Canada Valet API',
-    description: 'Key policy rates, mortgage rates, exchange rates',
+    description: 'Bank of Canada policy rates, market series, and macro reference data.',
     country: 'CA',
-    regulator_url: 'https://www.bankofcanada.ca/valet',
-    data_url: 'https://www.bankofcanada.ca/valet/observations',
+    regulator_url: 'https://www.bankofcanada.ca',
+    data_url: 'https://www.bankofcanada.ca/valet/docs',
     update_frequency: 'realtime',
     status: 'active',
-    notes: 'Aggregate data only — not institution-specific',
+    notes: 'Aggregate market and policy series only.',
+    category: 'market_data',
+    coverage_type: 'series',
   },
 ];
-
-async function seedDataSources() {
-  console.log('\nSeeding data_sources table...');
-
-  const { data, error } = await supabase
-    .from('data_sources')
-    .upsert(DATA_SOURCES, { onConflict: 'source_key' })
-    .select();
-
-  if (error) {
-    if (error.code === '42P01') {
-      console.error(
-        'Table data_sources does not exist yet.\n' +
-          'Apply the SQL migration first (see instructions above), then re-run this script.'
-      );
-    } else {
-      console.error('Upsert error:', error.message);
-    }
-    return false;
-  }
-
-  console.log(`Seeded ${data?.length ?? 0} data source records:`);
-  for (const row of data ?? []) {
-    console.log(`  [${row.country}] ${row.source_key} — ${row.display_name} (${row.status})`);
-  }
-  return true;
-}
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-async function main() {
-  const accessToken = process.env.SUPABASE_ACCESS_TOKEN;
-
-  if (accessToken) {
-    const ok = await runViaMgmtApi(accessToken);
-    if (!ok) printManualInstructions();
-  } else {
-    console.log('No SUPABASE_ACCESS_TOKEN found — skipping automatic migration.');
-    printManualInstructions();
-  }
-
-  await seedDataSources();
-}
-
-main().catch((err) => {
-  console.error('Fatal error:', err);
-  process.exit(1);
-});

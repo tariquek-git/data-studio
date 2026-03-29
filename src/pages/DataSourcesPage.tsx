@@ -1,46 +1,21 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, RefreshCw, CheckCircle2, Clock, AlertCircle, Info } from 'lucide-react';
-import { Card, Badge, Skeleton } from '@/components/ui';
+import { ExternalLink, RefreshCw, CheckCircle2, Clock, AlertCircle, Info, Database, Search } from 'lucide-react';
+import { Card, Badge, Skeleton, Input, Select } from '@/components/ui';
+import type { DataSourceCategory, DataSourcesResponse, DataSourceSummary } from '@/types/data-source';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface DataSource {
-  id: string;
-  source_key: string;
-  display_name: string;
-  description: string | null;
+async function fetchDataSources(params: {
+  q: string;
   country: string;
-  regulator_url: string | null;
-  data_url: string | null;
-  institution_count: number;
-  last_synced_at: string | null;
-  data_as_of: string | null;
-  update_frequency: string | null;
-  status: 'active' | 'pending' | 'unavailable';
-  notes: string | null;
-  created_at: string;
-}
+  category: string;
+}): Promise<DataSourcesResponse> {
+  const search = new URLSearchParams();
+  if (params.q) search.set('q', params.q);
+  if (params.country !== 'all') search.set('country', params.country);
+  if (params.category !== 'all') search.set('category', params.category);
 
-// ---------------------------------------------------------------------------
-// Fetch helper — reads directly from Supabase via the client-side anon key
-// ---------------------------------------------------------------------------
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-
-async function fetchDataSources(): Promise<DataSource[]> {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/data_sources?select=*&order=country.asc,source_key.asc`,
-    {
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-    }
-  );
+  const suffix = search.toString();
+  const res = await fetch(`/api/sources${suffix ? `?${suffix}` : ''}`);
   if (!res.ok) throw new Error(`Failed to load data sources (${res.status})`);
   return res.json();
 }
@@ -52,6 +27,7 @@ async function fetchDataSources(): Promise<DataSource[]> {
 const COUNTRY_FLAGS: Record<string, string> = {
   US: '🇺🇸',
   CA: '🇨🇦',
+  NA: '🌐',
 };
 
 const COUNTRY_LABELS: Record<string, string> = {
@@ -64,9 +40,23 @@ const FREQ_LABELS: Record<string, string> = {
   daily: 'Daily',
   monthly: 'Monthly',
   quarterly: 'Quarterly',
+  annual: 'Annual',
 };
 
-function statusBadge(status: DataSource['status']) {
+const CATEGORY_OPTIONS: Array<{ value: 'all' | DataSourceCategory; label: string }> = [
+  { value: 'all', label: 'All categories' },
+  { value: 'institution_registry', label: 'Institution registries' },
+  { value: 'financial_filings', label: 'Financial filings' },
+  { value: 'holding_company', label: 'Holding company data' },
+  { value: 'licensing_registry', label: 'Licensing registries' },
+  { value: 'payments_infrastructure', label: 'Payments infrastructure' },
+  { value: 'market_data', label: 'Market and macro data' },
+  { value: 'community_reinvestment', label: 'CRA and community data' },
+  { value: 'corporate_filings', label: 'Corporate filings' },
+  { value: 'complaint_data', label: 'Complaint data' },
+];
+
+function statusBadge(status: DataSourceSummary['status']) {
   switch (status) {
     case 'active':
       return (
@@ -101,9 +91,32 @@ function formatSyncDate(iso: string | null) {
   });
 }
 
-function formatCount(n: number) {
-  if (!n) return '—';
+function formatCount(n: number | null) {
+  if (n == null || n <= 0) return '—';
   return n.toLocaleString();
+}
+
+function categoryColor(category: DataSourceCategory) {
+  switch (category) {
+    case 'institution_registry':
+      return 'blue';
+    case 'financial_filings':
+      return 'indigo';
+    case 'holding_company':
+      return 'purple';
+    case 'licensing_registry':
+      return 'orange';
+    case 'payments_infrastructure':
+      return 'green';
+    case 'market_data':
+      return 'gray';
+    case 'community_reinvestment':
+      return 'yellow';
+    case 'corporate_filings':
+      return 'red';
+    case 'complaint_data':
+      return 'red';
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -130,16 +143,21 @@ type CountryFilter = 'all' | 'US' | 'CA';
 
 export default function DataSourcesPage() {
   const [countryFilter, setCountryFilter] = useState<CountryFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | DataSourceCategory>('all');
 
-  const { data: sources, isLoading, error } = useQuery<DataSource[]>({
-    queryKey: ['data-sources'],
-    queryFn: fetchDataSources,
+  const { data, isLoading, error } = useQuery<DataSourcesResponse>({
+    queryKey: ['data-sources', searchQuery, countryFilter, categoryFilter],
+    queryFn: () =>
+      fetchDataSources({
+        q: searchQuery,
+        country: countryFilter,
+        category: categoryFilter,
+      }),
     staleTime: 5 * 60 * 1000,
   });
 
-  const filtered = (sources ?? []).filter(
-    (s) => countryFilter === 'all' || s.country === countryFilter
-  );
+  const sources = data?.sources ?? [];
 
   const usCounts = sources?.filter((s) => s.country === 'US').length ?? 0;
   const caCounts = sources?.filter((s) => s.country === 'CA').length ?? 0;
@@ -150,8 +168,8 @@ export default function DataSourcesPage() {
       <div>
         <h1 className="text-2xl font-bold text-surface-900">Data Sources</h1>
         <p className="mt-1 text-sm text-surface-500">
-          Every institution record in Data Studio traces back to one of the regulatory sources
-          listed below.
+          Data Studio tracks official North American regulatory, registry, market, filings, and
+          infrastructure sources here, with live ingestion status where available.
         </p>
       </div>
 
@@ -162,21 +180,76 @@ export default function DataSourcesPage() {
           <div className="text-sm text-primary-800 space-y-1">
             <p className="font-medium">Data provenance and audit philosophy</p>
             <p>
-              Data Studio only stores data that originates from official government registries and
-              regulatory bodies — FDIC, NCUA, OSFI, the Bank of Canada RPAA registry, CIRO,
-              FINTRAC, and Statistics Canada / CMHC aggregates. Each institution record carries a{' '}
-              <code className="bg-primary-100 px-1 rounded text-xs">source</code> key that maps
-              directly to the rows in this table, making every data point fully auditable. No
-              third-party data vendors are used.
+              Data Studio is built on official public authorities first: FDIC, NCUA, FFIEC, OCC,
+              the Federal Reserve, OSFI, the Bank of Canada, CIRO, FINTRAC, FinCEN, CMHC, the SEC,
+              CFPB, and related public registries. Each profile and dataset maps back to a stable{' '}
+              <code className="bg-primary-100 px-1 rounded text-xs">source_key</code>, so the
+              product can show provenance, freshness, and integration status in one place.
             </p>
             <p>
-              Financial figures are stored as reported by the source (FDIC amounts are in thousands
-              at source; we multiply by 1,000 on ingest). Sync timestamps record when data was last
-              pulled, not when the regulator published it.
+              Sync timestamps record when we last pulled or refreshed a source-backed dataset. Some
+              rows below are already loaded into the warehouse; others are tracked as planned
+              official sources for the next ingestion phases.
             </p>
           </div>
         </div>
       </Card>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <div className="flex items-center gap-3">
+            <Database className="h-5 w-5 text-primary-600" />
+            <div>
+              <p className="text-xs uppercase tracking-wide text-surface-400">Tracked Sources</p>
+              <p className="text-xl font-semibold text-surface-900">{data?.total ?? 0}</p>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <div>
+              <p className="text-xs uppercase tracking-wide text-surface-400">Loaded</p>
+              <p className="text-xl font-semibold text-surface-900">{data?.summary.loaded ?? 0}</p>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-3">
+            <Clock className="h-5 w-5 text-yellow-600" />
+            <div>
+              <p className="text-xs uppercase tracking-wide text-surface-400">Pending</p>
+              <p className="text-xl font-semibold text-surface-900">{data?.summary.pending ?? 0}</p>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-3">
+            <RefreshCw className="h-5 w-5 text-blue-600" />
+            <div>
+              <p className="text-xs uppercase tracking-wide text-surface-400">Active</p>
+              <p className="text-xl font-semibold text-surface-900">{data?.summary.active ?? 0}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+          <Input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search sources, datasets, regulators, or notes"
+            className="pl-9"
+          />
+        </div>
+        <Select
+          value={categoryFilter}
+          onChange={(event) => setCategoryFilter(event.target.value as 'all' | DataSourceCategory)}
+          options={CATEGORY_OPTIONS}
+        />
+      </div>
 
       {/* Filter bar */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -186,7 +259,7 @@ export default function DataSourcesPage() {
         {(['all', 'US', 'CA'] as CountryFilter[]).map((c) => {
           const label =
             c === 'all'
-              ? `All (${(sources ?? []).length})`
+              ? `All (${data?.total ?? 0})`
               : `${COUNTRY_FLAGS[c]} ${COUNTRY_LABELS[c]} (${c === 'US' ? usCounts : caCounts})`;
           return (
             <button
@@ -207,13 +280,9 @@ export default function DataSourcesPage() {
       {/* Error state */}
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Failed to load data sources. The{' '}
-          <code className="bg-red-100 px-1 rounded text-xs">data_sources</code> table may not
-          exist yet — run{' '}
-          <code className="bg-red-100 px-1 rounded text-xs">
-            node scripts/run-migration-data-sources.mjs
-          </code>{' '}
-          to create and seed it.
+          Failed to load source registry data. If the source catalog has not been seeded yet, run{' '}
+          <code className="bg-red-100 px-1 rounded text-xs">node scripts/run-migration-data-sources.mjs</code>{' '}
+          and refresh this page.
         </div>
       )}
 
@@ -225,9 +294,8 @@ export default function DataSourcesPage() {
               <tr className="border-b border-surface-200 bg-surface-50">
                 <th className="px-4 py-3 text-left font-semibold text-surface-700">Source</th>
                 <th className="px-4 py-3 text-left font-semibold text-surface-700">Country</th>
-                <th className="px-4 py-3 text-right font-semibold text-surface-700">
-                  Institutions
-                </th>
+                <th className="px-4 py-3 text-left font-semibold text-surface-700">Coverage</th>
+                <th className="px-4 py-3 text-left font-semibold text-surface-700">Category</th>
                 <th className="px-4 py-3 text-left font-semibold text-surface-700">Frequency</th>
                 <th className="px-4 py-3 text-left font-semibold text-surface-700">Last Synced</th>
                 <th className="px-4 py-3 text-left font-semibold text-surface-700">Status</th>
@@ -237,7 +305,7 @@ export default function DataSourcesPage() {
             <tbody>
               {isLoading
                 ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-                : filtered.map((src) => (
+                : sources.map((src) => (
                     <tr
                       key={src.source_key}
                       className="border-b border-surface-100 hover:bg-surface-50 transition-colors"
@@ -265,9 +333,20 @@ export default function DataSourcesPage() {
                         </span>
                       </td>
 
-                      {/* Institution count */}
-                      <td className="px-4 py-3 text-right tabular-nums text-surface-700">
-                        {formatCount(src.institution_count)}
+                      {/* Coverage */}
+                      <td className="px-4 py-3 text-surface-700">
+                        <div className="font-medium tabular-nums">{src.coverage_label}</div>
+                        {src.record_count != null && src.record_count > 0 && (
+                          <div className="text-xs text-surface-500">
+                            {formatCount(src.record_count)} tracked
+                            {src.data_as_of ? ` · as of ${src.data_as_of}` : ''}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Category */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <Badge color={categoryColor(src.category)}>{src.category_label}</Badge>
                       </td>
 
                       {/* Update frequency */}
@@ -308,9 +387,9 @@ export default function DataSourcesPage() {
 
                       {/* View source link */}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        {src.regulator_url ? (
+                        {src.data_url || src.regulator_url ? (
                           <a
-                            href={src.regulator_url}
+                            href={src.data_url ?? src.regulator_url ?? '#'}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 font-medium"
@@ -325,10 +404,10 @@ export default function DataSourcesPage() {
                     </tr>
                   ))}
 
-              {!isLoading && !error && filtered.length === 0 && (
+              {!isLoading && !error && sources.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-surface-400 text-sm">
-                    No data sources found for the selected filter.
+                  <td colSpan={8} className="px-4 py-10 text-center text-surface-400 text-sm">
+                    No data sources found for the current search and filters.
                   </td>
                 </tr>
               )}
@@ -339,10 +418,10 @@ export default function DataSourcesPage() {
 
       {/* Footer note */}
       <p className="text-xs text-surface-400 text-center">
-        Source records are maintained in the{' '}
-        <code className="bg-surface-100 px-1 rounded">data_sources</code> table in Supabase.
-        To add a new source, run the migration script and add a row with the appropriate{' '}
-        <code className="bg-surface-100 px-1 rounded">source_key</code>.
+        Source registry data is served by{' '}
+        <code className="bg-surface-100 px-1 rounded">/api/sources</code> and backed by the{' '}
+        <code className="bg-surface-100 px-1 rounded">data_sources</code> table plus live sync
+        metadata from the warehouse.
       </p>
     </div>
   );
