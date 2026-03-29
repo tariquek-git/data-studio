@@ -28,7 +28,7 @@ const supabase = createSupabaseServiceClient(env);
 const SOURCE = 'entity_warehouse_backfill';
 const BACKFILL_NOTE = 'Backfilled from legacy warehouse activation';
 const REGISTRY_SOURCES = new Set(['rpaa', 'ciro', 'fintrac', 'fincen']);
-const FDIC_SOD_URL = 'https://api.fdic.gov/banks/sod';
+const DEFAULT_BRANCH_REPORTING_YEAR = 2024;
 
 const REGISTRY_META = {
   rpaa: {
@@ -76,29 +76,19 @@ function toIsoDate(value) {
   return text;
 }
 
-async function resolveLatestSodYear() {
-  const override = process.env.FDIC_SOD_YEAR ? Number(process.env.FDIC_SOD_YEAR) : null;
-  if (override != null && Number.isFinite(override)) return override;
+function resolveBranchReportingYear() {
+  const candidates = [
+    process.env.BRANCH_REPORTING_YEAR,
+    process.env.FDIC_BRANCH_SOURCE_YEAR,
+    process.env.FDIC_SOD_YEAR,
+  ];
 
-  const url =
-    `${FDIC_SOD_URL}` +
-    '?fields=YEAR' +
-    '&limit=1' +
-    '&sort_by=YEAR' +
-    '&sort_order=DESC';
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Unable to resolve latest FDIC SOD year: HTTP ${response.status}`);
+  for (const candidate of candidates) {
+    const year = Number(candidate);
+    if (Number.isFinite(year)) return year;
   }
 
-  const payload = await response.json();
-  const year = Number(payload.data?.[0]?.data?.YEAR);
-  if (!Number.isFinite(year)) {
-    throw new Error('Unable to resolve latest FDIC SOD year from FDIC response');
-  }
-
-  return year;
+  return DEFAULT_BRANCH_REPORTING_YEAR;
 }
 
 async function fetchAllRows(table, columns, pageSize = 1000) {
@@ -156,41 +146,34 @@ function legacyRegistrationNumber(row) {
 
 function institutionExternalIds(row) {
   const raw = row.raw_data ?? {};
-  const ids = [
-    {
-      entity_table: 'institutions',
-      entity_id: row.id,
-      id_type: 'legacy_cert_number',
-      id_value: String(row.cert_number),
-      is_primary: true,
-      source_url: null,
-      notes: BACKFILL_NOTE,
-    },
-  ];
+  let primaryAssigned = false;
+  const ids = [];
 
-  if (row.source === 'fdic') {
+  const pushId = (id_type, id_value, isPrimary = false) => {
+    const text = normalizeText(id_value);
+    if (!text) return;
+    const makePrimary = Boolean(isPrimary && !primaryAssigned);
+    if (makePrimary) primaryAssigned = true;
     ids.push({
       entity_table: 'institutions',
       entity_id: row.id,
-      id_type: 'fdic_cert',
-      id_value: String(raw.CERT ?? row.cert_number),
-      is_primary: true,
+      id_type,
+      id_value: text,
+      is_primary: makePrimary,
       source_url: null,
       notes: BACKFILL_NOTE,
     });
+  };
+
+  if (row.source === 'fdic') {
+    pushId('fdic_cert', raw.CERT ?? row.cert_number, true);
   }
 
   if (row.source === 'ncua') {
-    ids.push({
-      entity_table: 'institutions',
-      entity_id: row.id,
-      id_type: 'ncua_charter',
-      id_value: String(raw.CU_NUMBER ?? raw.CREDIT_UNION_NUMBER ?? row.cert_number),
-      is_primary: true,
-      source_url: null,
-      notes: BACKFILL_NOTE,
-    });
+    pushId('ncua_charter', raw.CU_NUMBER ?? raw.CREDIT_UNION_NUMBER ?? row.cert_number, true);
   }
+
+  pushId('legacy_cert_number', row.cert_number, !primaryAssigned);
 
   const optionalIds = [
     ['rssd_id', raw.RSSD ?? raw.ID_RSSD],
@@ -202,20 +185,20 @@ function institutionExternalIds(row) {
   ];
 
   for (const [idType, idValue] of optionalIds) {
-    const text = normalizeText(idValue);
-    if (!text) continue;
-    ids.push({
-      entity_table: 'institutions',
-      entity_id: row.id,
-      id_type: idType,
-      id_value: text,
-      is_primary: false,
-      source_url: null,
-      notes: BACKFILL_NOTE,
-    });
+    pushId(idType, idValue, false);
   }
 
   return ids;
+}
+
+function tagId(entity_table, entity_id, tag_key, tag_value) {
+  return stableUuid(`tag:${entity_table}:${entity_id}:${tag_key}:${tag_value}`);
+}
+
+function factId(entity_table, entity_id, fact_type, fact_key, fact_value_text, observed_at) {
+  return stableUuid(
+    `fact:${entity_table}:${entity_id}:${fact_type ?? ''}:${fact_key ?? ''}:${fact_value_text ?? ''}:${observed_at ?? ''}`
+  );
 }
 
 function institutionTags(row) {
@@ -223,6 +206,7 @@ function institutionTags(row) {
 
   if (row.charter_type) {
     tags.push({
+      id: tagId('institutions', row.id, 'charter_family', row.charter_type),
       entity_table: 'institutions',
       entity_id: row.id,
       tag_key: 'charter_family',
@@ -247,6 +231,7 @@ function institutionTags(row) {
 
   if (role) {
     tags.push({
+      id: tagId('institutions', row.id, 'business_role', role),
       entity_table: 'institutions',
       entity_id: row.id,
       tag_key: 'business_role',
@@ -304,13 +289,18 @@ function registryPayloadFromInstitution(row) {
 function registryExternalIds(registryRow, legacyRow) {
   const raw = legacyRow.raw_data ?? {};
   const meta = REGISTRY_META[legacyRow.source];
+  const preferredSourceId =
+    normalizeText(meta?.registration_field ? raw[meta.registration_field] : null) ??
+    normalizeText(raw.boc_id) ??
+    normalizeText(raw.nmls_id);
+  const preferredIsDistinct = preferredSourceId && preferredSourceId !== registryRow.registration_number;
   const ids = [
     {
       entity_table: 'registry_entities',
       entity_id: registryRow.id,
       id_type: 'registration_number',
       id_value: registryRow.registration_number,
-      is_primary: true,
+      is_primary: !preferredIsDistinct,
       source_url: null,
       notes: BACKFILL_NOTE,
     },
@@ -325,11 +315,7 @@ function registryExternalIds(registryRow, legacyRow) {
     },
   ];
 
-  const preferredSourceId = normalizeText(
-    meta?.registration_field ? raw[meta.registration_field] : null
-  ) ?? normalizeText(raw.boc_id) ?? normalizeText(raw.nmls_id);
-
-  if (preferredSourceId && meta?.id_type) {
+  if (preferredSourceId && meta?.id_type && preferredIsDistinct) {
     ids.push({
       entity_table: 'registry_entities',
       entity_id: registryRow.id,
@@ -348,6 +334,12 @@ function registryTags(registryRow, legacyRow) {
   const meta = REGISTRY_META[legacyRow.source];
   const tags = [
     {
+      id: tagId(
+        'registry_entities',
+        registryRow.id,
+        'business_role',
+        meta?.business_role ?? registryRow.entity_subtype
+      ),
       entity_table: 'registry_entities',
       entity_id: registryRow.id,
       tag_key: 'business_role',
@@ -360,6 +352,7 @@ function registryTags(registryRow, legacyRow) {
       notes: BACKFILL_NOTE,
     },
     {
+      id: tagId('registry_entities', registryRow.id, 'charter_family', registryRow.entity_subtype),
       entity_table: 'registry_entities',
       entity_id: registryRow.id,
       tag_key: 'charter_family',
@@ -382,6 +375,14 @@ function registryFacts(registryRow, legacyRow) {
 
   return [
     {
+      id: factId(
+        'registry_entities',
+        registryRow.id,
+        'registration',
+        'registration_status',
+        status,
+        legacyRow.last_synced_at
+      ),
       entity_table: 'registry_entities',
       entity_id: registryRow.id,
       fact_type: 'registration',
@@ -458,7 +459,7 @@ async function main() {
         'cert_number, branch_number, main_office, total_deposits'
       ),
     ]);
-    const latestSodYear = await resolveLatestSodYear();
+    const branchReportingYear = resolveBranchReportingYear();
 
     const institutionsByCert = new Map(
       institutions.map((row) => [Number(row.cert_number), row])
@@ -492,7 +493,6 @@ async function main() {
       if (error) throw new Error(`Unable to upsert entity_external_ids: ${error.message}`);
     }
 
-    await supabase.from('entity_tags').delete().eq('notes', BACKFILL_NOTE);
     const tagRows = [
       ...institutions.flatMap(institutionTags),
       ...registryLegacyRows.flatMap((legacyRow) => {
@@ -502,18 +502,17 @@ async function main() {
     ];
 
     for (const batch of chunkArray(tagRows, 500)) {
-      const { error } = await supabase.from('entity_tags').insert(batch);
-      if (error) throw new Error(`Unable to insert entity_tags: ${error.message}`);
+      const { error } = await supabase.from('entity_tags').upsert(batch, { onConflict: 'id' });
+      if (error) throw new Error(`Unable to upsert entity_tags: ${error.message}`);
     }
 
-    await supabase.from('entity_facts').delete().eq('notes', BACKFILL_NOTE);
     const factRows = registryLegacyRows.flatMap((legacyRow) => {
       const registryRow = registryRowsByLegacyCert.get(legacyRow.cert_number);
       return registryRow ? registryFacts(registryRow, legacyRow) : [];
     });
     for (const batch of chunkArray(factRows, 400)) {
-      const { error } = await supabase.from('entity_facts').insert(batch);
-      if (error) throw new Error(`Unable to insert entity_facts: ${error.message}`);
+      const { error } = await supabase.from('entity_facts').upsert(batch, { onConflict: 'id' });
+      if (error) throw new Error(`Unable to upsert entity_facts: ${error.message}`);
     }
 
     const quarterlyRows = financialHistory
@@ -550,7 +549,7 @@ async function main() {
       if (error) throw new Error(`Unable to upsert financial_history_quarterly: ${error.message}`);
     }
 
-    const branchAnnualRows = aggregateBranches(branches, institutionsByCert, latestSodYear);
+    const branchAnnualRows = aggregateBranches(branches, institutionsByCert, branchReportingYear);
     for (const batch of chunkArray(branchAnnualRows, 500)) {
       const { error } = await supabase
         .from('branch_history_annual')

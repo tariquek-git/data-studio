@@ -60,10 +60,12 @@ CREATE INDEX IF NOT EXISTS idx_registry_entities_raw_data ON registry_entities U
 
 ALTER TABLE registry_entities ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read access on registry_entities" ON registry_entities;
 CREATE POLICY "Public read access on registry_entities"
   ON registry_entities FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Service role write access on registry_entities" ON registry_entities;
 CREATE POLICY "Service role write access on registry_entities"
   ON registry_entities FOR ALL
   USING (auth.role() = 'service_role')
@@ -113,10 +115,12 @@ CREATE INDEX IF NOT EXISTS idx_ecosystem_entities_raw_data ON ecosystem_entities
 
 ALTER TABLE ecosystem_entities ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read access on ecosystem_entities" ON ecosystem_entities;
 CREATE POLICY "Public read access on ecosystem_entities"
   ON ecosystem_entities FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Service role write access on ecosystem_entities" ON ecosystem_entities;
 CREATE POLICY "Service role write access on ecosystem_entities"
   ON ecosystem_entities FOR ALL
   USING (auth.role() = 'service_role')
@@ -148,13 +152,18 @@ CREATE TABLE IF NOT EXISTS entity_external_ids (
 CREATE INDEX IF NOT EXISTS idx_entity_external_ids_entity ON entity_external_ids(entity_table, entity_id);
 CREATE INDEX IF NOT EXISTS idx_entity_external_ids_type ON entity_external_ids(id_type);
 CREATE INDEX IF NOT EXISTS idx_entity_external_ids_value ON entity_external_ids(id_value);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_entity_external_ids_primary
+  ON entity_external_ids(entity_table, entity_id)
+  WHERE is_primary;
 
 ALTER TABLE entity_external_ids ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read access on entity_external_ids" ON entity_external_ids;
 CREATE POLICY "Public read access on entity_external_ids"
   ON entity_external_ids FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Service role write access on entity_external_ids" ON entity_external_ids;
 CREATE POLICY "Service role write access on entity_external_ids"
   ON entity_external_ids FOR ALL
   USING (auth.role() = 'service_role')
@@ -191,10 +200,12 @@ CREATE INDEX IF NOT EXISTS idx_entity_tags_source_kind ON entity_tags(source_kin
 
 ALTER TABLE entity_tags ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read access on entity_tags" ON entity_tags;
 CREATE POLICY "Public read access on entity_tags"
   ON entity_tags FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Service role write access on entity_tags" ON entity_tags;
 CREATE POLICY "Service role write access on entity_tags"
   ON entity_tags FOR ALL
   USING (auth.role() = 'service_role')
@@ -236,10 +247,12 @@ CREATE INDEX IF NOT EXISTS idx_entity_facts_json ON entity_facts USING gin (fact
 
 ALTER TABLE entity_facts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read access on entity_facts" ON entity_facts;
 CREATE POLICY "Public read access on entity_facts"
   ON entity_facts FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Service role write access on entity_facts" ON entity_facts;
 CREATE POLICY "Service role write access on entity_facts"
   ON entity_facts FOR ALL
   USING (auth.role() = 'service_role')
@@ -283,10 +296,12 @@ CREATE INDEX IF NOT EXISTS idx_entity_relationships_raw_data ON entity_relations
 
 ALTER TABLE entity_relationships ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read access on entity_relationships" ON entity_relationships;
 CREATE POLICY "Public read access on entity_relationships"
   ON entity_relationships FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Service role write access on entity_relationships" ON entity_relationships;
 CREATE POLICY "Service role write access on entity_relationships"
   ON entity_relationships FOR ALL
   USING (auth.role() = 'service_role')
@@ -327,10 +342,12 @@ CREATE INDEX IF NOT EXISTS idx_charter_events_raw_data ON charter_events USING g
 
 ALTER TABLE charter_events ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read access on charter_events" ON charter_events;
 CREATE POLICY "Public read access on charter_events"
   ON charter_events FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Service role write access on charter_events" ON charter_events;
 CREATE POLICY "Service role write access on charter_events"
   ON charter_events FOR ALL
   USING (auth.role() = 'service_role')
@@ -373,10 +390,12 @@ CREATE INDEX IF NOT EXISTS idx_financial_history_quarterly_raw_data ON financial
 
 ALTER TABLE financial_history_quarterly ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read access on financial_history_quarterly" ON financial_history_quarterly;
 CREATE POLICY "Public read access on financial_history_quarterly"
   ON financial_history_quarterly FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Service role write access on financial_history_quarterly" ON financial_history_quarterly;
 CREATE POLICY "Service role write access on financial_history_quarterly"
   ON financial_history_quarterly FOR ALL
   USING (auth.role() = 'service_role')
@@ -415,10 +434,12 @@ CREATE INDEX IF NOT EXISTS idx_branch_history_annual_raw_data ON branch_history_
 
 ALTER TABLE branch_history_annual ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read access on branch_history_annual" ON branch_history_annual;
 CREATE POLICY "Public read access on branch_history_annual"
   ON branch_history_annual FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Service role write access on branch_history_annual" ON branch_history_annual;
 CREATE POLICY "Service role write access on branch_history_annual"
   ON branch_history_annual FOR ALL
   USING (auth.role() = 'service_role')
@@ -460,10 +481,12 @@ CREATE INDEX IF NOT EXISTS idx_macro_series_raw_data ON macro_series USING gin (
 
 ALTER TABLE macro_series ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read access on macro_series" ON macro_series;
 CREATE POLICY "Public read access on macro_series"
   ON macro_series FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Service role write access on macro_series" ON macro_series;
 CREATE POLICY "Service role write access on macro_series"
   ON macro_series FOR ALL
   USING (auth.role() = 'service_role')
@@ -473,4 +496,3 @@ DROP TRIGGER IF EXISTS macro_series_updated_at ON macro_series;
 CREATE TRIGGER macro_series_updated_at
   BEFORE UPDATE ON macro_series
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
