@@ -15,6 +15,8 @@ const DataSourcesPage = lazy(() => import('./pages/DataSourcesPage'));
 const WatchlistPage = lazy(() => import('./pages/WatchlistPage'));
 const ScreenerPage = lazy(() => import('./pages/ScreenerPage'));
 const FailuresPage = lazy(() => import('./pages/FailuresPage'));
+const EntitiesPage = lazy(() => import('./pages/EntitiesPage'));
+const EntityPage = lazy(() => import('./pages/EntityPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 5 * 60 * 1000, retry: 1 } },
@@ -45,6 +47,8 @@ export default function App() {
                 <Route path="/compare" element={<ComparePage />} />
                 <Route path="/qa" element={<QAPage />} />
                 <Route path="/sources" element={<DataSourcesPage />} />
+                <Route path="/entities" element={<EntitiesPage />} />
+                <Route path="/entities/:entityId" element={<EntityPage />} />
                 <Route path="/watchlist" element={<WatchlistPage />} />
                 <Route path="/screen" element={<ScreenerPage />} />
                 <Route path="/failures" element={<FailuresPage />} />
