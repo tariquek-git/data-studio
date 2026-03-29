@@ -19,6 +19,7 @@ import { KeyMetrics } from '@/components/institution/KeyMetrics';
 import { StrengthsFlags } from '@/components/institution/StrengthsFlags';
 import { CAMELSScore } from '@/components/institution/CAMELSScore';
 import { AISummary } from '@/components/institution/AISummary';
+import { AnomalyFlags } from '@/components/institution/AnomalyFlags';
 import { EnrichmentPanel } from '@/components/institution/EnrichmentPanel';
 import { RegistryProfile } from '@/components/institution/RegistryProfile';
 import { Card, Skeleton } from '@/components/ui';
@@ -212,6 +213,9 @@ export default function InstitutionPage() {
       {!isRegistryOnly && activeTab === 'overview' && (
         <div className="space-y-6">
           <FinancialSnapshot institution={institution} />
+
+          {/* Statistical anomaly flags vs. industry benchmarks */}
+          <AnomalyFlags institution={institution} raw={raw} />
 
           {/* Public records enrichment: CRA, enforcement actions, SEC filings, Wikipedia */}
           <EnrichmentPanel institution={institution} />
@@ -523,7 +527,7 @@ export default function InstitutionPage() {
 
       {!isRegistryOnly && activeTab === 'history' && (
         <div className="space-y-6">
-          <HistoryChart history={history} />
+          <HistoryChart history={history} institution={{ source: institution.source }} />
         </div>
       )}
 

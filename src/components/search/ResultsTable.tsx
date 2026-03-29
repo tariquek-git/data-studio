@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
-import { Badge } from '@/components/ui';
+import { Badge, WatchlistButton } from '@/components/ui';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format';
 import type { Institution } from '@/types/institution';
 import type { SortField } from '@/types/filters';
@@ -163,6 +163,9 @@ export function ResultsTable({ institutions, sortBy, sortDir, onSort }: ResultsT
                 </span>
               </th>
             ))}
+
+            {/* Watchlist column */}
+            <th scope="col" className="px-3 py-3 w-10" aria-label="Watchlist" />
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-surface-100">
@@ -238,6 +241,11 @@ export function ResultsTable({ institutions, sortBy, sortDir, onSort }: ResultsT
                   }`}
                 >
                   {formatPercent(inst.roi)}
+                </td>
+
+                {/* Watchlist */}
+                <td className="px-3 py-3 w-10">
+                  <WatchlistButton certNumber={inst.cert_number} size="sm" />
                 </td>
               </tr>
             );

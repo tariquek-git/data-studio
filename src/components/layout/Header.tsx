@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { Menu, X, Database, ExternalLink } from 'lucide-react';
+import { useWatchlist } from '@/hooks/useWatchlist';
 
 const NAV_LINKS = [
   { to: '/search', label: 'Search' },
+  { to: '/screen', label: 'Screener' },
   { to: '/compare', label: 'Compare' },
   { to: '/market', label: 'Market Map' },
   { to: '/analytics', label: 'Analytics' },
@@ -13,6 +15,7 @@ const NAV_LINKS = [
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const { watchlist } = useWatchlist();
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-surface-200">
@@ -44,6 +47,21 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            <Link
+              to="/watchlist"
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                location.pathname === '/watchlist'
+                  ? 'bg-primary-50 text-primary-700'
+                  : 'text-surface-600 hover:text-surface-900 hover:bg-surface-100'
+              }`}
+            >
+              Watchlist
+              {watchlist.length > 0 && (
+                <span className="inline-flex items-center justify-center rounded-full bg-amber-100 text-amber-700 text-xs font-medium px-1.5 py-0.5 min-w-[1.25rem]">
+                  {watchlist.length}
+                </span>
+              )}
+            </Link>
             <a
               href="https://fintechcommons.com"
               target="_blank"
@@ -84,6 +102,22 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            <Link
+              to="/watchlist"
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+                location.pathname === '/watchlist'
+                  ? 'bg-primary-50 text-primary-700'
+                  : 'text-surface-600 hover:text-surface-900 hover:bg-surface-100'
+              }`}
+            >
+              Watchlist
+              {watchlist.length > 0 && (
+                <span className="inline-flex items-center justify-center rounded-full bg-amber-100 text-amber-700 text-xs font-medium px-1.5 py-0.5 min-w-[1.25rem]">
+                  {watchlist.length}
+                </span>
+              )}
+            </Link>
             <a
               href="https://fintechcommons.com"
               target="_blank"

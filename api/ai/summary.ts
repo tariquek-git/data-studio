@@ -7,6 +7,8 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+const CACHE_TTL_DAYS = 7;
+
 function getRaw(raw: Record<string, unknown> | null, field: string): number | null {
   if (!raw || raw[field] == null) return null;
   const v = Number(raw[field]);
@@ -28,6 +30,33 @@ export default apiHandler({ methods: ['POST'] }, async (req: VercelRequest, res:
 
   const supabase = getSupabase();
 
+  // ------------------------------------------------------------------
+  // 1. Check cache in ai_summaries table
+  // ------------------------------------------------------------------
+  const { data: cached } = await supabase
+    .from('ai_summaries')
+    .select('summary, generated_at')
+    .eq('cert_number', certNumber)
+    .single();
+
+  if (cached) {
+    const generatedAt = new Date(cached.generated_at);
+    const ageMs = Date.now() - generatedAt.getTime();
+    const ageDays = ageMs / (1000 * 60 * 60 * 24);
+
+    if (ageDays <= CACHE_TTL_DAYS) {
+      res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=3600');
+      return res.json({
+        summary: cached.summary,
+        generated_at: cached.generated_at,
+        cached: true,
+      });
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // 2. Fetch institution data
+  // ------------------------------------------------------------------
   const { data: institution, error } = await supabase
     .from('institutions')
     .select('*')
@@ -80,6 +109,9 @@ First paragraph: financial health assessment based on ROA ${fmt(roa)}%, ROE ${fm
 
 Second paragraph: notable characteristics, strengths, and any areas of watch based on the metrics above. Be specific, professional, and concise. No fluff.`;
 
+  // ------------------------------------------------------------------
+  // 3. Generate with Claude
+  // ------------------------------------------------------------------
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 512,
@@ -88,7 +120,22 @@ Second paragraph: notable characteristics, strengths, and any areas of watch bas
 
   const textBlock = message.content.find((b) => b.type === 'text');
   const summary = textBlock?.type === 'text' ? textBlock.text : '';
+  const generatedAt = new Date().toISOString();
+
+  // ------------------------------------------------------------------
+  // 4. Upsert into ai_summaries cache table
+  // ------------------------------------------------------------------
+  await supabase.from('ai_summaries').upsert(
+    {
+      cert_number: certNumber,
+      summary,
+      generated_at: generatedAt,
+      model: 'claude-haiku-4-5-20251001',
+      source: 'api',
+    },
+    { onConflict: 'cert_number' }
+  );
 
   res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=3600');
-  return res.json({ summary });
+  return res.json({ summary, generated_at: generatedAt, cached: false });
 });

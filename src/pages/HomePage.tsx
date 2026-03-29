@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   Building2,
@@ -10,8 +11,12 @@ import {
   Users,
   MapPin,
   CalendarDays,
+  TrendingDown,
+  AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
 import { Card, Button } from '@/components/ui';
+import { formatCurrency } from '@/lib/format';
 
 const QUICK_FILTERS = [
   { label: 'Banks over $1B', params: 'min_assets=1000000000&source=fdic' },
@@ -20,7 +25,7 @@ const QUICK_FILTERS = [
   { label: 'Has Credit Card Program', params: 'has_credit_card_program=true' },
 ];
 
-const STATS = [
+const STATIC_STATS = [
   { label: 'Banks', value: '4,700+', icon: Building2 },
   { label: 'Credit Unions', value: '4,700+', icon: Users },
   { label: 'Branches', value: '80,000+', icon: MapPin },
@@ -53,6 +58,285 @@ const FEATURES = [
     icon: TrendingUp,
   },
 ];
+
+const QUICK_SCREENS = [
+  { label: 'Community Bank Partners', emoji: '🏦', params: 'min_assets=100000000&max_assets=10000000000&source=fdic&charter_type=commercial' },
+  { label: 'Credit Card Targets', emoji: '💳', params: 'has_credit_card_program=true' },
+  { label: 'Canadian PSPs', emoji: '🍁', params: 'source=rpaa' },
+  { label: 'Top Performers', emoji: '⭐', params: 'min_roa=1.5&source=fdic' },
+];
+
+interface DiscoveryData {
+  top_movers: Array<{
+    cert_number: number;
+    name: string;
+    source: string;
+    asset_change: number;
+    asset_change_pct: number;
+    total_assets: number;
+  }>;
+  largest_enforcement: Array<{
+    cert_number: number | null;
+    name: string;
+    date: string;
+    type: string;
+    penalty: string | null;
+  }>;
+  new_registrations: Array<{
+    cert_number: number;
+    name: string;
+    source: string;
+    charter_type: string | null;
+    city: string | null;
+    state: string | null;
+  }>;
+  stat_snapshot: {
+    total_institutions: number;
+    total_assets_us: number;
+    total_assets_ca: number;
+    new_this_quarter: number;
+  };
+}
+
+async function fetchDiscovery(): Promise<DiscoveryData> {
+  const res = await fetch('/api/analytics/discovery');
+  if (!res.ok) throw new Error('Failed to fetch discovery data');
+  return res.json();
+}
+
+type ActivityTab = 'movers' | 'enforcement' | 'new';
+
+function DiscoverySection() {
+  const [activeTab, setActiveTab] = useState<ActivityTab>('movers');
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['discovery'],
+    queryFn: fetchDiscovery,
+    staleTime: 6 * 60 * 60 * 1000, // 6h
+  });
+
+  const snapshot = data?.stat_snapshot;
+
+  const statCards = [
+    {
+      label: 'Institutions Covered',
+      value: snapshot ? snapshot.total_institutions.toLocaleString() : '—',
+      icon: Building2,
+      color: 'text-primary-600',
+      bg: 'bg-primary-50',
+    },
+    {
+      label: 'US Banking Assets',
+      value: snapshot ? formatCurrency(snapshot.total_assets_us) : '—',
+      icon: TrendingUp,
+      color: 'text-green-600',
+      bg: 'bg-green-50',
+    },
+    {
+      label: 'CA Banking Assets',
+      value: snapshot ? formatCurrency(snapshot.total_assets_ca) : '—',
+      icon: Database,
+      color: 'text-indigo-600',
+      bg: 'bg-indigo-50',
+    },
+    {
+      label: 'New This Quarter',
+      value: snapshot ? snapshot.new_this_quarter.toLocaleString() : '—',
+      icon: Sparkles,
+      color: 'text-amber-600',
+      bg: 'bg-amber-50',
+    },
+  ];
+
+  const TABS: { id: ActivityTab; label: string }[] = [
+    { id: 'movers', label: 'Movers' },
+    { id: 'enforcement', label: 'Enforcement' },
+    { id: 'new', label: 'New' },
+  ];
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-surface-900">What's Happening</h2>
+        <p className="mt-1 text-surface-500 text-sm">
+          Live activity across U.S. and Canadian financial institutions
+        </p>
+      </div>
+
+      {/* Stat snapshot cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <Card key={card.label} className="flex items-center gap-4">
+              <div className={`flex items-center justify-center h-10 w-10 rounded-xl shrink-0 ${card.bg}`}>
+                <Icon className={`h-5 w-5 ${card.color}`} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xl font-bold text-surface-900 leading-tight">
+                  {isLoading ? (
+                    <span className="inline-block h-5 w-16 rounded bg-surface-200 animate-pulse" />
+                  ) : (
+                    card.value
+                  )}
+                </p>
+                <p className="text-xs text-surface-500 mt-0.5">{card.label}</p>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Activity feed + Quick Screens side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Activity feed */}
+        <Card padding={false} className="lg:col-span-2 overflow-hidden">
+          <div className="px-5 pt-5 pb-0">
+            <h3 className="text-base font-semibold text-surface-900 mb-4">Recent Activity</h3>
+            <div className="flex gap-1 border-b border-surface-200 -mx-5 px-5">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                    activeTab === tab.id
+                      ? 'border-primary-600 text-primary-700'
+                      : 'border-transparent text-surface-500 hover:text-surface-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="divide-y divide-surface-100 min-h-[240px]">
+            {isLoading && (
+              <div className="p-5 space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-5 bg-surface-200 animate-pulse rounded w-full" />
+                ))}
+              </div>
+            )}
+
+            {isError && (
+              <div className="p-5 text-sm text-surface-500 text-center">
+                Unable to load activity feed right now.
+              </div>
+            )}
+
+            {!isLoading && !isError && activeTab === 'movers' &&
+              (data?.top_movers.length === 0 ? (
+                <div className="p-5 text-sm text-surface-400 text-center">No mover data available.</div>
+              ) : (
+                data?.top_movers.map((m) => {
+                  const isPositive = m.asset_change >= 0;
+                  return (
+                    <div key={m.cert_number} className="flex items-center justify-between px-5 py-3 hover:bg-surface-50 transition-colors">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {isPositive ? (
+                          <TrendingUp className="h-4 w-4 text-green-500 shrink-0" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 text-red-500 shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <Link
+                            to={`/institution/${m.cert_number}`}
+                            className="text-sm font-medium text-primary-700 hover:underline truncate block"
+                          >
+                            {m.name}
+                          </Link>
+                          <p className="text-xs text-surface-400">{m.source.toUpperCase()} · {formatCurrency(m.total_assets)}</p>
+                        </div>
+                      </div>
+                      <span className={`text-sm font-mono font-medium shrink-0 ml-3 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                        {isPositive ? '+' : ''}{formatCurrency(m.asset_change)} ({isPositive ? '+' : ''}{m.asset_change_pct.toFixed(1)}%)
+                      </span>
+                    </div>
+                  );
+                })
+              ))}
+
+            {!isLoading && !isError && activeTab === 'enforcement' &&
+              (data?.largest_enforcement.length === 0 ? (
+                <div className="p-5 text-sm text-surface-400 text-center">No recent enforcement actions.</div>
+              ) : (
+                data?.largest_enforcement.map((e, i) => (
+                  <div key={i} className="flex items-center justify-between px-5 py-3 hover:bg-surface-50 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+                      <div className="min-w-0">
+                        {e.cert_number ? (
+                          <Link
+                            to={`/institution/${e.cert_number}`}
+                            className="text-sm font-medium text-primary-700 hover:underline truncate block"
+                          >
+                            {e.name}
+                          </Link>
+                        ) : (
+                          <p className="text-sm font-medium text-surface-900 truncate">{e.name}</p>
+                        )}
+                        <p className="text-xs text-surface-400">
+                          {e.type}{e.penalty ? ` · ${e.penalty}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-surface-400 shrink-0 ml-3">
+                      {e.date ? new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                    </span>
+                  </div>
+                ))
+              ))}
+
+            {!isLoading && !isError && activeTab === 'new' &&
+              (data?.new_registrations.length === 0 ? (
+                <div className="p-5 text-sm text-surface-400 text-center">No new registrations recently.</div>
+              ) : (
+                data?.new_registrations.map((r) => (
+                  <div key={r.cert_number} className="flex items-center justify-between px-5 py-3 hover:bg-surface-50 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Sparkles className="h-4 w-4 text-primary-400 shrink-0" />
+                      <div className="min-w-0">
+                        <Link
+                          to={`/institution/${r.cert_number}`}
+                          className="text-sm font-medium text-primary-700 hover:underline truncate block"
+                        >
+                          {r.name}
+                        </Link>
+                        <p className="text-xs text-surface-400">
+                          {r.source.toUpperCase()}{r.charter_type ? ` · ${r.charter_type.replace(/_/g, ' ')}` : ''}{r.city || r.state ? ` · ${[r.city, r.state].filter(Boolean).join(', ')}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ))}
+          </div>
+        </Card>
+
+        {/* Quick Screens */}
+        <Card>
+          <h3 className="text-base font-semibold text-surface-900 mb-4">Quick Screens</h3>
+          <div className="space-y-2">
+            {QUICK_SCREENS.map((screen) => (
+              <Link
+                key={screen.label}
+                to={`/search?${screen.params}`}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg border border-surface-200 hover:border-primary-300 hover:bg-primary-50/50 transition-colors group"
+              >
+                <span className="text-xl leading-none">{screen.emoji}</span>
+                <span className="text-sm font-medium text-surface-700 group-hover:text-primary-700">
+                  {screen.label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </section>
+  );
+}
 
 export default function HomePage() {
   const [query, setQuery] = useState('');
@@ -122,10 +406,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats */}
+      {/* Static stats */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-10">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {STATS.map((stat) => {
+          {STATIC_STATS.map((stat) => {
             const Icon = stat.icon;
             return (
               <Card key={stat.label} className="text-center">
@@ -137,6 +421,9 @@ export default function HomePage() {
           })}
         </div>
       </section>
+
+      {/* Discovery section */}
+      <DiscoverySection />
 
       {/* Features */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">

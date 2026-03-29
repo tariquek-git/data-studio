@@ -1,16 +1,40 @@
 import { ExternalLink } from 'lucide-react';
+import { Link } from 'react-router';
 
 export function Footer() {
   return (
     <footer className="border-t border-surface-200 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Branding */}
           <div>
             <p className="text-sm font-medium text-surface-900">Fintech Commons Data Studio</p>
             <p className="mt-1 text-sm text-surface-500">
               Part of the Fintech Commons ecosystem
             </p>
+          </div>
+
+          {/* Research tools */}
+          <div>
+            <p className="text-sm font-medium text-surface-700 mb-2">Research Tools</p>
+            <ul className="space-y-1.5">
+              <li>
+                <Link
+                  to="/failures"
+                  className="text-sm text-surface-500 hover:text-primary-600 transition-colors"
+                >
+                  FDIC Bank Failures
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/analytics"
+                  className="text-sm text-surface-500 hover:text-primary-600 transition-colors"
+                >
+                  Industry Analytics
+                </Link>
+              </li>
+            </ul>
           </div>
 
           {/* Links */}

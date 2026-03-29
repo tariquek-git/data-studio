@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, Loader2, AlertCircle } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, Clock } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
 
 interface AISummaryProps {
@@ -8,9 +8,15 @@ interface AISummaryProps {
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
 
+interface SummaryResponse {
+  summary: string;
+  generated_at?: string;
+  cached?: boolean;
+}
+
 export function AISummary({ certNumber }: AISummaryProps) {
   const [status, setStatus] = useState<Status>('idle');
-  const [summary, setSummary] = useState<string>('');
+  const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   async function handleGenerate() {
@@ -26,12 +32,21 @@ export function AISummary({ certNumber }: AISummaryProps) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `Request failed (${res.status})`);
       }
-      const data = (await res.json()) as { summary: string };
-      setSummary(data.summary);
+      const data = (await res.json()) as SummaryResponse;
+      setSummaryData(data);
       setStatus('done');
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Unknown error');
       setStatus('error');
+    }
+  }
+
+  function formatDate(isoString: string): string {
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+      return isoString;
     }
   }
 
@@ -78,6 +93,14 @@ export function AISummary({ certNumber }: AISummaryProps) {
   }
 
   // Done — show the summary card
+  const summary = summaryData?.summary ?? '';
+  const isCached = summaryData?.cached === true;
+  const generatedAt = summaryData?.generated_at;
+
+  const cacheLabel = isCached && generatedAt
+    ? `Cached · Generated ${formatDate(generatedAt)}`
+    : 'Generated just now';
+
   return (
     <Card>
       <div className="flex items-center justify-between mb-3">
@@ -85,6 +108,12 @@ export function AISummary({ certNumber }: AISummaryProps) {
           <Sparkles className="h-4 w-4 text-purple-500" />
           <h3 className="text-sm font-semibold text-surface-800">AI Analysis</h3>
           <Badge color="purple">AI</Badge>
+          {isCached && (
+            <span className="inline-flex items-center gap-1 text-xs text-surface-400">
+              <Clock className="h-3 w-3" />
+              {cacheLabel}
+            </span>
+          )}
         </div>
         <Button variant="ghost" size="sm" onClick={handleGenerate}>
           Regenerate
@@ -101,6 +130,9 @@ export function AISummary({ certNumber }: AISummaryProps) {
 
       <p className="mt-4 text-xs text-surface-400 border-t border-surface-100 pt-3">
         AI-generated analysis · Not financial advice · Powered by Claude
+        {!isCached && generatedAt && (
+          <span className="ml-2">· {cacheLabel}</span>
+        )}
       </p>
     </Card>
   );

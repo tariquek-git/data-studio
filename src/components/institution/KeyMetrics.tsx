@@ -155,6 +155,31 @@ export function KeyMetrics({ raw, institution }: KeyMetricsProps) {
       ? (EQ / ASSET) * 100
       : null;
 
+  // Rate Sensitivity (NIM Sensitivity)
+  const LNRE = getRaw(raw, 'LNRE');
+  const LNCI = getRaw(raw, 'LNCI');
+  const rateSensitiveAssets = (LNRE ?? 0) + (LNCI ?? 0) + (SC ?? 0);
+  const rateSensitiveLiabilities = DEP ?? 0;
+  const rateSensitivity: number | null =
+    ASSET && raw != null
+      ? ((rateSensitiveAssets - rateSensitiveLiabilities) / ASSET) * 100
+      : null;
+
+  function rateSensitivityColor(v: number): ColorClass {
+    if (v > 0.5) return 'green';
+    if (v >= -0.5) return 'amber';
+    return 'red';
+  }
+
+  const rateSensitivitySubtitle =
+    rateSensitivity != null
+      ? rateSensitivity > 0.5
+        ? 'Asset-sensitive: benefits from rising rates'
+        : rateSensitivity < -0.5
+        ? 'Liability-sensitive: exposed to rising rates'
+        : 'Near-neutral rate sensitivity'
+      : '';
+
   const metrics: MetricConfig[] = [
     {
       label: 'Net Interest Margin (NIM)',
@@ -200,6 +225,9 @@ export function KeyMetrics({ raw, institution }: KeyMetricsProps) {
     },
   ];
 
+  // Rate sensitivity shown only when raw_data present (FDIC / NCUA institutions)
+  const showRateSensitivity = raw != null && rateSensitivity != null;
+
   return (
     <Card>
       <h3 className="text-sm font-semibold text-surface-700 mb-4">Key Performance Metrics</h3>
@@ -207,6 +235,30 @@ export function KeyMetrics({ raw, institution }: KeyMetricsProps) {
         {metrics.map((m) => (
           <MetricCard key={m.label} {...m} />
         ))}
+        {showRateSensitivity && (
+          <div className={`rounded-xl border border-surface-200 p-4 ${colorStyles[rateSensitivityColor(rateSensitivity!)].bg}`}>
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <span className="text-xs font-semibold text-surface-600 leading-tight">Rate Sensitivity</span>
+              <div className="group relative shrink-0">
+                <Info className="h-3.5 w-3.5 text-surface-400 cursor-help mt-0.5" />
+                <div className="absolute right-0 top-5 z-10 hidden group-hover:block w-52 bg-surface-900 text-white text-xs rounded-lg p-2.5 shadow-lg">
+                  <p className="mb-1">NIM Sensitivity: (rate-sensitive assets − rate-sensitive liabilities) / total assets. Rate-sensitive assets = real estate loans + commercial loans + securities. Rate-sensitive liabilities = deposits.</p>
+                  <p className="text-surface-300">Approximate. Based on FDIC call report asset/liability composition.</p>
+                </div>
+              </div>
+            </div>
+            <p className={`text-2xl font-bold ${colorStyles[rateSensitivityColor(rateSensitivity!)].text}`}>
+              {rateSensitivity! > 0 ? '+' : ''}{rateSensitivity!.toFixed(1)}%
+            </p>
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className={`w-2 h-2 rounded-full ${colorStyles[rateSensitivityColor(rateSensitivity!)].dot} shrink-0`} />
+              <span className={`text-xs font-medium ${colorStyles[rateSensitivityColor(rateSensitivity!)].text}`}>
+                {colorLabels[rateSensitivityColor(rateSensitivity!)]}
+              </span>
+            </div>
+            <p className="text-xs text-surface-400 mt-1">{rateSensitivitySubtitle}</p>
+          </div>
+        )}
       </div>
     </Card>
   );

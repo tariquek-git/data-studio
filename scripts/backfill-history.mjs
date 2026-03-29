@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * FDIC Historical Data Backfill Script
- * Populates the financial_history table with 8 quarters of data
+ * Populates the financial_history table with 20 quarters (5 years) of data
  * for all active FDIC institutions.
  * Run: node scripts/backfill-history.mjs
  */
@@ -24,6 +24,7 @@ for (const line of envContent.split('\n')) {
 const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
 const FDIC_API = 'https://banks.data.fdic.gov/api';
+const TARGET_QUARTERS = 20;
 
 function formatDate(repdte) {
   if (!repdte || repdte.length !== 8) return repdte;
@@ -69,17 +70,17 @@ async function main() {
 
   console.log(`Total active institutions in Supabase: ${activeCerts.size}\n`);
 
-  // Step 2: Fetch the 8 most recent distinct REPDTE values from FDIC.
+  // Step 2: Fetch the TARGET_QUARTERS most recent distinct REPDTE values from FDIC.
   // The FDIC financials endpoint returns ~4400 records per quarter, sorted
   // lexicographically by REPDTE DESC. We jump ahead in multiples of 4500 to
   // sample one record from each successive period.
-  console.log('Step 2: Fetching top 8 reporting dates from FDIC...');
+  console.log(`Step 2: Fetching top ${TARGET_QUARTERS} reporting dates from FDIC...`);
 
   const reportingDates = [];
   const seenDates = new Set();
   const PERIOD_SIZE = 4500; // slightly larger than max institutions per period
 
-  for (let attempt = 0; reportingDates.length < 8 && attempt < 20; attempt++) {
+  for (let attempt = 0; reportingDates.length < TARGET_QUARTERS && attempt < TARGET_QUARTERS * 2; attempt++) {
     const offset = attempt * PERIOD_SIZE;
     const url = `${FDIC_API}/financials?fields=REPDTE&sort_by=REPDTE&sort_order=DESC&limit=1&offset=${offset}`;
     const data = await fetchJson(url);

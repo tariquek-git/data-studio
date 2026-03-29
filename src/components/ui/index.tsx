@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react';
+export { WatchlistButton } from './WatchlistButton';
 
 /* ─── Button ─── */
 

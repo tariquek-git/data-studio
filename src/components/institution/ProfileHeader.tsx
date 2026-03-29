@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Building2, MapPin, ExternalLink, Calendar, Shield } from 'lucide-react';
-import { Badge } from '@/components/ui';
+import { Badge, WatchlistButton } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/format';
 import type { Institution } from '@/types/institution';
 import { DataSourceBadge } from './DataSourceBadge';
@@ -158,6 +158,7 @@ export function ProfileHeader({ institution, actions }: ProfileHeaderProps) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <WatchlistButton certNumber={institution.cert_number} size="md" />
           {institution.website && (
             <a
               href={institution.website.startsWith('http') ? institution.website : `https://${institution.website}`}
