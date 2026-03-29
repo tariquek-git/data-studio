@@ -19,11 +19,18 @@ import { formatNumber, formatCurrency, formatPercent } from '@/lib/format';
 interface AnalyticsOverview {
   total_institutions: number;
   total_by_source: Record<string, number>;
+  total_by_country: Record<string, number>;
   total_assets_sum: number;
   avg_assets: number;
   by_state: { state: string; count: number; total_assets: number }[];
   by_regulator: Record<string, number>;
   total_by_charter_type: Record<string, number>;
+  source_registry?: {
+    tracked: number;
+    active: number;
+    pending: number;
+    unavailable: number;
+  };
 }
 
 interface DistributionData {
@@ -129,10 +136,10 @@ export default function AnalyticsPage() {
 
   const summaryStats = overview
     ? [
-        { label: 'FDIC-Insured Banks', value: formatNumber(overview.total_by_source?.fdic ?? overview.total_institutions), icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { label: 'Tracked Institutions', value: formatNumber(overview.total_institutions), icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
         { label: 'Total Banking Assets', value: formatCurrency(overview.total_assets_sum), icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-        { label: 'Avg Assets per Bank', value: formatCurrency(overview.avg_assets), icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
-        { label: 'States Represented', value: formatNumber(overview.by_state.length), icon: Map, color: 'text-cyan-600', bg: 'bg-cyan-50' },
+        { label: 'Active Source Feeds', value: formatNumber(overview.source_registry?.active ?? Object.keys(overview.total_by_source).length), icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
+        { label: 'States / Provinces', value: formatNumber(overview.by_state.length), icon: Map, color: 'text-cyan-600', bg: 'bg-cyan-50' },
       ]
     : [];
 
@@ -152,7 +159,8 @@ export default function AnalyticsPage() {
         <div>
           <h1 className="text-2xl font-bold text-surface-900">Industry Analytics</h1>
           <p className="mt-1 text-sm text-surface-500">
-            Comprehensive overview of the U.S. banking industry from FDIC call report data.
+            North American financial-infrastructure analytics across banks, credit unions, registries,
+            and source-backed market context.
           </p>
         </div>
         <Link

@@ -1,73 +1,206 @@
-# React + TypeScript + Vite
+# Data Studio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+North American financial-infrastructure intelligence platform built on Vite, React, Vercel serverless APIs, and Supabase.
 
-Currently, two official plugins are available:
+The product blends regulated institution search, registry-backed nonbank coverage, source provenance, analytics, and an entity-intelligence layer across the United States and Canada.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Current scope
 
-## React Compiler
+Live or seeded source coverage includes:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `fdic` for U.S. insured banks
+- `ncua` for U.S. credit unions
+- `osfi` for Canadian federally regulated institutions
+- `rpaa` for Bank of Canada PSP registry coverage
+- `ciro` for Canadian dealer registry coverage
+- `fintrac` and starter `fincen` coverage for MSB-style entities
+- `cmhc` and `boc` for macro / market context
+- registry entries for planned sources such as `ffiec_cdr`, `ffiec_nic`, `occ`, `frb_routing`, `sec_edgar`, `cfpb_complaints`, `ffiec_hmda`, `ffiec_census`, `ffiec_cra`, and `nmls`
 
-## Expanding the ESLint configuration
+Recent platform additions:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- entity APIs under `/api/entities/*`
+- source APIs under `/api/sources*`
+- dynamic source registry UI
+- fixes for FDIC SOD year discovery and legacy history joins
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- Frontend: React 19, Vite, TypeScript, Tailwind, TanStack Query
+- APIs: Vercel serverless functions in `api/`
+- Data store: Supabase Postgres
+- Ingestion: Node-based sync scripts in `scripts/`
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Project structure
+
+- `src/pages/` user-facing pages
+- `src/components/` page and UI components
+- `api/` serverless endpoints for search, analytics, entities, sources, QA, and sync
+- `lib/` shared server utilities and service layers
+- `scripts/` database setup, migrations, and ingestion jobs
+
+## Local setup
+
+1. Install dependencies:
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. Create `.env.local` with at least:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
 ```
+
+Optional:
+
+```bash
+CRON_SECRET=...
+SUPABASE_ACCESS_TOKEN=...
+FDIC_SOD_YEAR=2025
+FFIEC_CDR_USER_ID=...
+FFIEC_CDR_AUTH_TOKEN=...
+FFIEC_CDR_REPORTING_PERIOD=03/31/2026
+FFIEC_NIC_ACTIVE_FILE=/absolute/path/to/attributes-active.zip
+FFIEC_NIC_RELATIONSHIPS_FILE=/absolute/path/to/relationships.zip
+FFIEC_NIC_TRANSFORMATIONS_FILE=/absolute/path/to/transformations.zip
+```
+
+3. Run the app:
+
+```bash
+npm run dev
+```
+
+4. Build for production:
+
+```bash
+npm run build
+```
+
+## Database and migrations
+
+Initial setup and older schema helpers live in:
+
+- `scripts/setup-db.mjs`
+- `scripts/run-migration.mjs`
+- `scripts/schema.sql`
+
+Source registry migration:
+
+```bash
+node scripts/run-migration-data-sources.mjs
+```
+
+If `SUPABASE_ACCESS_TOKEN` is not set, the script prints SQL-editor instructions and still attempts to seed the `data_sources` table through the service role.
+
+## Ingestion scripts
+
+Core institution and registry loaders:
+
+- `node scripts/sync-fdic.mjs`
+- `node scripts/backfill-history.mjs`
+- `node scripts/sync-sod.mjs`
+- `node scripts/sync-ncua.mjs`
+- `node scripts/sync-osfi.mjs`
+- `node scripts/sync-rpaa.mjs`
+- `node scripts/sync-ciro.mjs`
+- `node scripts/sync-fintrac.mjs`
+- `node scripts/sync-fed-master-accounts.mjs`
+- `node scripts/sync-ffiec-cdr.mjs`
+- `node scripts/sync-ffiec-nic.mjs`
+
+Important notes:
+
+- FDIC amounts arrive in thousands and are normalized to dollars on ingest.
+- `sync-sod.mjs` now auto-resolves the latest available SOD year unless `FDIC_SOD_YEAR` is explicitly set.
+- `sync-ffiec-cdr.mjs` uses the official FFIEC CDR PWS REST flow and requires a PWS account token.
+- `sync-ffiec-nic.mjs` expects locally downloaded NIC bulk CSV ZIP files because the public download page is CAPTCHA-protected from plain scripted fetches.
+- Several planned sources are registered but not yet fully ingested.
+
+## Main APIs
+
+Institution APIs:
+
+- `GET /api/institutions/search`
+- `GET /api/institutions/:certNumber`
+- `GET /api/institutions/screen`
+
+Entity APIs:
+
+- `GET /api/entities/search`
+- `GET /api/entities/:entityId`
+- `GET /api/entities/:entityId/context`
+- `GET /api/entities/:entityId/history`
+- `GET /api/entities/:entityId/relationships`
+- `GET /api/entities/:entityId/sources`
+
+Source and relationship APIs:
+
+- `GET /api/sources`
+- `GET /api/sources/:sourceKey`
+- `GET /api/relationships/search`
+- `GET /api/series/search`
+
+Analytics and QA:
+
+- `GET /api/analytics/overview`
+- `GET /api/analytics/discovery`
+- `GET /api/analytics/failures`
+- `GET /api/qa/status`
+- `GET /api/qa/check`
+
+## Product direction
+
+The target model is a layered warehouse:
+
+- regulated institutions
+- registry-backed nonbank entities
+- ecosystem entities
+- historical relationships
+- source provenance
+- macro and market series
+
+Near-term implementation priorities:
+
+1. finish the entity warehouse migration layer
+2. add FFIEC CDR and FFIEC NIC ingestion
+3. ship terminal-style entity search and profile UI
+4. persist failures, enforcement, and charter events
+5. expand QA and freshness checks
+
+## QA checklist
+
+Before pushing substantial changes:
+
+```bash
+npm run build
+```
+
+Recommended manual smoke checks:
+
+- `/api/institutions/screen`
+- `/api/analytics/discovery`
+- `/api/entities/search`
+- `/api/sources`
+- `/sources`
+- `/analytics`
+
+For data updates, also verify:
+
+- source counts in `data_sources`
+- recent `sync_jobs`
+- latest `data_as_of` by source
+- historical period coverage in `financial_history`
+
+## Branching
+
+Current active implementation branch:
+
+- `codex/entity-intelligence-foundation`
+
+Use feature branches with the `codex/` prefix for major slices like warehouse migrations, new source ingestion, and entity UI work.

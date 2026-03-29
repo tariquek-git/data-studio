@@ -165,6 +165,10 @@ export default function EntitiesPage() {
 
   const entities = data?.entities ?? [];
   const totalPages = data ? Math.ceil(data.total / data.per_page) : 0;
+  const loadedKinds =
+    (data?.aggregations.by_profile_kind.regulated_institution ?? 0) +
+    (data?.aggregations.by_profile_kind.registry_entity ?? 0) +
+    (data?.aggregations.by_profile_kind.ecosystem_entity ?? 0);
 
   function updateParam(next: Record<string, string | number | undefined>) {
     const nextParams = new URLSearchParams(searchParams);
@@ -220,10 +224,7 @@ export default function EntitiesPage() {
             <SummaryTile label="Country split" value={`${data?.aggregations.by_country.US ?? 0} / ${data?.aggregations.by_country.CA ?? 0}`} icon={<Building2 className="h-5 w-5" />} />
             <SummaryTile
               label="Loaded kinds"
-              value={String(
-                (data?.aggregations.by_profile_kind.regulated_institution ?? 0) +
-                  (data?.aggregations.by_profile_kind.registry_entity ?? 0)
-              )}
+              value={String(loadedKinds)}
               icon={<Database className="h-5 w-5" />}
             />
             <SummaryTile label="Signals" value={businessRole ? businessRole.replace(/_/g, ' ') : 'all roles'} icon={<Search className="h-5 w-5" />} />

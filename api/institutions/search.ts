@@ -21,7 +21,9 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   const maxRoa = req.query.max_roa ? Number(req.query.max_roa) : null;
   const minRoi = req.query.min_roi ? Number(req.query.min_roi) : null;
   const maxRoi = req.query.max_roi ? Number(req.query.max_roi) : null;
-  const hasCreditCards = req.query.has_credit_cards === 'true';
+  const hasCreditCards =
+    req.query.has_credit_cards === 'true' ||
+    req.query.has_credit_card_program === 'true';
   const sortBy = (req.query.sort_by as string) || 'total_assets';
   const sortDir = (req.query.sort_dir as string) === 'asc';
   const page = Math.max(1, Number(req.query.page) || 1);

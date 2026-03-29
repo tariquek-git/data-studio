@@ -82,7 +82,7 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
     onChange({ states });
   }
 
-  function toggleSource(src: 'fdic' | 'ncua' | 'osfi' | 'rpaa' | 'ciro') {
+  function toggleSource(src: SearchFilters['source'][number]) {
     const source = filters.source.includes(src)
       ? filters.source.filter((s) => s !== src)
       : [...filters.source, src];
@@ -182,7 +182,7 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
 
       {/* Source */}
       <FilterSection title="Source" defaultOpen>
-        {(['fdic', 'ncua', 'osfi', 'rpaa', 'ciro'] as const).map((src) => (
+        {(['fdic', 'ncua', 'osfi', 'rpaa', 'ciro', 'fintrac', 'fincen'] as const).map((src) => (
           <label
             key={src}
             className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-50 cursor-pointer"
@@ -202,7 +202,11 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
                     ? 'OSFI (Canada)'
                     : src === 'rpaa'
                       ? 'RPAA PSPs (Canada)'
-                      : 'CIRO Dealers (Canada)'}
+                      : src === 'ciro'
+                        ? 'CIRO Dealers (Canada)'
+                        : src === 'fintrac'
+                          ? 'FINTRAC MSBs (Canada)'
+                          : 'FinCEN MSBs (US)'}
             </span>
           </label>
         ))}

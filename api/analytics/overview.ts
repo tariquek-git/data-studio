@@ -8,31 +8,17 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   // Run all count queries in parallel
   const [
     totalRes,
-    fdicRes,
-    ncuaRes,
     stateDataRes,
     charterDataRes,
     regulatorDataRes,
     assetDataRes,
+    sourceDataRes,
+    dataSourcesRes,
   ] = await Promise.all([
     // Total active institutions
     supabase
       .from('institutions')
       .select('*', { count: 'exact', head: true })
-      .eq('active', true),
-
-    // FDIC count
-    supabase
-      .from('institutions')
-      .select('*', { count: 'exact', head: true })
-      .eq('source', 'fdic')
-      .eq('active', true),
-
-    // NCUA count
-    supabase
-      .from('institutions')
-      .select('*', { count: 'exact', head: true })
-      .eq('source', 'ncua')
       .eq('active', true),
 
     // By-state data: fetch state + total_assets for all active institutions
@@ -62,10 +48,23 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
       .select('total_assets')
       .eq('active', true)
       .not('total_assets', 'is', null),
+
+    // Source mix for all active institutions
+    supabase
+      .from('institutions')
+      .select('source, country')
+      .eq('active', true),
+
+    // Source registry summary if available
+    supabase
+      .from('data_sources')
+      .select('source_key, status')
+      .order('source_key', { ascending: true }),
   ]);
 
   // Aggregate by state
   const byStateMap: Record<string, { count: number; total_assets: number }> = {};
+  const byCountryMap: Record<string, number> = {};
   if (stateDataRes.data) {
     for (const row of stateDataRes.data) {
       const st = row.state as string;
@@ -111,17 +110,42 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     }
   }
 
+  const bySourceMap: Record<string, number> = {};
+  if (sourceDataRes.data) {
+    for (const row of sourceDataRes.data) {
+      const source = row.source as string;
+      bySourceMap[source] = (bySourceMap[source] || 0) + 1;
+      const country = (row.country as string | null) ?? 'US';
+      byCountryMap[country] = (byCountryMap[country] || 0) + 1;
+    }
+  }
+
+  const sourceRegistrySummary = {
+    tracked: 0,
+    active: 0,
+    pending: 0,
+    unavailable: 0,
+  };
+  if (dataSourcesRes.data) {
+    sourceRegistrySummary.tracked = dataSourcesRes.data.length;
+    for (const row of dataSourcesRes.data) {
+      const status = row.status as string;
+      if (status === 'active') sourceRegistrySummary.active += 1;
+      if (status === 'pending') sourceRegistrySummary.pending += 1;
+      if (status === 'unavailable') sourceRegistrySummary.unavailable += 1;
+    }
+  }
+
   const overview = {
     total_institutions: totalRes.count || 0,
-    total_by_source: {
-      fdic: fdicRes.count || 0,
-      ncua: ncuaRes.count || 0,
-    },
+    total_by_source: bySourceMap,
+    total_by_country: byCountryMap,
     total_by_charter_type: byCharterMap,
     total_assets_sum: totalAssetsSum,
     avg_assets: assetCount > 0 ? Math.round(totalAssetsSum / assetCount) : 0,
     by_state: byState,
     by_regulator: byRegulatorMap,
+    source_registry: sourceRegistrySummary,
   };
 
   res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');

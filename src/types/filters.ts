@@ -4,7 +4,7 @@ export interface SearchFilters {
   query: string;
   country: 'US' | 'CA' | null;  // null = All
   states: string[];
-  source: ('fdic' | 'ncua' | 'osfi' | 'rpaa' | 'ciro')[];
+  source: ('fdic' | 'ncua' | 'osfi' | 'rpaa' | 'ciro' | 'fintrac' | 'fincen')[];
   charter_types: string[];
   regulators: string[];
   min_assets: number | null;
