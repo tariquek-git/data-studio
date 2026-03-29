@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from 'crypto';
 import { execFileSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
 import { isAbsolute, dirname, join } from 'path';
@@ -74,7 +75,13 @@ export async function tableExists(supabase, table, probeColumn = 'id') {
     .limit(1);
 
   if (!error) return true;
-  if (error.code === '42P01' || /relation .* does not exist/i.test(error.message ?? '')) return false;
+  if (
+    error.code === '42P01' ||
+    error.code === '42703' ||
+    error.code === 'PGRST205' ||
+    /relation .* does not exist/i.test(error.message ?? '') ||
+    /schema cache/i.test(error.message ?? '')
+  ) return false;
   throw new Error(`Unable to probe table ${table}: ${error.message}`);
 }
 
@@ -84,7 +91,7 @@ export async function updateDataSourceSnapshot(supabase, sourceKey, patch) {
     .update(patch)
     .eq('source_key', sourceKey);
 
-  if (error && error.code !== '42P01') {
+  if (error && error.code !== '42P01' && error.code !== 'PGRST205') {
     throw new Error(`Unable to update data_sources for ${sourceKey}: ${error.message}`);
   }
 }
@@ -95,6 +102,14 @@ export function chunkArray(values, size = 500) {
     chunks.push(values.slice(i, i + size));
   }
   return chunks;
+}
+
+export function stableUuid(seed) {
+  const hash = createHash('sha1').update(String(seed)).digest();
+  hash[6] = (hash[6] & 0x0f) | 0x50;
+  hash[8] = (hash[8] & 0x3f) | 0x80;
+  const hex = hash.subarray(0, 16).toString('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
 export function normalizeHeader(header) {

@@ -110,6 +110,7 @@ type SearchOptions = {
 
 const REGULATED_SOURCES = new Set(['fdic', 'ncua', 'osfi']);
 const REGISTRY_SOURCES = new Set(['rpaa', 'ciro', 'fintrac', 'fincen']);
+const TABLE_EXISTENCE_CACHE = new Map<string, boolean>();
 
 const SOURCE_META: Record<
   string,
@@ -129,7 +130,13 @@ const SOURCE_META: Record<
 function isMissingTableError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const maybe = error as { code?: string; message?: string };
-  return maybe.code === '42P01' || maybe.code === '42703' || /relation .* does not exist/i.test(maybe.message ?? '');
+  return (
+    maybe.code === '42P01' ||
+    maybe.code === '42703' ||
+    maybe.code === 'PGRST205' ||
+    /relation .* does not exist/i.test(maybe.message ?? '') ||
+    /schema cache/i.test(maybe.message ?? '')
+  );
 }
 
 async function safeRows<T>(promise: PromiseLike<{ data: T[] | null; error: { code?: string; message?: string } | null }>): Promise<T[]> {
@@ -148,6 +155,46 @@ async function safeMaybeSingle<T>(promise: PromiseLike<{ data: T | null; error: 
     throw new Error(error.message ?? 'Database query failed');
   }
   return data ?? null;
+}
+
+async function fetchAllPages<T>(
+  fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { code?: string; message?: string } | null }>,
+  pageSize = 1000,
+  maxPages = 25
+) {
+  const rows: T[] = [];
+
+  for (let page = 0; page < maxPages; page += 1) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    const chunk = await safeRows(fetchPage(from, to));
+    if (chunk.length === 0) break;
+    rows.push(...chunk);
+    if (chunk.length < pageSize) break;
+  }
+
+  return rows;
+}
+
+async function tableExists(table: string) {
+  if (TABLE_EXISTENCE_CACHE.has(table)) return TABLE_EXISTENCE_CACHE.get(table) ?? false;
+
+  const { error } = await getSupabase()
+    .from(table)
+    .select('id', { count: 'exact', head: true })
+    .limit(1);
+
+  if (!error) {
+    TABLE_EXISTENCE_CACHE.set(table, true);
+    return true;
+  }
+
+  if (isMissingTableError(error)) {
+    TABLE_EXISTENCE_CACHE.set(table, false);
+    return false;
+  }
+
+  throw new Error(error.message ?? `Unable to probe table ${table}`);
 }
 
 function countryMeta(sourceKey: string, explicitCountry?: string | null) {
@@ -194,6 +241,81 @@ function pushUnique(values: string[], next: string | null | undefined) {
   if (next && !values.includes(next)) values.push(next);
 }
 
+function externalIdRowsFromInstitution(row: InstitutionRow) {
+  const ids: EntityExternalId[] = [];
+  if (row.cert_number != null) {
+    ids.push({
+      entity_table: 'institutions',
+      entity_id: row.id,
+      id_type: 'cert_number',
+      id_value: String(row.cert_number),
+      is_primary: true,
+      source_url: null,
+    });
+  }
+  if (row.holding_company) {
+    ids.push({
+      entity_table: 'institutions',
+      entity_id: row.id,
+      id_type: 'holding_company',
+      id_value: row.holding_company,
+      is_primary: false,
+      source_url: null,
+    });
+  }
+  if (row.raw_data && typeof row.raw_data === 'object') {
+    const raw = row.raw_data as Record<string, unknown>;
+    const rawIds: Array<[string, unknown, boolean]> = [
+      ['fdic_cert', raw.CERT, true],
+      ['rssd_id', raw.RSSD, false],
+      ['lei', raw.LEI, false],
+      ['routing_number', raw.RTNUM ?? raw.ABA ?? raw.ROUTING_NUMBER, false],
+    ];
+    for (const [idType, idValue, isPrimary] of rawIds) {
+      if (idValue == null || String(idValue).trim() === '') continue;
+      ids.push({
+        entity_table: 'institutions',
+        entity_id: row.id,
+        id_type: idType,
+        id_value: String(idValue).trim(),
+        is_primary: isPrimary,
+        source_url: null,
+      });
+    }
+  }
+  return ids;
+}
+
+function externalIdRowsFromRegistry(row: RegistryEntityRow) {
+  const ids: EntityExternalId[] = [];
+  if (row.registration_number) {
+    ids.push({
+      entity_table: 'registry_entities',
+      entity_id: row.id,
+      id_type: 'registration_number',
+      id_value: row.registration_number,
+      is_primary: true,
+      source_url: null,
+    });
+  }
+  return ids;
+}
+
+function externalIdRowsFromEcosystem(row: EcosystemEntityRow) {
+  const ids: EntityExternalId[] = [];
+  if (row.source_key) {
+    ids.push({
+      entity_table: 'ecosystem_entities',
+      entity_id: row.id,
+      id_type: 'source_key',
+      id_value: row.source_key,
+      is_primary: true,
+      source_url: null,
+    });
+  }
+  return ids;
+}
+
 function capabilityRoles(cap: CapabilityRow | null | undefined) {
   const roles: string[] = [];
   if (!cap) return roles;
@@ -238,6 +360,7 @@ function buildEcosystemContextSummary(row: EcosystemEntityRow, roles: string[]) 
 
 async function loadCapabilityMap(certs: number[]) {
   if (certs.length === 0) return new Map<number, CapabilityRow>();
+  if (!(await tableExists('bank_capabilities'))) return new Map<number, CapabilityRow>();
   const supabase = getSupabase();
   const rows = await safeRows<CapabilityRow>(
     supabase
@@ -248,36 +371,193 @@ async function loadCapabilityMap(certs: number[]) {
   return new Map(rows.map((row) => [row.cert_number, row]));
 }
 
+function deriveInstitutionTags(row: InstitutionRow, capability: CapabilityRow | null | undefined) {
+  const tags: EntityTag[] = [];
+  for (const role of capabilityRoles(capability)) {
+    tags.push({
+      entity_table: 'institutions',
+      entity_id: row.id,
+      tag_key: 'business_role',
+      tag_value: role,
+      source_kind: 'curated',
+      source_url: null,
+      confidence_score: 0.6,
+      effective_start: null,
+      effective_end: null,
+      notes: 'Derived from capabilities metadata',
+    });
+  }
+  if (row.charter_type) {
+    tags.push({
+      entity_table: 'institutions',
+      entity_id: row.id,
+      tag_key: 'charter_family',
+      tag_value: row.charter_type,
+      source_kind: 'curated',
+      source_url: null,
+      confidence_score: 0.5,
+      effective_start: null,
+      effective_end: null,
+      notes: 'Derived from legacy institution row',
+    });
+  }
+  return tags;
+}
+
+function deriveRegistryTags(row: RegistryEntityRow) {
+  const tags: EntityTag[] = [];
+  if (row.entity_subtype) {
+    tags.push({
+      entity_table: 'registry_entities',
+      entity_id: row.id,
+      tag_key: 'business_role',
+      tag_value: row.entity_subtype,
+      source_kind: 'curated',
+      source_url: null,
+      confidence_score: 0.5,
+      effective_start: null,
+      effective_end: null,
+      notes: 'Derived from registry subtype',
+    });
+  }
+  return tags;
+}
+
+function deriveEcosystemTags(row: EcosystemEntityRow) {
+  const tags: EntityTag[] = [];
+  if (row.business_model) {
+    tags.push({
+      entity_table: 'ecosystem_entities',
+      entity_id: row.id,
+      tag_key: 'business_role',
+      tag_value: row.business_model,
+      source_kind: 'curated',
+      source_url: null,
+      confidence_score: 0.5,
+      effective_start: null,
+      effective_end: null,
+      notes: 'Derived from ecosystem business model',
+    });
+  }
+  return tags;
+}
+
 async function loadTags(entityRefs: Array<{ entity_table: EntityStorageTable; entity_id: string }>) {
   if (entityRefs.length === 0) return new Map<string, EntityTag[]>();
   const supabase = getSupabase();
-  const ids = entityRefs.map((ref) => ref.entity_id);
-  const rows = await safeRows<EntityTag>(
-    supabase
-      .from('entity_tags')
-      .select('id, entity_table, entity_id, tag_key, tag_value, source_kind, source_url, confidence_score, effective_start, effective_end, notes')
-      .in('entity_id', ids)
-  );
+  const hasWarehouseTags = await tableExists('entity_tags');
   const tags = new Map<string, EntityTag[]>();
-  for (const row of rows) {
-    const key = `${row.entity_table}:${row.entity_id}`;
-    const list = tags.get(key) ?? [];
-    list.push(row);
-    tags.set(key, list);
+
+  if (hasWarehouseTags) {
+    const rows = await safeRows<EntityTag>(
+      supabase
+        .from('entity_tags')
+        .select('id, entity_table, entity_id, tag_key, tag_value, source_kind, source_url, confidence_score, effective_start, effective_end, notes')
+        .in('entity_id', entityRefs.map((ref) => ref.entity_id))
+    );
+
+    for (const row of rows) {
+      const key = `${row.entity_table}:${row.entity_id}`;
+      const list = tags.get(key) ?? [];
+      list.push(row);
+      tags.set(key, list);
+    }
   }
+
+  const missingInstitutionIds = entityRefs
+    .filter((ref) => ref.entity_table === 'institutions' && !tags.has(`${ref.entity_table}:${ref.entity_id}`))
+    .map((ref) => ref.entity_id);
+  const missingRegistryIds = entityRefs
+    .filter((ref) => ref.entity_table === 'registry_entities' && !tags.has(`${ref.entity_table}:${ref.entity_id}`))
+    .map((ref) => ref.entity_id);
+  const missingEcosystemIds = entityRefs
+    .filter((ref) => ref.entity_table === 'ecosystem_entities' && !tags.has(`${ref.entity_table}:${ref.entity_id}`))
+    .map((ref) => ref.entity_id);
+
+  if (missingInstitutionIds.length > 0) {
+    const institutionRows = await safeRows<InstitutionRow>(
+      supabase
+        .from('institutions')
+        .select('id, cert_number, source, name, legal_name, charter_type, active, city, state, website, regulator, holding_company, total_assets, total_deposits, total_loans, net_income, roa, roi, raw_data, data_as_of, last_synced_at, created_at, updated_at')
+        .in('id', missingInstitutionIds)
+    );
+
+    const capabilityMap = await loadCapabilityMap(
+      institutionRows
+        .map((row) => row.cert_number)
+        .filter((value): value is number => typeof value === 'number')
+    );
+
+    for (const row of institutionRows) {
+      const derived = deriveInstitutionTags(row, row.cert_number != null ? capabilityMap.get(row.cert_number) : null);
+      if (derived.length > 0) tags.set(`institutions:${row.id}`, derived);
+    }
+  }
+
+  if (missingRegistryIds.length > 0) {
+    const registryRows = await safeRows<RegistryEntityRow>(
+      supabase
+        .from('registry_entities')
+        .select('id, source_key, name, legal_name, entity_subtype, active, city, state, website, regulator, registration_number, status, description, raw_data, data_as_of, last_synced_at, created_at, updated_at, country')
+        .in('id', missingRegistryIds)
+    );
+
+    for (const row of registryRows) {
+      const derived = deriveRegistryTags(row);
+      if (derived.length > 0) tags.set(`registry_entities:${row.id}`, derived);
+    }
+  }
+
+  if (missingEcosystemIds.length > 0) {
+    const ecosystemRows = await safeRows<EcosystemEntityRow>(
+      supabase
+        .from('ecosystem_entities')
+        .select('id, source_key, source_authority, name, legal_name, entity_type, business_model, active, status, country, city, state, website, description, parent_name, confidence_score, raw_data, data_as_of, last_synced_at, created_at, updated_at')
+        .in('id', missingEcosystemIds)
+    );
+
+    for (const row of ecosystemRows) {
+      const derived = deriveEcosystemTags(row);
+      if (derived.length > 0) tags.set(`ecosystem_entities:${row.id}`, derived);
+    }
+  }
+
+  for (const ref of entityRefs) {
+    const key = `${ref.entity_table}:${ref.entity_id}`;
+    if (!tags.has(key)) tags.set(key, []);
+  }
+
   return tags;
 }
 
 async function loadExternalIds(entityTable: EntityStorageTable, entityId: string) {
   const supabase = getSupabase();
-  return safeRows<EntityExternalId>(
-    supabase
-      .from('entity_external_ids')
-      .select('id, entity_table, entity_id, id_type, id_value, is_primary, source_url')
-      .eq('entity_table', entityTable)
-      .eq('entity_id', entityId)
-      .order('is_primary', { ascending: false })
-  );
+  const hasWarehouseExternalIds = await tableExists('entity_external_ids');
+  const warehouseRows = hasWarehouseExternalIds
+    ? await safeRows<EntityExternalId>(
+        supabase
+          .from('entity_external_ids')
+          .select('id, entity_table, entity_id, id_type, id_value, is_primary, source_url')
+          .eq('entity_table', entityTable)
+          .eq('entity_id', entityId)
+          .order('is_primary', { ascending: false })
+      )
+    : [];
+
+  if (warehouseRows.length > 0) return warehouseRows;
+
+  if (entityTable === 'institutions') {
+    const legacy = await loadInstitutionById(entityId);
+    return legacy ? externalIdRowsFromInstitution(legacy) : [];
+  }
+
+  if (entityTable === 'registry_entities') {
+    const legacy = await loadRegistryById(entityId);
+    return legacy ? externalIdRowsFromRegistry(legacy) : [];
+  }
+
+  const legacy = await loadEcosystemById(entityId);
+  return legacy ? externalIdRowsFromEcosystem(legacy) : [];
 }
 
 function mapInstitutionToSummary(
@@ -467,27 +747,40 @@ function aggregateEntities(entities: EntitySummary[]): EntitySearchAggregations 
 
 export async function searchEntities(options: SearchOptions) {
   const supabase = getSupabase();
+  const [hasRegistryTable, hasEcosystemTable] = await Promise.all([
+    tableExists('registry_entities'),
+    tableExists('ecosystem_entities'),
+  ]);
 
-  const institutionRows = await safeRows<InstitutionRow>(
-    supabase
-      .from('institutions')
-      .select('id, cert_number, source, name, legal_name, charter_type, active, city, state, website, regulator, holding_company, total_assets, total_deposits, total_loans, net_income, roa, roi, raw_data, data_as_of, last_synced_at, created_at, updated_at')
-      .limit(250)
-  );
+  const [allInstitutionRows, registryRows, ecosystemRows] = await Promise.all([
+    fetchAllPages<InstitutionRow>((from, to) =>
+      supabase
+        .from('institutions')
+        .select('id, cert_number, source, name, legal_name, charter_type, active, city, state, website, regulator, holding_company, total_assets, total_deposits, total_loans, net_income, roa, roi, raw_data, data_as_of, last_synced_at, created_at, updated_at')
+        .range(from, to)
+    ),
+    hasRegistryTable
+      ? fetchAllPages<RegistryEntityRow>((from, to) =>
+          supabase
+            .from('registry_entities')
+            .select('id, source_key, name, legal_name, entity_subtype, active, city, state, website, regulator, registration_number, status, description, raw_data, data_as_of, last_synced_at, created_at, updated_at, country')
+            .range(from, to)
+        )
+      : Promise.resolve([] as RegistryEntityRow[]),
+    hasEcosystemTable
+      ? fetchAllPages<EcosystemEntityRow>((from, to) =>
+          supabase
+            .from('ecosystem_entities')
+            .select('id, source_key, source_authority, name, legal_name, entity_type, business_model, active, status, country, city, state, website, description, parent_name, confidence_score, raw_data, data_as_of, last_synced_at, created_at, updated_at')
+            .range(from, to)
+        )
+      : Promise.resolve([] as EcosystemEntityRow[]),
+  ]);
 
-  const registryRows = await safeRows<RegistryEntityRow>(
-    supabase
-      .from('registry_entities')
-      .select('id, source_key, name, legal_name, entity_subtype, active, city, state, website, regulator, registration_number, status, description, raw_data, data_as_of, last_synced_at, created_at, updated_at, country')
-      .limit(200)
-  );
-
-  const ecosystemRows = await safeRows<EcosystemEntityRow>(
-    supabase
-      .from('ecosystem_entities')
-      .select('id, source_key, source_authority, name, legal_name, entity_type, business_model, active, status, country, city, state, website, description, parent_name, confidence_score, raw_data, data_as_of, last_synced_at, created_at, updated_at')
-      .limit(200)
-  );
+  const institutionRows =
+    registryRows.length > 0
+      ? allInstitutionRows.filter((row) => !REGISTRY_SOURCES.has(row.source))
+      : allInstitutionRows;
 
   const entityRefs = [
     ...institutionRows.map((row) => ({ entity_table: 'institutions' as const, entity_id: row.id })),
@@ -623,7 +916,35 @@ export async function getEntityById(entityId: string): Promise<EntityDetail | nu
 }
 
 async function loadEntityFacts(storageTable: EntityStorageTable, entityId: string) {
-  return safeRows<{
+  const supabase = getSupabase();
+  const hasWarehouseFacts = await tableExists('entity_facts');
+  const facts = hasWarehouseFacts
+    ? await safeRows<{
+        id: string;
+        source_kind: string | null;
+        source_url: string | null;
+        fact_type: string | null;
+        fact_key: string | null;
+        fact_value_text: string | null;
+        confidence_score: number | null;
+        observed_at: string | null;
+      }>(
+        supabase
+          .from('entity_facts')
+          .select('id, source_kind, source_url, fact_type, fact_key, fact_value_text, confidence_score, observed_at')
+          .eq('entity_table', storageTable)
+          .eq('entity_id', entityId)
+          .order('observed_at', { ascending: false })
+          .limit(20)
+      )
+    : [];
+
+  if (facts.length > 0) return facts;
+
+  const entity = await getEntityById(entityId);
+  if (!entity) return [];
+
+  const fallbackFacts = [] as Array<{
     id: string;
     source_kind: string | null;
     source_url: string | null;
@@ -632,15 +953,37 @@ async function loadEntityFacts(storageTable: EntityStorageTable, entityId: strin
     fact_value_text: string | null;
     confidence_score: number | null;
     observed_at: string | null;
-  }>(
-    getSupabase()
-      .from('entity_facts')
-      .select('id, source_kind, source_url, fact_type, fact_key, fact_value_text, confidence_score, observed_at')
-      .eq('entity_table', storageTable)
-      .eq('entity_id', entityId)
-      .order('observed_at', { ascending: false })
-      .limit(20)
-  );
+  }>;
+
+  if (entity.storage_table === 'institutions') {
+    fallbackFacts.push(
+      ...(entity.cert_number != null
+        ? [{
+            id: `legacy-cert-${entity.id}`,
+            source_kind: 'curated',
+            source_url: null,
+            fact_type: 'identity',
+            fact_key: 'cert_number',
+            fact_value_text: String(entity.cert_number),
+            confidence_score: 0.7,
+            observed_at: entity.data_as_of ?? entity.last_synced_at,
+          }]
+        : [])
+    );
+  }
+
+  fallbackFacts.push({
+    id: `legacy-source-${entity.id}`,
+    source_kind: entity.source_kind,
+    source_url: null,
+    fact_type: 'source',
+    fact_key: 'source_authority',
+    fact_value_text: entity.source_authority,
+    confidence_score: 0.9,
+    observed_at: entity.data_as_of ?? entity.last_synced_at,
+  });
+
+  return fallbackFacts;
 }
 
 export async function getEntitySources(entityId: string): Promise<EntitySourceRecord[]> {
@@ -648,6 +991,7 @@ export async function getEntitySources(entityId: string): Promise<EntitySourceRe
   if (!entity) return [];
 
   const facts = await loadEntityFacts(entity.storage_table, entity.id);
+  const charterEvents = await loadCharterEvents(entity.storage_table, entity.id);
   const sources: EntitySourceRecord[] = [];
 
   sources.push({
@@ -662,6 +1006,22 @@ export async function getEntitySources(entityId: string): Promise<EntitySourceRe
     freshness: entity.data_as_of ?? entity.last_synced_at,
     notes: entity.context_summary,
   });
+
+  for (const event of charterEvents) {
+    sources.push({
+      label: event.event_subtype ?? event.event_type,
+      url: event.source_url,
+      source_key: entity.source_key,
+      source_kind: event.source_kind as EntitySourceKind,
+      authority: entity.source_authority,
+      confidence_label:
+        event.confidence_score != null && event.confidence_score >= 0.8
+          ? 'High confidence'
+          : 'Curated event',
+      freshness: event.event_date,
+      notes: event.details,
+    });
+  }
 
   for (const fact of facts) {
     sources.push({
@@ -708,6 +1068,10 @@ type RelationshipRow = {
 
 async function loadRelationshipRows(storageTable: EntityStorageTable, entityId: string) {
   const supabase = getSupabase();
+  const hasWarehouseRelationships = await tableExists('entity_relationships');
+  if (!hasWarehouseRelationships) {
+    return { outbound: [], inbound: [] };
+  }
   const [outbound, inbound] = await Promise.all([
     safeRows<RelationshipRow>(
       supabase
@@ -729,6 +1093,33 @@ async function loadRelationshipRows(storageTable: EntityStorageTable, entityId: 
     outbound: outbound.map((row) => ({ ...row, direction: 'outbound' as const })),
     inbound: inbound.map((row) => ({ ...row, direction: 'inbound' as const })),
   };
+}
+
+async function loadCharterEvents(storageTable: EntityStorageTable, entityId: string) {
+  const supabase = getSupabase();
+  const hasWarehouseEvents = await tableExists('charter_events');
+  if (!hasWarehouseEvents) return [];
+
+  return safeRows<{
+    id: string;
+    event_type: string;
+    event_subtype: string | null;
+    event_date: string;
+    effective_date: string | null;
+    status: string | null;
+    details: string | null;
+    source_kind: string | null;
+    source_url: string | null;
+    confidence_score: number | null;
+  }>(
+    supabase
+      .from('charter_events')
+      .select('id, event_type, event_subtype, event_date, effective_date, status, details, source_kind, source_url, confidence_score')
+      .eq('entity_table', storageTable)
+      .eq('entity_id', entityId)
+      .order('event_date', { ascending: false })
+      .limit(10)
+  );
 }
 
 async function resolveEntityRefs(refs: Array<{ table: EntityStorageTable; id: string }>) {
@@ -797,6 +1188,36 @@ export async function getEntityRelationships(entityId: string): Promise<EntityRe
   }
 
   const rows = [...outbound, ...inbound];
+  if (rows.length === 0 && capability?.baas_partners?.length) {
+    for (const partner of capability.baas_partners) {
+      derivedRelationships.push({
+        id: `derived-${entity.id}-${partner}`,
+        relationship_type: 'sponsor_bank_for',
+        relationship_label: 'Sponsor bank for',
+        direction: 'outbound',
+        active: true,
+        effective_start: null,
+        effective_end: null,
+        source_kind: 'curated',
+        source_url: null,
+        confidence_score: 0.6,
+        notes: capability.notes,
+        counterparty: {
+          id: `derived:${partner}`,
+          storage_table: 'ecosystem_entities',
+          profile_kind: 'ecosystem_entity',
+          name: partner,
+          country: entity.country,
+          country_label: entity.country_label,
+          regulator: null,
+          entity_type: 'ecosystem_company',
+          charter_family: null,
+          source_key: 'curated',
+          source_authority: 'Curated Research',
+        },
+      });
+    }
+  }
   const resolved = await resolveEntityRefs(
     rows.map((row) => ({
       table: row.direction === 'outbound' ? row.to_entity_table : row.from_entity_table,
@@ -848,15 +1269,18 @@ export async function getEntityHistory(entityId: string): Promise<EntityHistoryP
   if (!entity) return [];
 
   const supabase = getSupabase();
-  const quarterly = await safeRows<EntityHistoryPoint>(
-    supabase
-      .from('financial_history_quarterly')
-      .select('period, total_assets, total_deposits, total_loans, net_income, equity_capital, roa, roi, credit_card_loans')
-      .eq('entity_table', entity.storage_table)
-      .eq('entity_id', entity.id)
-      .order('period', { ascending: false })
-      .limit(20)
-  );
+  const hasQuarterlyHistory = await tableExists('financial_history_quarterly');
+  const quarterly = hasQuarterlyHistory
+    ? await safeRows<EntityHistoryPoint>(
+        supabase
+          .from('financial_history_quarterly')
+          .select('period, total_assets, total_deposits, total_loans, net_income, equity_capital, roa, roi, credit_card_loans')
+          .eq('entity_table', entity.storage_table)
+          .eq('entity_id', entity.id)
+          .order('period', { ascending: false })
+          .limit(20)
+      )
+    : [];
 
   if (quarterly.length > 0) return quarterly;
 

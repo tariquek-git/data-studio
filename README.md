@@ -111,6 +111,7 @@ Core institution and registry loaders:
 - `node scripts/sync-ciro.mjs`
 - `node scripts/sync-fintrac.mjs`
 - `node scripts/sync-fed-master-accounts.mjs`
+- `node scripts/backfill-entity-warehouse.mjs`
 - `node scripts/sync-ffiec-cdr.mjs`
 - `node scripts/sync-ffiec-nic.mjs`
 
@@ -120,6 +121,7 @@ Important notes:
 - `sync-sod.mjs` now auto-resolves the latest available SOD year unless `FDIC_SOD_YEAR` is explicitly set.
 - `sync-ffiec-cdr.mjs` uses the official FFIEC CDR PWS REST flow and requires a PWS account token.
 - `sync-ffiec-nic.mjs` expects locally downloaded NIC bulk CSV ZIP files because the public download page is CAPTCHA-protected from plain scripted fetches.
+- `backfill-entity-warehouse.mjs` seeds the new warehouse tables from current `institutions`, `financial_history`, and `branches` data so the entity APIs can use the new model before every source has a native warehouse loader.
 - Several planned sources are registered but not yet fully ingested.
 
 ## Main APIs
