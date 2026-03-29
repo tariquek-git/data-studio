@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brim Pricing Strategy Dashboard</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23d76036'/%3E%3Cpath d='M18 18h17c8 0 13 4 13 11 0 5-3 8-8 10 6 1 10 5 10 11 0 8-6 14-16 14H18V18Zm10 9v9h7c3 0 5-2 5-4 0-3-2-5-6-5h-6Zm0 17v11h8c4 0 6-2 6-5s-3-6-7-6h-7Z' fill='%23fff7f1'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./dashboard.css" />
+  </head>
+  <body>
+    <div class="page-glow page-glow-left" aria-hidden="true"></div>
+    <div class="page-glow page-glow-right" aria-hidden="true"></div>
+
+    <main class="shell">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Brim Pricing Strategy Dashboard</p>
+          <h1>Turn a complex rate card into a cleaner, more defensible commercial story.</h1>
+          <p class="hero-text">
+            This dashboard translates the pricing review into a practical operating view:
+            what Brim should keep, what needs to be reframed, and where the proposal is
+            most exposed to buyer pushback.
+          </p>
+
+          <div class="hero-actions">
+            <a class="button button-solid" href="#benchmarks">Review Benchmarks</a>
+            <a class="button button-ghost" href="#architecture">See New Packaging</a>
+          </div>
+        </div>
+
+        <div class="hero-panel">
+          <div class="summary-stack">
+            <article class="summary-card summary-card-warm">
+              <span class="summary-label">Most Defensible</span>
+              <strong>10 bps issuer fee</strong>
+              <p>Looks modest relative to published Canadian interchange benchmarks.</p>
+            </article>
+            <article class="summary-card summary-card-alert">
+              <span class="summary-label">Most Exposed</span>
+              <strong>Support + messaging</strong>
+              <p>IVR, call-centre, SMS, and email pricing are the first lines buyers will challenge.</p>
+            </article>
+            <article class="summary-card summary-card-calm">
+              <span class="summary-label">Fastest Fix</span>
+              <strong>Rebundle commodity lines</strong>
+              <p>Move transport-style charges into pass-throughs or managed-service bundles.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="signal-grid" aria-label="High-level signals">
+        <article class="metric-card">
+          <span class="metric-value">1</span>
+          <p class="metric-label">shared assumptions model needed</p>
+        </article>
+        <article class="metric-card">
+          <span class="metric-value">4</span>
+          <p class="metric-label">lines to reprice or reframe first</p>
+        </article>
+        <article class="metric-card">
+          <span class="metric-value">3</span>
+          <p class="metric-label">commercial buckets buyers expect</p>
+        </article>
+        <article class="metric-card">
+          <span class="metric-value">0</span>
+          <p class="metric-label">reasons to lead with a broken model</p>
+        </article>
+      </section>
+
+      <section class="section" id="benchmarks">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Public Benchmark Read</p>
+            <h2>Where Brim feels premium, and where it just feels expensive.</h2>
+          </div>
+          <p class="section-note">
+            Built from official or company-published sources only. Select a benchmark to
+            compare Brim’s current line item with the market anchor.
+          </p>
+        </div>
+
+        <div class="benchmark-layout">
+          <aside class="benchmark-list" id="benchmark-list" aria-label="Benchmark list"></aside>
+
+          <article class="detail-card">
+            <div class="detail-topline">
+              <span class="detail-tag" id="benchmark-tag"></span>
+              <span class="detail-delta" id="benchmark-delta"></span>
+            </div>
+            <h3 id="benchmark-title"></h3>
+            <p class="detail-description" id="benchmark-description"></p>
+
+            <div class="bar-group">
+              <div class="bar-row">
+                <div class="bar-labels">
+                  <span>Brim</span>
+                  <strong id="bar-model-label"></strong>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-fill-brand" id="bar-model"></div>
+                </div>
+              </div>
+
+              <div class="bar-row">
+                <div class="bar-labels">
+                  <span>Benchmark</span>
+                  <strong id="bar-market-label"></strong>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-fill-market" id="bar-market"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-columns">
+              <div>
+                <h4>Why It Matters</h4>
+                <p id="benchmark-impact"></p>
+              </div>
+              <div>
+                <h4>What Brim Should Do</h4>
+                <p id="benchmark-action"></p>
+              </div>
+            </div>
+
+            <div class="source-block">
+              <h4>Source</h4>
+              <a id="benchmark-source" class="source-link" href="#" target="_blank" rel="noreferrer"></a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section architecture" id="architecture">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Recommended Packaging</p>
+            <h2>Sell Brim like managed issuance, not like stacked margin on every utility line.</h2>
+          </div>
+          <p class="section-note">
+            This packaging structure keeps Brim premium while making the pricing easier to
+            buy, benchmark, and defend in procurement.
+          </p>
+        </div>
+
+        <div class="segment-control" role="tablist" aria-label="Pricing architecture views">
+          <button class="segment-button is-active" data-architecture="core">Core Platform</button>
+          <button class="segment-button" data-architecture="managed">Managed Operations</button>
+          <button class="segment-button" data-architecture="full">Full Program</button>
+        </div>
+
+        <div class="architecture-panel">
+          <article class="architecture-main">
+            <div class="architecture-header">
+              <span class="architecture-kicker" id="architecture-kicker"></span>
+              <h3 id="architecture-title"></h3>
+              <p id="architecture-summary"></p>
+            </div>
+
+            <div class="architecture-columns">
+              <div>
+                <h4>Price It With</h4>
+                <ul id="architecture-pricing" class="clean-list"></ul>
+              </div>
+              <div>
+                <h4>Include By Default</h4>
+                <ul id="architecture-included" class="clean-list"></ul>
+              </div>
+              <div>
+                <h4>Keep Out Of Base Fee</h4>
+                <ul id="architecture-excluded" class="clean-list"></ul>
+              </div>
+            </div>
+          </article>
+
+          <aside class="architecture-sidebar">
+            <article class="sidebar-card">
+              <span class="sidebar-label">Narrative Shift</span>
+              <p id="architecture-narrative"></p>
+            </article>
+            <article class="sidebar-card">
+              <span class="sidebar-label">Buyer Reaction</span>
+              <p id="architecture-reaction"></p>
+            </article>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Action Board</p>
+            <h2>The sequence that gets Brim from challenged quote to credible proposal.</h2>
+          </div>
+          <p class="section-note">
+            Filter by urgency to see what to fix now versus what to polish later.
+          </p>
+        </div>
+
+        <div class="filter-row" role="tablist" aria-label="Action filters">
+          <button class="filter-button is-active" data-filter="all">All Actions</button>
+          <button class="filter-button" data-filter="fix-now">Fix Now</button>
+          <button class="filter-button" data-filter="reframe">Reframe</button>
+          <button class="filter-button" data-filter="defend">Defend</button>
+        </div>
+
+        <div class="action-board" id="action-board"></div>
+      </section>
+
+      <section class="section source-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Source Pack</p>
+            <h2>Benchmark anchors used in the dashboard.</h2>
+          </div>
+          <p class="section-note">
+            These are the public sources that informed the recommendations and comparison ranges.
+          </p>
+        </div>
+
+        <div class="source-grid" id="source-grid"></div>
+      </section>
+    </main>
+
+    <script src="./dashboard.js"></script>
+  </body>
+</html>
