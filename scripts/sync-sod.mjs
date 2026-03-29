@@ -44,10 +44,10 @@ const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-// The FDIC /sod endpoint has annual SOD snapshots; filter to latest year.
+// The FDIC /sod endpoint has annual SOD snapshots; filter to the latest year.
 // The /locations endpoint has current branches but lacks deposit data.
 const FDIC_SOD_URL = 'https://api.fdic.gov/banks/sod';
-const SOD_YEAR = 2024;  // Latest complete SOD year
+const SOD_YEAR_OVERRIDE = process.env.FDIC_SOD_YEAR ? Number(process.env.FDIC_SOD_YEAR) : null;
 const SOD_FIELDS = [
   'CERT', 'NAMEBR', 'BRNUM', 'ADDRESBR', 'CITYBR', 'STALPBR', 'ZIPBR',
   'CNTYNAMB', 'SIMS_LATITUDE', 'SIMS_LONGITUDE', 'DEPSUMBR',
@@ -65,6 +65,33 @@ const LOG_EVERY = 10000;    // log a progress line every N records fetched
 function num(v) { return v != null && v !== '' ? Number(v) : null; }
 function thousands(v) { return v != null && v !== '' ? Number(v) * 1000 : null; }
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+async function resolveSodYear() {
+  if (SOD_YEAR_OVERRIDE != null && Number.isFinite(SOD_YEAR_OVERRIDE)) {
+    return SOD_YEAR_OVERRIDE;
+  }
+
+  const url =
+    `${FDIC_SOD_URL}` +
+    '?fields=YEAR' +
+    '&limit=1' +
+    '&sort_by=YEAR' +
+    '&sort_order=DESC';
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Could not determine latest SOD year (HTTP ${res.status}): ${text.slice(0, 200)}`);
+  }
+
+  const json = await res.json();
+  const year = Number(json.data?.[0]?.data?.YEAR);
+  if (!Number.isFinite(year)) {
+    throw new Error('Could not determine latest SOD year from FDIC response');
+  }
+
+  return year;
+}
 
 // ---------------------------------------------------------------------------
 // Main
@@ -109,10 +136,13 @@ async function main() {
       throw new Error('No institutions found in DB. Run sync-fdic.mjs first.');
     }
 
+    const sodYear = await resolveSodYear();
+    console.log(`\nResolved SOD year: ${sodYear}${SOD_YEAR_OVERRIDE != null ? ' (env override)' : ''}`);
+
     // -----------------------------------------------------------------------
     // Step 2: Paginate through FDIC SOD (~76,000 records for latest year)
     // -----------------------------------------------------------------------
-    console.log(`\nStep 2: Fetching FDIC SOD branches for year ${SOD_YEAR} (paginated)...`);
+    console.log(`\nStep 2: Fetching FDIC SOD branches for year ${sodYear} (paginated)...`);
     let offset = 0;
     let totalFetched = 0;
     let totalMatched = 0;
@@ -125,7 +155,7 @@ async function main() {
       const url =
         `${FDIC_SOD_URL}` +
         `?fields=${SOD_FIELDS}` +
-        `&filters=YEAR:${SOD_YEAR}` +
+        `&filters=YEAR:${sodYear}` +
         `&limit=${PAGE_LIMIT}` +
         `&offset=${offset}` +
         `&sort_by=CERT` +
@@ -176,6 +206,7 @@ async function main() {
           // BRNUM=0 is the main/head office in SOD convention
           main_office: d.BRNUM === 0 || d.BRNUM === '0',
           established_date: d.SIMS_ESTABLISHED_DATE || null,
+          data_as_of: `${sodYear}-06-30`,
           created_at: new Date().toISOString(),
         });
 
@@ -183,7 +214,7 @@ async function main() {
         if (pendingBatch.length >= BATCH_SIZE) {
           const { error } = await supabase
             .from('branches')
-            .insert(pendingBatch);
+            .upsert(pendingBatch, { onConflict: 'cert_number,branch_number' });
 
           if (error) {
             console.error(`Insert error at offset ${offset}:`, error.message);
@@ -222,7 +253,7 @@ async function main() {
     if (pendingBatch.length > 0) {
       const { error } = await supabase
         .from('branches')
-        .insert(pendingBatch);
+        .upsert(pendingBatch, { onConflict: 'cert_number,branch_number' });
 
       if (error) {
         console.error('Final batch insert error:', error.message);

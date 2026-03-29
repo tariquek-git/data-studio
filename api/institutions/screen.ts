@@ -119,40 +119,56 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   // Deposit growth YoY: requires financial_history lookup
   // Only applied if depositGrowthMin is set and we have a manageable result set
   if (depositGrowthMin != null && results.length > 0) {
-    const ids = results.map((inst: any) => inst.id);
+    type DepositHistoryRow = {
+      cert_number: number;
+      period: string;
+      total_deposits: number;
+    };
 
-    // Fetch last 2 years of deposit data for these institutions
-    const { data: history } = await supabase
-      .from('financial_history')
-      .select('institution_id, period, total_deposits')
-      .in('institution_id', ids)
-      .not('total_deposits', 'is', null)
-      .order('period', { ascending: false });
+    const certNumbers = results
+      .map((inst: any) => inst.cert_number)
+      .filter((cert: unknown): cert is number => typeof cert === 'number' && Number.isFinite(cert));
 
-    if (history && history.length > 0) {
-      // For each institution, find latest deposit and deposit ~1yr ago
-      const byInst: Record<string, { period: string; total_deposits: number }[]> = {};
-      for (const row of history) {
-        if (!byInst[row.institution_id]) byInst[row.institution_id] = [];
-        byInst[row.institution_id].push(row);
-      }
+    if (certNumbers.length > 0) {
+      const { data: history } = await supabase
+        .from('financial_history')
+        .select('cert_number, period, total_deposits')
+        .in('cert_number', certNumbers)
+        .not('total_deposits', 'is', null)
+        .order('period', { ascending: false });
 
-      results = results.filter((inst: any) => {
-        const rows = byInst[inst.id];
-        if (!rows || rows.length < 2) return false;
-        const latest = rows[0];
-        // Find a row approximately 1 year prior (within ±60 days)
-        const targetDate = new Date(latest.period);
-        targetDate.setFullYear(targetDate.getFullYear() - 1);
-        const target = targetDate.toISOString().slice(0, 10);
-        const prior = rows.find((r) => {
-          const diff = Math.abs(new Date(r.period).getTime() - new Date(target).getTime());
-          return diff <= 60 * 24 * 60 * 60 * 1000; // within 60 days
+      if (history && history.length > 0) {
+        // For each institution, find latest deposit and deposit ~1yr ago
+        const byCert: Record<string, DepositHistoryRow[]> = {};
+        for (const row of history as DepositHistoryRow[]) {
+          const key = String(row.cert_number);
+          if (!byCert[key]) byCert[key] = [];
+          byCert[key].push(row);
+        }
+
+        results = results.filter((inst: any) => {
+          if (typeof inst.cert_number !== 'number') return false;
+          const rows = byCert[String(inst.cert_number)];
+          if (!rows || rows.length < 2) return false;
+
+          const latest = rows[0];
+          if (!latest.total_deposits) return false;
+
+          // Find a row approximately 1 year prior (within ±60 days)
+          const targetDate = new Date(latest.period);
+          targetDate.setFullYear(targetDate.getFullYear() - 1);
+          const targetTime = targetDate.getTime();
+          const prior = rows.find((row) => {
+            const periodTime = new Date(row.period).getTime();
+            const diff = Math.abs(periodTime - targetTime);
+            return diff <= 60 * 24 * 60 * 60 * 1000;
+          });
+
+          if (!prior || !prior.total_deposits) return false;
+          const growth = ((latest.total_deposits - prior.total_deposits) / prior.total_deposits) * 100;
+          return growth >= depositGrowthMin;
         });
-        if (!prior || !prior.total_deposits || !latest.total_deposits) return false;
-        const growth = ((latest.total_deposits - prior.total_deposits) / prior.total_deposits) * 100;
-        return growth >= depositGrowthMin;
-      });
+      }
     }
   }
 

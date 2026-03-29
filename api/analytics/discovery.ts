@@ -49,13 +49,12 @@ export default apiHandler({ methods: ['GET'] }, async (_req: VercelRequest, res:
       .select('*', { count: 'exact', head: true })
       .gte('created_at', ninetyDaysAgoStr),
 
-    // Top movers: need latest financial_history comparison
-    // Fetch institutions with total_assets and compare to prior quarter via financial_history
+    // Latest financial_history periods to compare for top movers
     supabase
       .from('financial_history')
-      .select('cert_number, total_assets, period_date')
-      .order('period_date', { ascending: false })
-      .limit(2000),
+      .select('period')
+      .order('period', { ascending: false })
+      .limit(200),
 
     // New registrations (Canadian sources, recently added)
     supabase
@@ -82,17 +81,29 @@ export default apiHandler({ methods: ['GET'] }, async (_req: VercelRequest, res:
     }
   }
 
+  const topPeriods = [...new Set((topMoversRes.data ?? []).map((row: { period: string | null }) => row.period).filter(Boolean))].slice(0, 2);
+
+  let historyRows: Array<{ cert_number: number; total_assets: number | null; period: string }> = [];
+  if (topPeriods.length > 0) {
+    const { data } = await supabase
+      .from('financial_history')
+      .select('cert_number, total_assets, period')
+      .in('period', topPeriods)
+      .order('period', { ascending: false });
+    historyRows = (data ?? []) as Array<{ cert_number: number; total_assets: number | null; period: string }>;
+  }
+
   // Compute top movers from financial_history
-  // Group by cert_number, keep last 2 periods, compute asset change
+  // Group by cert_number, keep the latest 2 periods, compute asset change
   interface HistoryRow {
     cert_number: number;
     total_assets: number | null;
-    period_date: string;
+    period: string;
   }
 
   const byInstitution: Record<number, HistoryRow[]> = {};
-  if (topMoversRes.data) {
-    for (const row of topMoversRes.data as HistoryRow[]) {
+  if (historyRows.length > 0) {
+    for (const row of historyRows as HistoryRow[]) {
       const cert = row.cert_number;
       if (!byInstitution[cert]) byInstitution[cert] = [];
       if (byInstitution[cert].length < 2) {
