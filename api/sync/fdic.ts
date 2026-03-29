@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { apiHandler } from '../../lib/api-handler';
-import { getSupabase } from '../../lib/supabase';
+import { apiHandler } from '../../lib/api-handler.js';
+import { getSupabase } from '../../lib/supabase.js';
 
 const FDIC_API = 'https://banks.data.fdic.gov/api';
 

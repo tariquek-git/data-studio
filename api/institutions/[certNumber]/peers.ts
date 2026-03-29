@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { apiHandler } from '../../../lib/api-handler';
-import { getSupabase } from '../../../lib/supabase';
+import { apiHandler } from '../../../lib/api-handler.js';
+import { getSupabase } from '../../../lib/supabase.js';
 
 function getAssetBucket(assets: number | null): [number, number] {
   if (!assets) return [0, 100_000_000];
