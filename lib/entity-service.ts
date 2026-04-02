@@ -110,7 +110,8 @@ type SearchOptions = {
 
 const REGULATED_SOURCES = new Set(['fdic', 'ncua', 'osfi']);
 const REGISTRY_SOURCES = new Set(['rpaa', 'ciro', 'fintrac', 'fincen']);
-const TABLE_EXISTENCE_CACHE = new Map<string, boolean>();
+const TABLE_EXISTENCE_CACHE_TTL_MS = 60_000;
+const TABLE_EXISTENCE_CACHE = new Map<string, { exists: boolean; checkedAt: number }>();
 
 const SOURCE_META: Record<
   string,
@@ -177,20 +178,23 @@ async function fetchAllPages<T>(
 }
 
 async function tableExists(table: string) {
-  if (TABLE_EXISTENCE_CACHE.has(table)) return TABLE_EXISTENCE_CACHE.get(table) ?? false;
+  const cached = TABLE_EXISTENCE_CACHE.get(table);
+  if (cached && Date.now() - cached.checkedAt < TABLE_EXISTENCE_CACHE_TTL_MS) {
+    return cached.exists;
+  }
 
   const { error } = await getSupabase()
     .from(table)
-    .select('id', { count: 'exact', head: true })
+    .select('id')
     .limit(1);
 
   if (!error) {
-    TABLE_EXISTENCE_CACHE.set(table, true);
+    TABLE_EXISTENCE_CACHE.set(table, { exists: true, checkedAt: Date.now() });
     return true;
   }
 
   if (isMissingTableError(error)) {
-    TABLE_EXISTENCE_CACHE.set(table, false);
+    TABLE_EXISTENCE_CACHE.set(table, { exists: false, checkedAt: Date.now() });
     return false;
   }
 
