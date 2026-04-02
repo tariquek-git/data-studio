@@ -4,7 +4,7 @@
 -- Run this file directly in the Supabase SQL Editor to create all tables,
 -- indexes, RLS policies, functions, and triggers.
 --
--- Sources: FDIC, NCUA, OSFI (Canada), RPAA (Canada)
+-- Sources: FDIC, NCUA, OSFI, RPAA, CIRO, FINTRAC, FinCEN, OCC
 -- Purpose: Unified financial institution database for targeting, analysis,
 --          and credit card program prospecting.
 -- =============================================================================
@@ -19,7 +19,7 @@
 CREATE TABLE IF NOT EXISTS institutions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   cert_number INTEGER UNIQUE NOT NULL,
-  source TEXT NOT NULL CHECK (source IN ('fdic', 'ncua', 'osfi', 'rpaa')),
+  source TEXT NOT NULL CHECK (source IN ('fdic', 'ncua', 'osfi', 'rpaa', 'ciro', 'fintrac', 'fincen', 'fintech_ca', 'occ')),
   name TEXT NOT NULL,
   legal_name TEXT,
   charter_type TEXT,            -- 'commercial', 'savings', 'savings_association', 'credit_union', 'trust', 'psp', 'other'

@@ -110,18 +110,22 @@ Core institution and registry loaders:
 - `node scripts/sync-rpaa.mjs`
 - `node scripts/sync-ciro.mjs`
 - `node scripts/sync-fintrac.mjs`
+- `node scripts/sync-occ.mjs`
 - `node scripts/sync-fed-master-accounts.mjs`
 - `node scripts/backfill-entity-warehouse.mjs`
 - `node scripts/sync-ffiec-cdr.mjs`
 - `node scripts/sync-ffiec-nic.mjs`
+- `node scripts/verify-entity-warehouse.mjs`
 
 Important notes:
 
 - FDIC amounts arrive in thousands and are normalized to dollars on ingest.
 - `sync-sod.mjs` now auto-resolves the latest available SOD year unless `FDIC_SOD_YEAR` is explicitly set.
+- `sync-occ.mjs` uses public OCC Excel lists and only creates new `institutions` rows when it cannot match an existing institution by OCC charter, FDIC cert, or RSSD.
 - `sync-ffiec-cdr.mjs` uses the official FFIEC CDR PWS REST flow and requires a PWS account token.
 - `sync-ffiec-nic.mjs` expects locally downloaded NIC bulk CSV ZIP files because the public download page is CAPTCHA-protected from plain scripted fetches.
 - `backfill-entity-warehouse.mjs` seeds the new warehouse tables from current `institutions`, `financial_history`, and `branches` data so the entity APIs can use the new model before every source has a native warehouse loader.
+- `verify-entity-warehouse.mjs` is the quickest way to confirm whether the new warehouse tables are visible through PostgREST or still blocked by schema-cache lag.
 - Several planned sources are registered but not yet fully ingested.
 
 ## Main APIs
@@ -154,6 +158,7 @@ Analytics and QA:
 - `GET /api/analytics/discovery`
 - `GET /api/analytics/failures`
 - `GET /api/qa/status`
+- `GET /api/qa/warehouse-status`
 - `GET /api/qa/check`
 
 ## Product direction

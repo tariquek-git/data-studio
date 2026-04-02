@@ -1,10 +1,22 @@
 #!/usr/bin/env node
+/**
+ * Verify the current entity warehouse activation state.
+ *
+ * Prints:
+ * - legacy table readability and row counts
+ * - warehouse table readability and row counts
+ * - explicit schema-cache warnings when PostgREST still returns PGRST205
+ *
+ * Run:
+ *   node scripts/verify-entity-warehouse.mjs
+ */
 
 import { createSupabaseServiceClient, loadEnvLocal } from './_sync-utils.mjs';
 
 const env = loadEnvLocal();
 const supabase = createSupabaseServiceClient(env);
 
+const LEGACY_TABLES = ['institutions', 'financial_history', 'branches'];
 const WAREHOUSE_TABLES = [
   'registry_entities',
   'ecosystem_entities',
@@ -12,68 +24,80 @@ const WAREHOUSE_TABLES = [
   'entity_tags',
   'entity_facts',
   'entity_relationships',
-  'charter_events',
   'financial_history_quarterly',
   'branch_history_annual',
+  'charter_events',
 ];
 
-async function probeTable(table) {
-  const { error } = await supabase.from(table).select('id').limit(1);
+async function inspectTable(table) {
+  const { data, error } = await supabase
+    .from(table)
+    .select('id')
+    .limit(1);
+
   if (error) {
     return {
       table,
-      visible: false,
-      rowCount: null,
-      errorCode: error.code ?? null,
-      errorMessage: error.message ?? null,
+      readable: false,
+      blockedBySchemaCache:
+        error.code === 'PGRST205' || /schema cache/i.test(error.message ?? ''),
+      code: error.code ?? null,
+      message: error.message ?? 'Unknown error',
+      count: null,
     };
   }
 
-  const countResult = await supabase.from(table).select('id', { count: 'exact', head: true });
+  const { count, error: countError } = await supabase
+    .from(table)
+    .select('*', { count: 'exact', head: true });
+
   return {
     table,
-    visible: true,
-    rowCount: countResult.error ? null : (countResult.count ?? 0),
-    errorCode: countResult.error?.code ?? null,
-    errorMessage: countResult.error?.message ?? null,
+    readable: !countError,
+    blockedBySchemaCache: false,
+    code: countError?.code ?? null,
+    message: countError?.message ?? null,
+    count: count ?? null,
+    sampleRows: Array.isArray(data) ? data.length : null,
   };
 }
 
+function printReport(title, results) {
+  console.log(`\n${title}`);
+  for (const result of results) {
+    if (result.readable) {
+      console.log(`  OK   ${result.table.padEnd(28)} rows=${String(result.count ?? 'unknown')}`);
+    } else if (result.blockedBySchemaCache) {
+      console.log(`  WAIT ${result.table.padEnd(28)} blocked by PostgREST schema cache (${result.code})`);
+    } else {
+      console.log(`  ERR  ${result.table.padEnd(28)} ${result.code ?? 'unknown'} ${result.message}`);
+    }
+  }
+}
+
 async function main() {
-  const tableStatuses = await Promise.all(WAREHOUSE_TABLES.map((table) => probeTable(table)));
-  const invisible = tableStatuses.filter((table) => !table.visible);
-  const emptyVisible = tableStatuses.filter((table) => table.visible && table.rowCount === 0);
+  console.log('Verifying entity warehouse state...');
 
-  console.log('Entity warehouse readiness');
-  console.log('=========================');
+  const legacy = await Promise.all(LEGACY_TABLES.map(inspectTable));
+  const warehouse = await Promise.all(WAREHOUSE_TABLES.map(inspectTable));
 
-  for (const table of tableStatuses) {
-    const summary = table.visible
-      ? `visible | rows=${table.rowCount ?? 'unknown'}`
-      : `blocked | ${table.errorCode ?? 'unknown'} | ${table.errorMessage ?? 'unknown error'}`;
-    console.log(`${table.table}: ${summary}`);
-  }
+  printReport('Legacy tables', legacy);
+  printReport('Warehouse tables', warehouse);
 
-  console.log('');
-  if (invisible.length > 0) {
-    const cacheBlocked = invisible.some((table) => table.errorCode === 'PGRST205');
-    console.log(cacheBlocked
-      ? "Blocker: PostgREST schema cache has not exposed the warehouse tables yet. Run: NOTIFY pgrst, 'reload schema';"
-      : `Blocker: ${invisible.length} warehouse tables are not reachable from PostgREST.`);
-    process.exitCode = 1;
+  const blocked = warehouse.filter((result) => result.blockedBySchemaCache);
+  if (blocked.length > 0) {
+    console.log(
+      `\nWarehouse is not fully reachable yet. ${blocked.length} table(s) are still blocked by PostgREST schema cache.`
+    );
+    console.log("Run this in Supabase SQL editor if needed: NOTIFY pgrst, 'reload schema';");
+    process.exitCode = 2;
     return;
   }
 
-  if (emptyVisible.length > 0) {
-    console.log(`Warehouse visible but not seeded: ${emptyVisible.length} tables still have 0 rows.`);
-    console.log('Next: run node scripts/backfill-entity-warehouse.mjs');
-    return;
-  }
-
-  console.log('Warehouse visible and seeded. Next: smoke-test entity APIs and advance the next source ingest.');
+  console.log('\nWarehouse tables are readable through PostgREST.');
 }
 
 main().catch((error) => {
-  console.error('Warehouse verification failed:', error.message);
+  console.error(`Verification failed: ${error.message}`);
   process.exit(1);
 });
