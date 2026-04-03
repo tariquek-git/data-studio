@@ -82,6 +82,22 @@ npm run dev
 npm run build
 ```
 
+## Local Postgres Sandbox
+
+If you want a local warehouse sandbox outside Supabase:
+
+```bash
+node scripts/setup-local-postgres.mjs
+```
+
+This creates and bootstraps a local database named `data_studio_local` on `localhost:5432` using the running Homebrew PostgreSQL service.
+
+To recreate it from scratch:
+
+```bash
+RESET=1 node scripts/setup-local-postgres.mjs
+```
+
 ## Database and migrations
 
 Initial setup and older schema helpers live in:
