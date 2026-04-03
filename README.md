@@ -158,8 +158,14 @@ Analytics and QA:
 - `GET /api/analytics/discovery`
 - `GET /api/analytics/failures`
 - `GET /api/qa/status`
+- `GET /api/qa/data-readiness`
 - `GET /api/qa/warehouse-status`
 - `GET /api/qa/check`
+
+Operational sync endpoints:
+
+- `POST /api/sync/fdic`
+- `POST /api/sync/occ`
 
 ## Product direction
 
