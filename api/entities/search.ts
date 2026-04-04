@@ -11,6 +11,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     source_authority: typeof req.query.source_authority === 'string' ? req.query.source_authority : null,
     charter_family: typeof req.query.charter_family === 'string' ? req.query.charter_family : null,
     business_role: typeof req.query.business_role === 'string' ? req.query.business_role : null,
+    status: typeof req.query.status === 'string' ? req.query.status : null,
     page: Number(req.query.page) || 1,
     perPage: Number(req.query.per_page) || 24,
   });

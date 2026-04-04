@@ -157,6 +157,13 @@ const SOURCE_SYNC_DEFINITIONS: SourceSyncDefinition[] = [
     requirements: () => [],
   },
   {
+    sourceKey: 'boc',
+    scriptPath: 'scripts/sync-boc-series.mjs',
+    docsUrls: ['https://www.bankofcanada.ca/valet/docs'],
+    notes: ['Loads Bank of Canada policy-rate and macro context series into macro_series.'],
+    requirements: () => [],
+  },
+  {
     sourceKey: 'ciro',
     scriptPath: 'scripts/sync-ciro.mjs',
     docsUrls: ['https://www.ciro.ca/investors/check-your-advisor-dealer'],

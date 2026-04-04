@@ -19,6 +19,11 @@ import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import {
+  FED_MASTER_ACCOUNT_PAGE_URL,
+  FED_MASTER_ACCOUNT_URL,
+  SPONSOR_BANK_SEEDS,
+} from './_sponsor-bank-seeds.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -33,149 +38,6 @@ for (const line of envContent.split('\n')) {
 }
 
 const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
-
-// ---------------------------------------------------------------------------
-// Fed master account list URL
-// ---------------------------------------------------------------------------
-const FED_MASTER_ACCOUNT_URL =
-  'https://www.frbservices.org/binaries/content/assets/crsocms/financial-services/master-account/master-account-granted-requests.xlsx';
-
-// ---------------------------------------------------------------------------
-// Curated seed list of known sponsor / base banks
-// Fields: name (used for fuzzy ILIKE match), cert (FDIC cert number),
-//         plus known capability flags.
-// ---------------------------------------------------------------------------
-const SEED_BANKS = [
-  {
-    name: 'Sutton Bank',
-    cert: 5962,  // Sutton Bank, Attica OH
-    notes: 'Major card-issuing sponsor bank; issues Visa/MC prepaid and debit for dozens of fintechs.',
-    baas_platform: true,
-    baas_partners: ['Cash App', 'Acorns', 'Step', 'Stash', 'Dave'],
-    issues_prepaid: true,
-    issues_debit_cards: true,
-    visa_principal: true,
-    mastercard_principal: true,
-    nacha_odfi: true,
-  },
-  {
-    name: 'Pathward',
-    cert: 30776,  // Pathward, National Association in SD
-    notes: 'Formerly MetaBank. Large BaaS/prepaid sponsor bank.',
-    baas_platform: true,
-    baas_partners: ['H&R Block', 'Walmart MoneyCard'],
-    issues_prepaid: true,
-    issues_debit_cards: true,
-    visa_principal: true,
-    mastercard_principal: true,
-    nacha_odfi: true,
-  },
-  {
-    name: 'Blue Ridge Bank,  National Association',
-    cert: 35274,  // Blue Ridge Bank NA, Martinsville VA — the BaaS/sponsor bank
-    notes: 'Active BaaS sponsor bank; under OCC consent order 2023 re: BaaS oversight.',
-    baas_platform: true,
-    baas_partners: ['Finxact', 'Stripe'],
-    issues_debit_cards: true,
-    visa_principal: true,
-    nacha_odfi: true,
-  },
-  {
-    name: 'Cross River Bank',
-    cert: null,
-    notes: 'Major fintech lending and payments sponsor bank.',
-    baas_platform: true,
-    baas_partners: ['Affirm', 'Coinbase', 'Stripe', 'Upstart'],
-    issues_debit_cards: true,
-    nacha_odfi: true,
-    visa_principal: true,
-  },
-  {
-    name: 'Thread Bank',
-    cert: null,
-    notes: 'BaaS-focused community bank; fintech-friendly charter.',
-    baas_platform: true,
-    baas_partners: [],
-    issues_debit_cards: true,
-    nacha_odfi: true,
-  },
-  {
-    name: 'Coastal Community Bank',
-    cert: null,
-    notes: 'BaaS sponsor; partners include several card fintechs.',
-    baas_platform: true,
-    baas_partners: ['Sila Money', 'Avant'],
-    issues_debit_cards: true,
-    visa_principal: true,
-    nacha_odfi: true,
-  },
-  {
-    name: 'WebBank',
-    cert: null,
-    notes: 'Utah ILC; major consumer and small business lending sponsor.',
-    baas_platform: true,
-    baas_partners: ['LendingClub', 'Prosper', 'Dell Financial Services'],
-    issues_credit_cards: true,
-    issues_debit_cards: true,
-    visa_principal: true,
-    mastercard_principal: true,
-    nacha_odfi: true,
-  },
-  {
-    name: 'Celtic Bank',
-    cert: null,
-    notes: 'Utah ILC; SBA and fintech lending sponsor.',
-    baas_platform: true,
-    baas_partners: ['Kabbage', 'American Express'],
-    issues_credit_cards: true,
-    nacha_odfi: true,
-  },
-  {
-    name: 'FinWise Bank',
-    cert: null,
-    notes: 'Utah ILC; fintech personal loan sponsor.',
-    baas_platform: true,
-    baas_partners: ['OppFi', 'Elevate Credit'],
-    issues_debit_cards: true,
-    nacha_odfi: true,
-  },
-  {
-    name: 'The Bancorp Bank',
-    cert: 35444,  // "The Bancorp Bank, National Association" in SD
-    notes: 'The Bancorp; large prepaid and BaaS sponsor bank.',
-    baas_platform: true,
-    baas_partners: ['Chime', 'PayPal', 'Venmo'],
-    issues_prepaid: true,
-    issues_debit_cards: true,
-    visa_principal: true,
-    mastercard_principal: true,
-    nacha_odfi: true,
-  },
-  {
-    name: 'Green Dot Bank',
-    cert: 22653,  // "Green Dot Bank DBA Bonneville Bank" in UT
-    notes: 'Green Dot; consumer prepaid and BaaS platform.',
-    baas_platform: true,
-    baas_partners: ['Walmart', 'Amazon'],
-    issues_prepaid: true,
-    issues_debit_cards: true,
-    visa_principal: true,
-    mastercard_principal: true,
-    nacha_odfi: true,
-  },
-  {
-    name: 'Column National Association',
-    cert: 58224,  // "Column National Association" in CA
-    notes: 'Tech-first API-native sponsor bank; direct Fed master account holder.',
-    baas_platform: true,
-    baas_partners: [],
-    issues_debit_cards: true,
-    visa_principal: true,
-    nacha_odfi: true,
-    fedwire_participant: true,
-    fed_master_account: true,
-  },
-];
 
 // ---------------------------------------------------------------------------
 // Attempt to fetch the Fed master account xlsx
@@ -273,7 +135,7 @@ async function upsertCapability(certNumber, seedBank, fedListSource) {
     notes: seedBank.notes ?? null,
     source_urls: fedListSource
       ? [FED_MASTER_ACCOUNT_URL]
-      : ['https://www.frbservices.org/financial-services/master-account-and-services/master-account-list.html'],
+      : [FED_MASTER_ACCOUNT_PAGE_URL],
     verified_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -304,7 +166,7 @@ async function main() {
   let inserted = 0;
   let skipped = 0;
 
-  for (const bank of SEED_BANKS) {
+  for (const bank of SPONSOR_BANK_SEEDS) {
     console.log(`\n-> ${bank.name}`);
 
     let certNumber = bank.cert;
@@ -342,7 +204,7 @@ async function main() {
 
   console.log('\n=== Summary ===');
   console.log(`  Fed list download: ${fedListAvailable ? 'SUCCESS (xlsx parsing pending)' : 'FAILED (network/HTTP)'}`);
-  console.log(`  Seed banks processed: ${SEED_BANKS.length}`);
+  console.log(`  Seed banks processed: ${SPONSOR_BANK_SEEDS.length}`);
   console.log(`  Matched in DB:        ${matched}`);
   console.log(`  Upserted:             ${inserted}`);
   console.log(`  Skipped (not in DB):  ${skipped}`);

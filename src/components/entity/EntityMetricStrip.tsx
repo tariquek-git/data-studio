@@ -21,9 +21,11 @@ export interface EntityMetricStripProps {
 }
 
 export function EntityMetricStrip({ cards, rightSlot }: EntityMetricStripProps) {
+  const gridClass = cards.length >= 5 ? 'sm:grid-cols-2 xl:grid-cols-5' : 'sm:grid-cols-2 xl:grid-cols-4';
+
   return (
     <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className={`grid gap-3 ${gridClass}`}>
         {cards.map((card) => (
           <div
             key={card.label}

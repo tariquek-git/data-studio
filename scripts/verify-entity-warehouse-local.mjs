@@ -7,6 +7,7 @@ import { LOCAL_DB, localTableExists, psqlQuery } from './_local-postgres-utils.m
 
 const TABLES = [
   'registry_entities',
+  'ecosystem_entities',
   'entity_external_ids',
   'entity_tags',
   'entity_facts',
@@ -15,6 +16,7 @@ const TABLES = [
   'financial_history_quarterly',
   'branch_history_annual',
   'macro_series',
+  'bank_capabilities',
 ];
 
 function countRows(table) {

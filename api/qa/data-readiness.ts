@@ -2,12 +2,15 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { apiHandler } from '../../lib/api-handler.js';
 import { buildWarehouseStatus } from '../../lib/warehouse-readiness.js';
 import { listSources } from '../../lib/source-service.js';
+import { listSourceSyncStatuses } from '../../lib/source-sync.js';
 
 export default apiHandler({ methods: ['GET'] }, async (_req: VercelRequest, res: VercelResponse) => {
   const [warehouse, sources] = await Promise.all([
     buildWarehouseStatus(),
     listSources(),
   ]);
+  const sourceSyncs = listSourceSyncStatuses();
+  const blockedSyncs = sourceSyncs.filter((sync) => !sync.ready);
 
   const activeSources = sources.sources.filter((source) => source.status === 'active');
   const loadedSources = sources.sources.filter((source) => source.loaded);
@@ -27,6 +30,8 @@ export default apiHandler({ methods: ['GET'] }, async (_req: VercelRequest, res:
       active: activeSources.length,
       pending: pendingSources.length,
       unavailable: sources.summary.unavailable,
+      sync_ready: sourceSyncs.filter((sync) => sync.ready).length,
+      sync_blocked: blockedSyncs.length,
       top_loaded: loadedSources
         .sort((a, b) => (b.record_count ?? 0) - (a.record_count ?? 0))
         .slice(0, 10)
@@ -37,11 +42,16 @@ export default apiHandler({ methods: ['GET'] }, async (_req: VercelRequest, res:
           data_as_of: source.data_as_of,
           last_synced_at: source.last_synced_at,
         })),
+      blocked_syncs: blockedSyncs.map((sync) => ({
+        source_key: sync.source_key,
+        endpoint: sync.endpoint,
+        missing_requirements: sync.requirements.filter((requirement) => !requirement.ready && !requirement.optional),
+      })),
     },
     next_actions: [
       ...warehouse.next_actions,
-      'Run scripts/sync-occ.mjs after the OCC source constraint migration.',
-      'Advance FFIEC CDR and FFIEC NIC once credentials/files are available.',
+      'Use GET /api/qa/source-sync to inspect runnable loaders and missing prerequisites.',
+      'Use POST /api/sync/:sourceKey to trigger backend sync scripts when a source is ready.',
     ],
   });
 });

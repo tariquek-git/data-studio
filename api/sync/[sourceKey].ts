@@ -1,57 +1,59 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { apiHandler } from '../../lib/api-handler.js';
-import { getSourceSyncStatus, runSourceSync } from '../../lib/source-sync.js';
+import { getSourceSyncStatus, hasSourceSync, runSourceSync } from '../../lib/source-sync.js';
 
-function authorized(req: VercelRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return true;
-  return req.headers.authorization === `Bearer ${cronSecret}`;
+function parseBoolean(value: unknown) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value !== 'string') return false;
+  return /^(1|true|yes)$/i.test(value);
 }
 
 export default apiHandler({ methods: ['GET', 'POST'] }, async (req: VercelRequest, res: VercelResponse) => {
   const sourceKey = String(req.query.sourceKey ?? '').trim();
+
   if (!sourceKey) {
     return res.status(400).json({ error: 'Missing source key' });
   }
 
+  if (!hasSourceSync(sourceKey)) {
+    return res.status(404).json({ error: `No sync is registered for ${sourceKey}` });
+  }
+
   const sync = getSourceSyncStatus(sourceKey);
   if (!sync) {
-    return res.status(404).json({ error: 'Sync source not found' });
+    return res.status(404).json({ error: `No sync is registered for ${sourceKey}` });
   }
 
   if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=120');
-    return res.json({ sync });
+    return res.json({ source_key: sourceKey, sync });
   }
 
-  if (!authorized(req)) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const dryRun =
+    parseBoolean(req.query.dry_run) ||
+    parseBoolean((req.body as { dry_run?: unknown } | undefined)?.dry_run);
 
-  if (!sync.supported) {
-    return res.status(400).json({ error: `Source ${sourceKey} does not support backend sync` });
-  }
-
-  if (!sync.ready) {
-    return res.status(409).json({
-      error: `Source ${sourceKey} is missing required prerequisites`,
-      sync,
-    });
-  }
-
-  const dryRun = req.query.dry_run === '1' || req.query.dry_run === 'true';
   if (dryRun && !sync.supports_dry_run) {
     return res.status(400).json({
-      error: `Source ${sourceKey} does not currently support dry_run`,
+      error: `${sourceKey} does not currently support dry runs`,
+      source_key: sourceKey,
       sync,
     });
   }
 
-  const result = await runSourceSync(sourceKey, { dryRun });
-  const statusCode = result.exit_code === 0 ? 200 : 500;
-  return res.status(statusCode).json({
-    success: result.exit_code === 0,
+  if (!dryRun && !sync.ready) {
+    return res.status(409).json({
+      error: `Sync prerequisites are not satisfied for ${sourceKey}`,
+      source_key: sourceKey,
+      sync,
+    });
+  }
+
+  const execution = await runSourceSync(sourceKey, { dryRun });
+
+  return res.status(execution.exit_code === 0 ? 200 : 500).json({
+    success: execution.exit_code === 0,
+    source_key: sourceKey,
     sync,
-    result,
+    execution,
   });
 });

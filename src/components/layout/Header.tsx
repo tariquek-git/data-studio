@@ -17,18 +17,27 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const { watchlist } = useWatchlist();
+  const isTerminalRoute = location.pathname.startsWith('/entities');
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-surface-200">
+    <header className={`sticky top-0 z-50 backdrop-blur border-b ${
+      isTerminalRoute
+        ? 'bg-slate-950/90 border-slate-800'
+        : 'bg-white/95 border-surface-200'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <Database className="h-6 w-6 text-primary-600" />
-            <span className="text-lg font-semibold text-surface-900">
+            <Database className={`h-6 w-6 ${isTerminalRoute ? 'text-cyan-400' : 'text-primary-600'}`} />
+            <span className={`text-lg font-semibold ${isTerminalRoute ? 'text-white' : 'text-surface-900'}`}>
               Fintech Commons
             </span>
-            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">
+            <span className={`hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+              isTerminalRoute
+                ? 'bg-cyan-950/70 text-cyan-200'
+                : 'bg-primary-100 text-primary-700'
+            }`}>
               Data Studio
             </span>
           </Link>
@@ -41,8 +50,12 @@ export function Header() {
                 to={link.to}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   location.pathname === link.to
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-surface-600 hover:text-surface-900 hover:bg-surface-100'
+                    ? isTerminalRoute
+                      ? 'bg-cyan-950/70 text-cyan-200'
+                      : 'bg-primary-50 text-primary-700'
+                    : isTerminalRoute
+                      ? 'text-slate-300 hover:text-white hover:bg-slate-900'
+                      : 'text-surface-600 hover:text-surface-900 hover:bg-surface-100'
                 }`}
               >
                 {link.label}
@@ -52,8 +65,12 @@ export function Header() {
               to="/watchlist"
               className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 location.pathname === '/watchlist'
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-surface-600 hover:text-surface-900 hover:bg-surface-100'
+                  ? isTerminalRoute
+                    ? 'bg-cyan-950/70 text-cyan-200'
+                    : 'bg-primary-50 text-primary-700'
+                  : isTerminalRoute
+                    ? 'text-slate-300 hover:text-white hover:bg-slate-900'
+                    : 'text-surface-600 hover:text-surface-900 hover:bg-surface-100'
               }`}
             >
               Watchlist
@@ -67,7 +84,11 @@ export function Header() {
               href="https://fintechcommons.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-2 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors"
+              className={`ml-2 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isTerminalRoute
+                  ? 'text-cyan-300 hover:text-cyan-200 hover:bg-slate-900'
+                  : 'text-primary-600 hover:text-primary-700 hover:bg-primary-50'
+              }`}
             >
               fintechcommons.com
               <ExternalLink className="h-3.5 w-3.5" />
@@ -77,7 +98,11 @@ export function Header() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100"
+            className={`md:hidden p-2 rounded-lg ${
+              isTerminalRoute
+                ? 'text-slate-400 hover:text-white hover:bg-slate-900'
+                : 'text-surface-500 hover:text-surface-700 hover:bg-surface-100'
+            }`}
             aria-label="Toggle menu"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -87,7 +112,9 @@ export function Header() {
 
       {/* Mobile nav */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-surface-200 bg-white">
+        <div className={`md:hidden border-t ${
+          isTerminalRoute ? 'border-slate-800 bg-slate-950' : 'border-surface-200 bg-white'
+        }`}>
           <nav className="px-4 py-3 space-y-1">
             {NAV_LINKS.map(link => (
               <Link
@@ -96,8 +123,12 @@ export function Header() {
                 onClick={() => setMobileOpen(false)}
                 className={`block px-3 py-2 rounded-lg text-sm font-medium ${
                   location.pathname === link.to
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-surface-600 hover:text-surface-900 hover:bg-surface-100'
+                    ? isTerminalRoute
+                      ? 'bg-cyan-950/70 text-cyan-200'
+                      : 'bg-primary-50 text-primary-700'
+                    : isTerminalRoute
+                      ? 'text-slate-300 hover:text-white hover:bg-slate-900'
+                      : 'text-surface-600 hover:text-surface-900 hover:bg-surface-100'
                 }`}
               >
                 {link.label}
@@ -108,8 +139,12 @@ export function Header() {
               onClick={() => setMobileOpen(false)}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
                 location.pathname === '/watchlist'
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-surface-600 hover:text-surface-900 hover:bg-surface-100'
+                  ? isTerminalRoute
+                    ? 'bg-cyan-950/70 text-cyan-200'
+                    : 'bg-primary-50 text-primary-700'
+                  : isTerminalRoute
+                    ? 'text-slate-300 hover:text-white hover:bg-slate-900'
+                    : 'text-surface-600 hover:text-surface-900 hover:bg-surface-100'
               }`}
             >
               Watchlist
@@ -123,7 +158,11 @@ export function Header() {
               href="https://fintechcommons.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-primary-600 hover:bg-primary-50"
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium ${
+                isTerminalRoute
+                  ? 'text-cyan-300 hover:bg-slate-900'
+                  : 'text-primary-600 hover:bg-primary-50'
+              }`}
             >
               fintechcommons.com
               <ExternalLink className="h-3.5 w-3.5" />

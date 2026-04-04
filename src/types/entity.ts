@@ -163,6 +163,10 @@ export interface EntitySearchAggregations {
   by_country: Record<string, number>;
   by_profile_kind: Record<EntityProfileKind, number>;
   by_source_key: Record<string, number>;
+  by_regulator: Record<string, number>;
+  by_charter_family: Record<string, number>;
+  by_business_role: Record<string, number>;
+  by_status: Record<string, number>;
 }
 
 export interface EntitySearchResponse {

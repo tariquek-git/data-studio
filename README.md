@@ -108,6 +108,7 @@ To seed and verify the local entity warehouse after mirroring:
 
 ```bash
 node scripts/backfill-entity-warehouse-local.mjs
+node scripts/sync-baas-ecosystem-local.mjs
 node scripts/verify-local-entity-warehouse.mjs
 ```
 
@@ -149,6 +150,7 @@ Core institution and registry loaders:
 - `node scripts/sync-fed-master-accounts.mjs`
 - `node scripts/backfill-entity-warehouse.mjs`
 - `node scripts/backfill-entity-warehouse-local.mjs`
+- `node scripts/sync-baas-ecosystem-local.mjs`
 - `node scripts/sync-ffiec-cdr.mjs`
 - `node scripts/sync-ffiec-nic.mjs`
 - `node scripts/verify-entity-warehouse.mjs`
@@ -164,6 +166,7 @@ Important notes:
 - `sync-ffiec-nic.mjs` expects locally downloaded NIC bulk CSV ZIP files because the public download page is CAPTCHA-protected from plain scripted fetches.
 - `backfill-entity-warehouse.mjs` seeds the new warehouse tables from current `institutions`, `financial_history`, and `branches` data so the entity APIs can use the new model before every source has a native warehouse loader.
 - `backfill-entity-warehouse-local.mjs` performs the same warehouse seed inside the local Postgres sandbox after the legacy tables are mirrored from Supabase.
+- `sync-baas-ecosystem-local.mjs` seeds curated sponsor-bank / embedded-banking ecosystem entities, relationships, capabilities, and tags into the local sandbox.
 - `verify-entity-warehouse.mjs` is the quickest way to confirm whether the new warehouse tables are visible through PostgREST or still blocked by schema-cache lag.
 - `run-local-data-pipeline.mjs` mirrors the live legacy tables, seeds the local warehouse, and verifies the result in one command.
 - Several planned sources are registered but not yet fully ingested.

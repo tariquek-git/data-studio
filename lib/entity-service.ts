@@ -104,6 +104,7 @@ type SearchOptions = {
   source_authority?: string | null;
   charter_family?: string | null;
   business_role?: string | null;
+  status?: string | null;
   page?: number;
   perPage?: number;
 };
@@ -719,6 +720,7 @@ function applySearchFilters(entities: EntitySummary[], options: SearchOptions) {
   if (options.source_authority) filtered = filtered.filter((entity) => entity.source_key === options.source_authority || entity.source_authority.toLowerCase().includes(options.source_authority!.toLowerCase()));
   if (options.charter_family) filtered = filtered.filter((entity) => entity.charter_family === options.charter_family);
   if (options.business_role) filtered = filtered.filter((entity) => entity.business_roles.includes(options.business_role!));
+  if (options.status) filtered = filtered.filter((entity) => entity.status === options.status);
 
   filtered = filtered.sort((a, b) => {
     const assetDelta = (b.metrics.total_assets ?? -1) - (a.metrics.total_assets ?? -1);
@@ -735,6 +737,15 @@ function aggregateEntities(entities: EntitySummary[]): EntitySearchAggregations 
       agg.by_country[entity.country] = (agg.by_country[entity.country] ?? 0) + 1;
       agg.by_profile_kind[entity.profile_kind] += 1;
       agg.by_source_key[entity.source_key] = (agg.by_source_key[entity.source_key] ?? 0) + 1;
+      const regulator = entity.regulator ?? entity.source_authority;
+      agg.by_regulator[regulator] = (agg.by_regulator[regulator] ?? 0) + 1;
+      if (entity.charter_family) {
+        agg.by_charter_family[entity.charter_family] = (agg.by_charter_family[entity.charter_family] ?? 0) + 1;
+      }
+      agg.by_status[entity.status] = (agg.by_status[entity.status] ?? 0) + 1;
+      for (const role of entity.business_roles) {
+        agg.by_business_role[role] = (agg.by_business_role[role] ?? 0) + 1;
+      }
       return agg;
     },
     {
@@ -745,6 +756,10 @@ function aggregateEntities(entities: EntitySummary[]): EntitySearchAggregations 
         ecosystem_entity: 0,
       },
       by_source_key: {},
+      by_regulator: {},
+      by_charter_family: {},
+      by_business_role: {},
+      by_status: {},
     }
   );
 }

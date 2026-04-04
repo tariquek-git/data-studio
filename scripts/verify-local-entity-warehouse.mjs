@@ -37,7 +37,11 @@ function main() {
     UNION ALL
     SELECT 'branches', COUNT(*) FROM branches
     UNION ALL
+    SELECT 'bank_capabilities', COUNT(*) FROM bank_capabilities
+    UNION ALL
     SELECT 'registry_entities', COUNT(*) FROM registry_entities
+    UNION ALL
+    SELECT 'ecosystem_entities', COUNT(*) FROM ecosystem_entities
     UNION ALL
     SELECT 'entity_external_ids', COUNT(*) FROM entity_external_ids
     UNION ALL
@@ -45,9 +49,15 @@ function main() {
     UNION ALL
     SELECT 'entity_facts', COUNT(*) FROM entity_facts
     UNION ALL
+    SELECT 'entity_relationships', COUNT(*) FROM entity_relationships
+    UNION ALL
+    SELECT 'charter_events', COUNT(*) FROM charter_events
+    UNION ALL
     SELECT 'financial_history_quarterly', COUNT(*) FROM financial_history_quarterly
     UNION ALL
     SELECT 'branch_history_annual', COUNT(*) FROM branch_history_annual
+    UNION ALL
+    SELECT 'macro_series', COUNT(*) FROM macro_series
     ORDER BY 1;
   `));
 
@@ -65,6 +75,30 @@ function main() {
       FROM entity_external_ids
      GROUP BY 1
      ORDER BY 2 DESC, 1;
+  `));
+
+  console.log('\nContext enrichment checks:');
+  console.log(query(`
+    SELECT 'rssd_id_external_ids' AS metric, COUNT(*) AS rows
+      FROM entity_external_ids
+     WHERE id_type = 'rssd_id'
+    UNION ALL
+    SELECT 'cra_rating_facts', COUNT(*)
+      FROM entity_facts
+     WHERE fact_key = 'cra_rating'
+    UNION ALL
+    SELECT 'sponsor_bank_relationships', COUNT(*)
+      FROM entity_relationships
+     WHERE relationship_type = 'sponsor_bank_for'
+    UNION ALL
+    SELECT 'sec_company_facts', COUNT(*)
+      FROM entity_facts
+     WHERE fact_key = 'sec_company'
+    UNION ALL
+    SELECT 'macro_series_ca', COUNT(*)
+      FROM macro_series
+     WHERE country = 'CA'
+    ORDER BY 1;
   `));
 }
 

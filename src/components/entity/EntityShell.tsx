@@ -13,13 +13,14 @@ interface EntityShellProps {
 export function EntityShell({ eyebrow, title, subtitle, children, actions, stats }: EntityShellProps) {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-slate-950 text-slate-100">
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.14),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.12),_transparent_26%),linear-gradient(180deg,_rgba(2,6,23,0.96),_rgba(15,23,42,1))]" />
+      <div className="relative overflow-hidden border-b border-slate-800/80">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.2),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.15),_transparent_26%),linear-gradient(180deg,_rgba(2,6,23,0.98),_rgba(15,23,42,1))]" />
+        <div className="absolute inset-0 opacity-[0.08] bg-[linear-gradient(rgba(148,163,184,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.18)_1px,transparent_1px)] bg-[size:34px_34px]" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div className="space-y-3 max-w-4xl">
               {eyebrow && (
-                <Badge color="gray" className="bg-slate-900 text-slate-300 ring-slate-700/60">
+                <Badge color="gray" className="bg-slate-900/90 text-cyan-100 ring-cyan-900/60">
                   {eyebrow}
                 </Badge>
               )}
@@ -51,20 +52,29 @@ interface TerminalCardProps {
   subtitle?: string;
   children: ReactNode;
   className?: string;
+  titleSlot?: ReactNode;
 }
 
-export function TerminalCard({ title, subtitle, children, className = '' }: TerminalCardProps) {
+export function TerminalCard({ title, subtitle, children, className = '', titleSlot }: TerminalCardProps) {
   return (
-    <Card className={`bg-slate-900/80 border-slate-700 text-slate-100 shadow-2xl shadow-slate-950/30 ${className}`}>
-      <div className="flex items-start justify-between gap-3 mb-4">
+    <Card className={`relative overflow-hidden border-slate-700/80 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))] text-slate-100 shadow-2xl shadow-slate-950/30 ${className}`}>
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+      <div className="absolute inset-0 opacity-[0.06] bg-[linear-gradient(rgba(148,163,184,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.16)_1px,transparent_1px)] bg-[size:28px_28px]" />
+      <div className="relative flex items-start justify-between gap-3 mb-4">
         <div>
+          <div className="mb-3 flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-cyan-400/80" />
+            <span className="h-2 w-2 rounded-full bg-emerald-400/60" />
+            <span className="h-2 w-2 rounded-full bg-amber-400/60" />
+          </div>
           <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-200">
             {title}
           </h2>
           {subtitle && <p className="mt-1 text-xs text-slate-400">{subtitle}</p>}
         </div>
+        {titleSlot}
       </div>
-      {children}
+      <div className="relative">{children}</div>
     </Card>
   );
 }
