@@ -98,6 +98,25 @@ To recreate it from scratch:
 RESET=1 node scripts/setup-local-postgres.mjs
 ```
 
+To mirror the live Supabase core tables into the local sandbox:
+
+```bash
+node scripts/mirror-supabase-to-local-postgres.mjs
+```
+
+To seed and verify the local entity warehouse after mirroring:
+
+```bash
+node scripts/backfill-entity-warehouse-local.mjs
+node scripts/verify-local-entity-warehouse.mjs
+```
+
+To run the full local data pipeline in one step:
+
+```bash
+node scripts/run-local-data-pipeline.mjs
+```
+
 ## Database and migrations
 
 Initial setup and older schema helpers live in:
@@ -129,9 +148,12 @@ Core institution and registry loaders:
 - `node scripts/sync-occ.mjs`
 - `node scripts/sync-fed-master-accounts.mjs`
 - `node scripts/backfill-entity-warehouse.mjs`
+- `node scripts/backfill-entity-warehouse-local.mjs`
 - `node scripts/sync-ffiec-cdr.mjs`
 - `node scripts/sync-ffiec-nic.mjs`
 - `node scripts/verify-entity-warehouse.mjs`
+- `node scripts/verify-local-entity-warehouse.mjs`
+- `node scripts/run-local-data-pipeline.mjs`
 
 Important notes:
 
@@ -141,7 +163,9 @@ Important notes:
 - `sync-ffiec-cdr.mjs` uses the official FFIEC CDR PWS REST flow and requires a PWS account token.
 - `sync-ffiec-nic.mjs` expects locally downloaded NIC bulk CSV ZIP files because the public download page is CAPTCHA-protected from plain scripted fetches.
 - `backfill-entity-warehouse.mjs` seeds the new warehouse tables from current `institutions`, `financial_history`, and `branches` data so the entity APIs can use the new model before every source has a native warehouse loader.
+- `backfill-entity-warehouse-local.mjs` performs the same warehouse seed inside the local Postgres sandbox after the legacy tables are mirrored from Supabase.
 - `verify-entity-warehouse.mjs` is the quickest way to confirm whether the new warehouse tables are visible through PostgREST or still blocked by schema-cache lag.
+- `run-local-data-pipeline.mjs` mirrors the live legacy tables, seeds the local warehouse, and verifies the result in one command.
 - Several planned sources are registered but not yet fully ingested.
 
 ## Main APIs
@@ -165,6 +189,9 @@ Source and relationship APIs:
 
 - `GET /api/sources`
 - `GET /api/sources/:sourceKey`
+- `GET /api/sync`
+- `GET /api/sync/:sourceKey`
+- `POST /api/sync/:sourceKey`
 - `GET /api/relationships/search`
 - `GET /api/series/search`
 
@@ -182,6 +209,15 @@ Operational sync endpoints:
 
 - `POST /api/sync/fdic`
 - `POST /api/sync/occ`
+- `POST /api/sync/:sourceKey` for generic script-backed loaders
+
+Sync endpoint notes:
+
+- `GET /api/sync` returns backend sync readiness for all wired loaders.
+- `GET /api/sync/:sourceKey` returns requirements, endpoint, and readiness for one source.
+- `POST /api/sync/:sourceKey` runs the registered loader when prerequisites are satisfied.
+- `dry_run` is only accepted for sources that explicitly support it today. Currently that is `occ`.
+- Source detail payloads from `GET /api/sources/:sourceKey` now include sync metadata so the frontend can show whether a loader is callable, blocked on credentials/files, or ready.
 
 ## Product direction
 

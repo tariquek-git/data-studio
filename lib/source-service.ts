@@ -1,5 +1,6 @@
 import { getSupabase } from './supabase.js';
 import { SOURCE_CATALOG, SOURCE_CATEGORY_LABELS, type SourceCatalogEntry } from './source-registry.js';
+import { getSourceSyncStatus } from './source-sync.js';
 import type { DataSourceDetail, DataSourceSummary, DataSourceSyncJob, DataSourcesResponse } from '../src/types/data-source';
 
 type DataSourceRow = {
@@ -150,6 +151,7 @@ function latestJobs(rows: SyncJobRow[]) {
 }
 
 function mergeEntry(entry: SourceCatalogEntry, row: DataSourceRow | undefined, institutionMetrics: Record<string, { record_count: number; data_as_of: string | null; last_synced_at: string | null }>, macroMetrics: Record<string, { record_count: number; data_as_of: string | null }>, latestJob: SyncJobRow | undefined): DataSourceDetail {
+  const sync = getSourceSyncStatus(entry.source_key);
   const institutionMetric = institutionMetrics[entry.source_key];
   const macroMetric = macroMetrics[entry.source_key];
   const recordCount = institutionMetric?.record_count ?? macroMetric?.record_count ?? row?.institution_count ?? null;
@@ -185,6 +187,10 @@ function mergeEntry(entry: SourceCatalogEntry, row: DataSourceRow | undefined, i
     loaded,
     created_at: row?.created_at ?? null,
     latest_sync_job: latestJob ?? null,
+    sync_supported: sync?.supported ?? false,
+    sync_ready: sync?.supported ? sync.ready : null,
+    sync_endpoint: sync?.endpoint ?? null,
+    sync,
   };
 }
 
@@ -304,6 +310,9 @@ export async function listSources(options: ListSourceOptions = {}): Promise<Data
       latest_job_status: source.latest_job_status,
       loaded: source.loaded,
       created_at: source.created_at,
+      sync_supported: source.sync_supported,
+      sync_ready: source.sync_ready,
+      sync_endpoint: source.sync_endpoint,
     })),
     total: filtered.length,
     summary: {

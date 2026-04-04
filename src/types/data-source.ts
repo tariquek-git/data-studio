@@ -28,6 +28,26 @@ export interface DataSourceSyncJob {
   error: string | null;
 }
 
+export interface DataSourceSyncRequirement {
+  code: string;
+  label: string;
+  type: 'env' | 'file' | 'credential' | 'manual';
+  ready: boolean;
+  optional: boolean;
+  docs_url: string | null;
+}
+
+export interface DataSourceSyncCapability {
+  supported: boolean;
+  ready: boolean;
+  endpoint: string | null;
+  execution_kind: 'script' | 'native' | null;
+  script_path: string | null;
+  supports_dry_run: boolean;
+  requirements: DataSourceSyncRequirement[];
+  notes: string[];
+}
+
 export interface DataSourceSummary {
   id: string;
   source_key: string;
@@ -51,10 +71,14 @@ export interface DataSourceSummary {
   latest_job_status: string | null;
   loaded: boolean;
   created_at: string | null;
+  sync_supported: boolean;
+  sync_ready: boolean | null;
+  sync_endpoint: string | null;
 }
 
 export interface DataSourceDetail extends DataSourceSummary {
   latest_sync_job: DataSourceSyncJob | null;
+  sync: DataSourceSyncCapability | null;
 }
 
 export interface DataSourcesResponse {
