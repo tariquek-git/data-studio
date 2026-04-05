@@ -6,6 +6,55 @@
 
 ---
 
+## 2026-04-05 — Codex (FDIC RSSD Coverage Fix + Enforcement Endpoint Check)
+
+### What I Did
+1. **Resumed the U.S. banking / FDIC lane**
+   - Checked current `main` state and confirmed the next highest-value live data lane was FDIC RSSD / CRA enrichment.
+
+2. **Fixed `scripts/sync-fdic-rssd-cra.mjs`**
+   - Added explicit pagination against the FDIC financials API using `limit` + `offset`.
+   - Added explicit range-based pagination for the Supabase `institutions` lookup so the sync no longer silently stops at the first `1000` FDIC institutions.
+
+3. **Reran the FDIC RSSD / CRA sync against prod Supabase**
+   - `node scripts/sync-fdic-rssd-cra.mjs`
+   - Result:
+     - `reporting_date=2025-12-31`
+     - `matched_institutions=4408`
+     - `rssd_upserts=4408`
+     - `cra_upserts=0`
+
+4. **Verified build**
+   - `npm run build` passed after the script fix.
+
+### What Broke / What I Fixed
+- **FDIC RSSD / CRA sync only matched `1000` institutions**
+  - Cause 1: the FDIC financials request assumed a single oversized `limit` call would return the full latest-quarter set.
+  - Cause 2: the Supabase institution lookup also only loaded the first `1000` FDIC institutions.
+  - Fix: paginated both sides explicitly.
+
+- **FDIC enforcement sync still fails**
+  - `node scripts/sync-fdic-enforcement.mjs`
+  - Current failure:
+    - `404 Cannot GET /api/enforcement`
+  - Meaning: the script is pointed at a non-working FDIC endpoint and needs to be rebuilt around a verified official machine-readable source or a different official scraping path.
+
+### What Worked
+- Full FDIC RSSD coverage is now loaded for all FDIC institutions in prod.
+- The repo still builds cleanly on `main`.
+
+### What's Left / Blocked
+1. **FDIC enforcement**
+   - The currently configured endpoint is dead.
+   - Rework is needed before enforcement can be treated as a live warehouse source.
+
+2. **FFIEC**
+   - FFIEC CDR still needs credentials or a panel file.
+   - FFIEC NIC still needs local ZIP files.
+
+3. **Prod warehouse depth**
+   - `ecosystem_entities`, `entity_relationships`, `macro_series`, and `bank_capabilities` are still the next major live-fill targets.
+
 ## 2026-04-05 — Codex (Warehouse Backfill + API Smoke Test + Deploy Check)
 
 ### What I Did

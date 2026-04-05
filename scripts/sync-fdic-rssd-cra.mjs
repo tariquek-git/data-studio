@@ -39,6 +39,7 @@ const SOURCE_KEY = 'fdic_rssd_cra';
 const SOURCE_URL = 'https://banks.data.fdic.gov/api/financials';
 const WRITE_TARGET = /^(local|local_pg)$/i.test(process.env.WRITE_TARGET ?? '') ? 'local_pg' : 'supabase';
 const DRY_RUN = booleanFlag(process.env.DRY_RUN ?? '');
+const PAGE_SIZE = Number.parseInt(process.env.FDIC_RSSD_CRA_PAGE_SIZE ?? '1000', 10);
 
 const CRA_LABELS = {
   1: 'Outstanding',
@@ -81,25 +82,52 @@ async function fetchLatestReportingDate() {
 
 async function fetchCraRows(reportingDate) {
   const fields = ['CERT', 'CRARA', 'CRADATE', 'RSSDID', 'INSTNAME', 'REPDTE'].join(',');
-  const res = await fetch(
-    `${FDIC_API}/financials?filters=REPDTE:${reportingDate}&fields=${fields}&limit=10000`,
-    { headers: { Accept: 'application/json', 'User-Agent': 'DataStudio/1.0' } }
-  );
-  if (!res.ok) {
-    throw new Error(`Unable to fetch FDIC CRA/RSSD data: HTTP ${res.status}`);
+  const rows = [];
+  let offset = 0;
+
+  while (true) {
+    const res = await fetch(
+      `${FDIC_API}/financials?filters=REPDTE:${reportingDate}&fields=${fields}&limit=${PAGE_SIZE}&offset=${offset}`,
+      { headers: { Accept: 'application/json', 'User-Agent': 'DataStudio/1.0' } }
+    );
+    if (!res.ok) {
+      throw new Error(`Unable to fetch FDIC CRA/RSSD data: HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    const pageRows = (json.data ?? []).map((row) => row.data ?? {});
+    if (pageRows.length === 0) break;
+
+    rows.push(...pageRows);
+    console.log(`Fetched FDIC CRA/RSSD offset=${offset}: ${pageRows.length} rows (total ${rows.length})`);
+
+    if (pageRows.length < PAGE_SIZE) break;
+    offset += pageRows.length;
   }
-  const json = await res.json();
-  return (json.data ?? []).map((row) => row.data ?? {});
+
+  return rows;
 }
 
 async function fetchInstitutionsForSupabase() {
-  const { data, error } = await supabase
-    .from('institutions')
-    .select('id, cert_number')
-    .eq('source', 'fdic');
+  const rows = [];
+  let from = 0;
 
-  if (error) throw new Error(`Unable to query FDIC institutions: ${error.message}`);
-  return (data ?? []).map((row) => ({ id: row.id, cert_number: Number(row.cert_number) }));
+  while (true) {
+    const { data, error } = await supabase
+      .from('institutions')
+      .select('id, cert_number')
+      .eq('source', 'fdic')
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) throw new Error(`Unable to query FDIC institutions: ${error.message}`);
+    if (!data || data.length === 0) break;
+
+    rows.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return rows.map((row) => ({ id: row.id, cert_number: Number(row.cert_number) }));
 }
 
 async function fetchInstitutionsForLocal(client) {
