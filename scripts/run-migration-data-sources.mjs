@@ -100,6 +100,17 @@ const DATA_SOURCES = [
     notes: '4,408 active institutions as of Q4 2025',
   },
   {
+    source_key: 'fdic_history',
+    display_name: 'FDIC History API',
+    description: 'Official FDIC institution history records for charter openings, mergers, failures, closures, and conversions',
+    country: 'US',
+    regulator_url: 'https://api.fdic.gov/banks/history',
+    data_url: 'https://api.fdic.gov/banks/history',
+    update_frequency: 'daily',
+    status: 'active',
+    notes: 'Institution-level events only; branch rows are filtered out before writing charter_events.',
+  },
+  {
     source_key: 'ncua',
     display_name: 'NCUA Call Report Data',
     description: 'All federally-insured U.S. credit unions (5300 Call Report)',
@@ -261,8 +272,8 @@ const DATA_SOURCES = [
     regulator_url: 'https://www.consumerfinance.gov',
     data_url: 'https://www.consumerfinance.gov/data-research/consumer-complaints/',
     update_frequency: 'daily',
-    status: 'pending',
-    notes: 'Planned reputation and complaint-signal layer.',
+    status: 'active',
+    notes: 'Complaint-signal layer using company suggestions and official CFPB trend aggregates.',
   },
   {
     source_key: 'nmls',

@@ -133,6 +133,14 @@ const SOURCE_SYNC_DEFINITIONS: SourceSyncDefinition[] = [
     requirements: () => [],
   },
   {
+    sourceKey: 'fdic_history',
+    scriptPath: 'scripts/sync-fdic-history.mjs',
+    supportsDryRun: true,
+    docsUrls: ['https://api.fdic.gov/banks/history'],
+    notes: ['Loads institution-level FDIC history events into charter_events and filters out branch rows.'],
+    requirements: () => [],
+  },
+  {
     sourceKey: 'ncua',
     scriptPath: 'scripts/sync-ncua.mjs',
     docsUrls: ['https://www.ncua.gov/analysis/credit-union-corporate-call-report-data'],
@@ -266,6 +274,17 @@ const SOURCE_SYNC_DEFINITIONS: SourceSyncDefinition[] = [
         true
       ),
     ],
+  },
+  {
+    sourceKey: 'cfpb_complaints',
+    scriptPath: 'scripts/sync-cfpb-complaints.mjs',
+    supportsDryRun: true,
+    docsUrls: [
+      'https://www.consumerfinance.gov/data-research/consumer-complaints/',
+      'https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/',
+    ],
+    notes: ['Uses the official CFPB complaints search and trends APIs to load practical complaint signals.'],
+    requirements: () => [],
   },
 ];
 
