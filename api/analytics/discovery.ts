@@ -5,6 +5,17 @@ import { getSupabase } from '../../lib/supabase.js';
 const CA_SOURCES = ['osfi', 'rpaa', 'ciro', 'fintrac'];
 const US_SOURCES = ['fdic', 'ncua'];
 
+function isMissingTableError(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+  const maybe = error as { code?: string; message?: string };
+  return (
+    maybe.code === '42P01' ||
+    maybe.code === 'PGRST205' ||
+    /relation .* does not exist/i.test(maybe.message ?? '') ||
+    /schema cache/i.test(maybe.message ?? '')
+  );
+}
+
 export default apiHandler({ methods: ['GET'] }, async (_req: VercelRequest, res: VercelResponse) => {
   const supabase = getSupabase();
 
@@ -20,6 +31,8 @@ export default apiHandler({ methods: ['GET'] }, async (_req: VercelRequest, res:
     newThisQuarterRes,
     topMoversRes,
     newRegistrationsRes,
+    recentEventRes,
+    recentEnforcementRes,
   ] = await Promise.all([
     // Total institutions
     supabase
@@ -63,6 +76,20 @@ export default apiHandler({ methods: ['GET'] }, async (_req: VercelRequest, res:
       .in('source', CA_SOURCES)
       .order('created_at', { ascending: false })
       .limit(5),
+
+    supabase
+      .from('charter_events')
+      .select('entity_id, entity_table, event_type, event_subtype, event_date, details')
+      .gte('event_date', ninetyDaysAgoStr.slice(0, 10))
+      .order('event_date', { ascending: false })
+      .limit(20),
+    supabase
+      .from('entity_facts')
+      .select('entity_id, entity_table, fact_value_text, fact_value_json, observed_at')
+      .eq('fact_key', 'fdic_enforcement_action')
+      .gte('observed_at', ninetyDaysAgoStr)
+      .order('observed_at', { ascending: false })
+      .limit(20),
   ]);
 
   // Compute US total assets
@@ -168,37 +195,78 @@ export default apiHandler({ methods: ['GET'] }, async (_req: VercelRequest, res:
     }
   }
 
-  // Fetch enforcement actions from FDIC (live)
-  interface EnforcementItem {
+  interface RegulatoryEventItem {
     cert_number: number | null;
     name: string;
     date: string;
     type: string;
-    penalty: string | null;
+    details: string | null;
   }
 
-  let largestEnforcement: EnforcementItem[] = [];
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 90);
-    const startStr = startDate.toISOString().split('T')[0];
+  let recentRegulatoryEvents: RegulatoryEventItem[] = [];
+  if (!recentEventRes.error || !recentEnforcementRes.error) {
+    const eventInstitutionIds = (recentEventRes.data ?? [])
+      .filter((row) => row.entity_table === 'institutions' && row.entity_id)
+      .map((row) => row.entity_id as string);
+    const enforcementInstitutionIds = !recentEnforcementRes.error
+      ? (recentEnforcementRes.data ?? [])
+          .filter((row) => row.entity_table === 'institutions' && row.entity_id)
+          .map((row) => row.entity_id as string)
+      : [];
 
-    const enfUrl = `https://banks.data.fdic.gov/api/enforcement?filters=INITDATE:[${startStr} TO ${today}]&fields=CERT,INSTNAME,INITDATE,ENFORMACT,CITYPENAL&limit=5&sort_by=INITDATE&sort_order=DESC`;
-    const enfRes = await fetch(enfUrl, { signal: AbortSignal.timeout(8000) });
+    const institutionIds = [...new Set([...eventInstitutionIds, ...enforcementInstitutionIds])];
 
-    if (enfRes.ok) {
-      const enfJson = await enfRes.json() as { data?: Array<{ data: { CERT: number; INSTNAME: string; INITDATE: string; ENFORMACT: string; CITYPENAL: string } }> };
-      largestEnforcement = (enfJson.data ?? []).map((item) => ({
-        cert_number: item.data.CERT || null,
-        name: item.data.INSTNAME || '',
-        date: item.data.INITDATE || '',
-        type: item.data.ENFORMACT || '',
-        penalty: item.data.CITYPENAL || null,
-      }));
+    const institutionLookup = new Map<string, { cert_number: number | null; name: string }>();
+    if (institutionIds.length > 0) {
+      const { data: eventInstitutions } = await supabase
+        .from('institutions')
+        .select('id, cert_number, name')
+        .in('id', institutionIds);
+
+      for (const institution of eventInstitutions ?? []) {
+        institutionLookup.set(institution.id, {
+          cert_number: institution.cert_number ?? null,
+          name: institution.name,
+        });
+      }
     }
-  } catch {
-    // Non-critical — return empty if FDIC API is unavailable
+
+    const charterEventItems = (recentEventRes.error ? [] : (recentEventRes.data ?? []))
+      .filter((row) => ['failure', 'closure', 'conversion', 'merger', 'charter_change', 'charter_opening'].includes(String(row.event_type)))
+      .map((row) => {
+        const institution = row.entity_id ? institutionLookup.get(String(row.entity_id)) : null;
+        return {
+          cert_number: institution?.cert_number ?? null,
+          name: institution?.name ?? 'Institution event',
+          date: row.event_date ?? '',
+          type: String(row.event_subtype ?? row.event_type ?? '').replace(/_/g, ' '),
+          details: row.details ?? null,
+        };
+      });
+
+    const enforcementItems = recentEnforcementRes.error
+      ? []
+      : (recentEnforcementRes.data ?? []).map((row) => {
+          const payload = (row.fact_value_json ?? {}) as Record<string, unknown>;
+          const institution = row.entity_id ? institutionLookup.get(String(row.entity_id)) : null;
+          return {
+            cert_number: institution?.cert_number ?? (Number(payload.cert_number ?? 0) || null),
+            name: institution?.name ?? String(payload.institution_name ?? 'Institution event'),
+            date: typeof payload.init_date === 'string' ? payload.init_date : String(row.observed_at ?? ''),
+            type: String(row.fact_value_text ?? payload.action_type ?? 'enforcement action').replace(/_/g, ' '),
+            details: payload.termination_date ? `terminated ${payload.termination_date}` : 'active enforcement action',
+          };
+        });
+
+    recentRegulatoryEvents = [...charterEventItems, ...enforcementItems]
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+      .slice(0, 5);
+  } else if (!isMissingTableError(recentEventRes.error)) {
+    console.warn(`Unable to load recent charter events: ${recentEventRes.error.message}`);
+  }
+
+  if (recentEnforcementRes.error && !isMissingTableError(recentEnforcementRes.error)) {
+    console.warn(`Unable to load recent enforcement facts: ${recentEnforcementRes.error.message}`);
   }
 
   const newRegistrations = (newRegistrationsRes.data ?? []).map((r: {
@@ -219,7 +287,8 @@ export default apiHandler({ methods: ['GET'] }, async (_req: VercelRequest, res:
 
   const discovery = {
     top_movers: topMoversWithNames,
-    largest_enforcement: largestEnforcement,
+    recent_regulatory_events: recentRegulatoryEvents,
+    largest_enforcement: recentRegulatoryEvents,
     new_registrations: newRegistrations,
     stat_snapshot: {
       total_institutions: totalCountRes.count ?? 0,

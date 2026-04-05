@@ -53,6 +53,8 @@ function main() {
     UNION ALL
     SELECT 'charter_events', COUNT(*) FROM charter_events
     UNION ALL
+    SELECT 'failure_events', COUNT(*) FROM failure_events
+    UNION ALL
     SELECT 'financial_history_quarterly', COUNT(*) FROM financial_history_quarterly
     UNION ALL
     SELECT 'branch_history_annual', COUNT(*) FROM branch_history_annual
@@ -94,6 +96,13 @@ function main() {
     SELECT 'fdic_history_events', COUNT(*)
       FROM charter_events
      WHERE source_url = 'https://api.fdic.gov/banks/history'
+    UNION ALL
+    SELECT 'fdic_failure_records', COUNT(*)
+      FROM failure_events
+    UNION ALL
+    SELECT 'fdic_enforcement_facts', COUNT(*)
+      FROM entity_facts
+     WHERE fact_key = 'fdic_enforcement_action'
     UNION ALL
     SELECT 'sponsor_bank_relationships', COUNT(*)
       FROM entity_relationships

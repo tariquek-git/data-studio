@@ -75,12 +75,12 @@ interface DiscoveryData {
     asset_change_pct: number;
     total_assets: number;
   }>;
-  largest_enforcement: Array<{
+  recent_regulatory_events: Array<{
     cert_number: number | null;
     name: string;
     date: string;
     type: string;
-    penalty: string | null;
+    details: string | null;
   }>;
   new_registrations: Array<{
     cert_number: number;
@@ -150,7 +150,7 @@ function DiscoverySection() {
 
   const TABS: { id: ActivityTab; label: string }[] = [
     { id: 'movers', label: 'Movers' },
-    { id: 'enforcement', label: 'Enforcement' },
+    { id: 'enforcement', label: 'Regulatory' },
     { id: 'new', label: 'New' },
   ];
 
@@ -259,10 +259,10 @@ function DiscoverySection() {
               ))}
 
             {!isLoading && !isError && activeTab === 'enforcement' &&
-              (data?.largest_enforcement.length === 0 ? (
-                <div className="p-5 text-sm text-surface-400 text-center">No recent enforcement actions.</div>
+              (data?.recent_regulatory_events.length === 0 ? (
+                <div className="p-5 text-sm text-surface-400 text-center">No recent regulatory events.</div>
               ) : (
-                data?.largest_enforcement.map((e, i) => (
+                data?.recent_regulatory_events.map((e, i) => (
                   <div key={i} className="flex items-center justify-between px-5 py-3 hover:bg-surface-50 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
                       <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
@@ -278,7 +278,7 @@ function DiscoverySection() {
                           <p className="text-sm font-medium text-surface-900 truncate">{e.name}</p>
                         )}
                         <p className="text-xs text-surface-400">
-                          {e.type}{e.penalty ? ` · ${e.penalty}` : ''}
+                          {e.type}{e.details ? ` · ${e.details}` : ''}
                         </p>
                       </div>
                     </div>

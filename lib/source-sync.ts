@@ -141,6 +141,14 @@ const SOURCE_SYNC_DEFINITIONS: SourceSyncDefinition[] = [
     requirements: () => [],
   },
   {
+    sourceKey: 'fdic_failures',
+    scriptPath: 'scripts/sync-fdic-failures.mjs',
+    supportsDryRun: true,
+    docsUrls: ['https://banks.data.fdic.gov/api/failures'],
+    notes: ['Persists official FDIC bank failure records into failure_events for warehouse-backed failure analytics.'],
+    requirements: () => [],
+  },
+  {
     sourceKey: 'ncua',
     scriptPath: 'scripts/sync-ncua.mjs',
     docsUrls: ['https://www.ncua.gov/analysis/credit-union-corporate-call-report-data'],
@@ -271,6 +279,25 @@ const SOURCE_SYNC_DEFINITIONS: SourceSyncDefinition[] = [
         'FFIEC_NIC_TRANSFORMATIONS_FILE',
         'NIC transformations CSV ZIP file',
         'https://www.ffiec.gov/npw/FinancialReport/DataDownload',
+        true
+      ),
+    ],
+  },
+  {
+    sourceKey: 'ffiec_cra',
+    scriptPath: 'scripts/sync-ffiec-cra.mjs',
+    supportsDryRun: true,
+    docsUrls: [
+      'https://www.ffiec.gov/craratings/Rtg_spec.html',
+      'https://www.ffiec.gov/craratings/craratng.zip',
+    ],
+    notes: ['Loads the official quarterly FFIEC CRA ratings database and writes the latest public rating per matched institution.'],
+    requirements: (env) => [
+      fileRequirement(
+        env,
+        'FFIEC_CRA_FILE',
+        'Local FFIEC CRA ratings ZIP/TXT file',
+        'https://www.ffiec.gov/craratings/Rtg_spec.html',
         true
       ),
     ],

@@ -84,7 +84,7 @@ export default function FailuresPage() {
       <div>
         <h1 className="text-2xl font-bold text-surface-900">FDIC Bank Failures</h1>
         <p className="mt-1 text-sm text-surface-500">
-          Complete record of FDIC-supervised institution failures since 2000. Source: FDIC BankFind Suite.
+          Warehouse-backed record of FDIC-supervised institution failures since 2000, sourced from the FDIC Failures API.
         </p>
       </div>
 

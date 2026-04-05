@@ -27,6 +27,7 @@ const WAREHOUSE_TABLES = [
   'financial_history_quarterly',
   'branch_history_annual',
   'charter_events',
+  'failure_events',
 ];
 
 async function inspectTable(table) {

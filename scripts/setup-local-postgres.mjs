@@ -34,6 +34,7 @@ const REQUIRED_FILES = [
   'add-data-sources-table.sql',
   'add-ai-summaries-table.sql',
   'add-entity-foundation.sql',
+  'add-failure-events-table.sql',
 ];
 
 const MIGRATIONS = [
@@ -42,6 +43,7 @@ const MIGRATIONS = [
   { name: 'data sources', marker: 'data_sources', file: 'add-data-sources-table.sql' },
   { name: 'ai summaries', marker: 'ai_summaries', file: 'add-ai-summaries-table.sql' },
   { name: 'entity foundation', marker: 'registry_entities', file: 'add-entity-foundation.sql' },
+  { name: 'failure events', marker: 'failure_events', file: 'add-failure-events-table.sql' },
 ];
 
 function connArgs(database = DB_NAME) {

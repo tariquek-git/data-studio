@@ -84,6 +84,50 @@ async function fetchCRAandRSSD(cert: number): Promise<{ cra: CRAData | null; rss
   }
 }
 
+async function fetchWarehouseCRAandRSSD(cert: number): Promise<{ cra: CRAData | null; rssd_id: number | null }> {
+  const { data: institution, error: institutionError } = await supabase
+    .from('institutions')
+    .select('id')
+    .eq('cert_number', cert)
+    .maybeSingle();
+
+  if (institutionError || !institution?.id) {
+    return { cra: null, rssd_id: null };
+  }
+
+  const [externalIdRes, craFactRes] = await Promise.all([
+    supabase
+      .from('entity_external_ids')
+      .select('id_value')
+      .eq('entity_table', 'institutions')
+      .eq('entity_id', institution.id)
+      .eq('id_type', 'rssd_id')
+      .order('is_primary', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('entity_facts')
+      .select('fact_value_text, fact_value_number, fact_value_json, source_url, observed_at')
+      .eq('entity_table', 'institutions')
+      .eq('entity_id', institution.id)
+      .eq('fact_key', 'cra_rating')
+      .order('observed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const rssd_id = externalIdRes.data?.id_value ? Number(externalIdRes.data.id_value) : null;
+  const fact = craFactRes.data;
+  const cra = fact ? {
+    rating: String(fact.fact_value_text ?? 'Unknown'),
+    rating_code: Number(fact.fact_value_number ?? 0),
+    exam_date: typeof fact.fact_value_json?.exam_date === 'string' ? fact.fact_value_json.exam_date : null,
+    source_url: String(fact.source_url ?? 'https://www.ffiec.gov/craratings/'),
+  } : null;
+
+  return { cra, rssd_id };
+}
+
 async function fetchEnforcement(cert: number): Promise<EnforcementAction[]> {
   try {
     const url = `https://banks.data.fdic.gov/api/enforcement?filters=CERT:${cert}&fields=CERT,INSTNAME,INITDATE,ENFORMACT,TERMDATE,CITYPENAL&limit=10&sort_by=INITDATE&sort_order=DESC`;
@@ -106,6 +150,39 @@ async function fetchEnforcement(cert: number): Promise<EnforcementAction[]> {
   } catch {
     return [];
   }
+}
+
+async function fetchWarehouseEnforcement(cert: number): Promise<EnforcementAction[]> {
+  const { data: institution, error: institutionError } = await supabase
+    .from('institutions')
+    .select('id')
+    .eq('cert_number', cert)
+    .maybeSingle();
+
+  if (institutionError || !institution?.id) return [];
+
+  const { data, error } = await supabase
+    .from('entity_facts')
+    .select('fact_value_text, fact_value_number, fact_value_json, observed_at')
+    .eq('entity_table', 'institutions')
+    .eq('entity_id', institution.id)
+    .eq('fact_key', 'fdic_enforcement_action')
+    .order('observed_at', { ascending: false })
+    .limit(10);
+
+  if (error || !data?.length) return [];
+
+  return data.map((row) => ({
+    date: typeof row.fact_value_json?.init_date === 'string'
+      ? row.fact_value_json.init_date
+      : String(row.observed_at ?? ''),
+    type: String(row.fact_value_text ?? row.fact_value_json?.action_type ?? 'Enforcement Action'),
+    active: !row.fact_value_json?.termination_date,
+    termination_date: typeof row.fact_value_json?.termination_date === 'string'
+      ? row.fact_value_json.termination_date
+      : null,
+    penalty_amount: row.fact_value_number != null ? Number(row.fact_value_number) : null,
+  }));
 }
 
 async function fetchSECData(institutionName: string, holdingCompanyName: string | null): Promise<SECData | null> {
@@ -261,12 +338,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const holdingCompany = (institution.raw_data as Record<string, unknown> | null)?.NAMEHCR as string | null ?? null;
 
   // Fetch all sources in parallel
-  const [craResult, enforcement, sec, wiki] = await Promise.all([
-    isFDIC ? fetchCRAandRSSD(cert) : Promise.resolve({ cra: null, rssd_id: null }),
-    isFDIC ? fetchEnforcement(cert) : Promise.resolve([]),
+  const [warehouseCraResult, warehouseEnforcement, sec, wiki] = await Promise.all([
+    isFDIC ? fetchWarehouseCRAandRSSD(cert) : Promise.resolve({ cra: null, rssd_id: null }),
+    isFDIC ? fetchWarehouseEnforcement(cert) : Promise.resolve([]),
     isNorthAmerican ? fetchSECData(institution.name, holdingCompany) : Promise.resolve(null),
     fetchWikipedia(institution.legal_name ?? institution.name),
   ]);
+
+  const craResult =
+    warehouseCraResult.cra || warehouseCraResult.rssd_id
+      ? warehouseCraResult
+      : isFDIC
+        ? await fetchCRAandRSSD(cert)
+        : { cra: null, rssd_id: null };
+
+  const enforcement =
+    warehouseEnforcement.length > 0
+      ? warehouseEnforcement
+      : isFDIC
+        ? await fetchEnforcement(cert)
+        : [];
 
   const result: EnrichmentData = {
     cra: craResult.cra,

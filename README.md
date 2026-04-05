@@ -148,6 +148,9 @@ Core institution and registry loaders:
 - `node scripts/sync-fintrac.mjs`
 - `node scripts/sync-occ.mjs`
 - `node scripts/sync-fed-master-accounts.mjs`
+- `node scripts/sync-fdic-rssd-cra.mjs`
+- `node scripts/sync-ffiec-cra.mjs`
+- `node scripts/sync-fdic-failures.mjs`
 - `node scripts/backfill-entity-warehouse.mjs`
 - `node scripts/backfill-entity-warehouse-local.mjs`
 - `node scripts/sync-baas-ecosystem-local.mjs`
@@ -162,11 +165,15 @@ Important notes:
 - FDIC amounts arrive in thousands and are normalized to dollars on ingest.
 - `sync-sod.mjs` now auto-resolves the latest available SOD year unless `FDIC_SOD_YEAR` is explicitly set.
 - `sync-occ.mjs` uses public OCC Excel lists and only creates new `institutions` rows when it cannot match an existing institution by OCC charter, FDIC cert, or RSSD.
+- `sync-fdic-rssd-cra.mjs` is the practical RSSD enrichment path for current FDIC institutions and can opportunistically capture CRA posture if FDIC exposes it in the feed.
+- `sync-ffiec-cra.mjs` remains the official CRA ratings loader, but the FFIEC public file may require a manual download when direct scripted fetches are blocked.
+- `sync-fdic-failures.mjs` writes warehouse-backed failure history into `failure_events`, so `/api/analytics/failures` can read from the database before falling back to the live FDIC endpoint.
 - `sync-ffiec-cdr.mjs` uses the official FFIEC CDR PWS REST flow and requires a PWS account token.
 - `sync-ffiec-nic.mjs` expects locally downloaded NIC bulk CSV ZIP files because the public download page is CAPTCHA-protected from plain scripted fetches.
 - `backfill-entity-warehouse.mjs` seeds the new warehouse tables from current `institutions`, `financial_history`, and `branches` data so the entity APIs can use the new model before every source has a native warehouse loader.
 - `backfill-entity-warehouse-local.mjs` performs the same warehouse seed inside the local Postgres sandbox after the legacy tables are mirrored from Supabase.
 - `sync-baas-ecosystem-local.mjs` seeds curated sponsor-bank / embedded-banking ecosystem entities, relationships, capabilities, and tags into the local sandbox.
+- `run-local-data-pipeline.mjs` now skips CFPB by default; opt in with `ENABLE_CFPB=1` when you want the complaint layer.
 - `verify-entity-warehouse.mjs` is the quickest way to confirm whether the new warehouse tables are visible through PostgREST or still blocked by schema-cache lag.
 - `run-local-data-pipeline.mjs` mirrors the live legacy tables, seeds the local warehouse, and verifies the result in one command.
 - Several planned sources are registered but not yet fully ingested.
@@ -219,7 +226,7 @@ Sync endpoint notes:
 - `GET /api/sync` returns backend sync readiness for all wired loaders.
 - `GET /api/sync/:sourceKey` returns requirements, endpoint, and readiness for one source.
 - `POST /api/sync/:sourceKey` runs the registered loader when prerequisites are satisfied.
-- `dry_run` is only accepted for sources that explicitly support it today. Currently that is `occ`.
+- `dry_run` is accepted only for sources that explicitly support it today. That now includes `occ`, `fdic_history`, `fdic_failures`, and the script-backed CRA paths.
 - Source detail payloads from `GET /api/sources/:sourceKey` now include sync metadata so the frontend can show whether a loader is callable, blocked on credentials/files, or ready.
 
 ## Product direction
@@ -238,7 +245,7 @@ Near-term implementation priorities:
 1. finish the entity warehouse migration layer
 2. add FFIEC CDR and FFIEC NIC ingestion
 3. ship terminal-style entity search and profile UI
-4. persist failures, enforcement, and charter events
+4. persist failures, enforcement, and charter events with warehouse-first reads
 5. expand QA and freshness checks
 
 ## QA checklist

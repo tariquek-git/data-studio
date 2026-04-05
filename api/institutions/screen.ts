@@ -2,8 +2,17 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { apiHandler } from '../../lib/api-handler.js';
 import { getSupabase } from '../../lib/supabase.js';
 
-// NOTE: no_enforcement filter is not implemented — checking FDIC enforcement API per-institution
-// would require N+1 HTTP calls and is too expensive for a screener endpoint.
+function isMissingTableError(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+  const maybe = error as { code?: string; message?: string };
+  return (
+    maybe.code === '42P01' ||
+    maybe.code === '42703' ||
+    maybe.code === 'PGRST205' ||
+    /relation .* does not exist/i.test(maybe.message ?? '') ||
+    /schema cache/i.test(maybe.message ?? '')
+  );
+}
 
 export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: VercelResponse) => {
   const supabase = getSupabase();
@@ -66,10 +75,6 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   // we post-filter after fetching (see below) — fetching extra rows to compensate.
   const needsPostFilter = equityRatioMin != null || ldrMin != null || ldrMax != null || craRating.length > 0 || depositGrowthMin != null;
 
-  // CRA rating: stored in raw_data JSONB
-  // Supabase PostgREST supports: .filter('raw_data->>CRARA', 'in', '(1,2)')
-  // We build this as a post-filter since multi-value JSONB filtering in PostgREST is complex.
-
   // Sort
   const allowedSorts = ['total_assets', 'total_deposits', 'roa', 'roi', 'net_income', 'credit_card_loans', 'name'];
   const safeSortBy = allowedSorts.includes(sortBy) ? sortBy : 'total_assets';
@@ -109,11 +114,45 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   }
 
   if (craRating.length > 0) {
-    results = results.filter((inst: any) => {
-      if (!inst.raw_data) return false;
-      const crara = Number(inst.raw_data['CRARA']);
-      return craRating.includes(crara);
-    });
+    const institutionIds = results
+      .map((inst: any) => inst.id)
+      .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0);
+
+    let appliedWarehouseFacts = false;
+    if (institutionIds.length > 0) {
+      const { data: craFacts, error: craFactsError } = await supabase
+        .from('entity_facts')
+        .select('entity_id, fact_value_number, observed_at')
+        .eq('entity_table', 'institutions')
+        .eq('fact_key', 'cra_rating')
+        .in('entity_id', institutionIds)
+        .order('observed_at', { ascending: false });
+
+      if (!craFactsError && craFacts) {
+        appliedWarehouseFacts = true;
+        const latestCraByEntity = new Map<string, number>();
+        for (const row of craFacts as Array<{ entity_id: string; fact_value_number: number | null }>) {
+          if (!latestCraByEntity.has(row.entity_id) && row.fact_value_number != null) {
+            latestCraByEntity.set(row.entity_id, Number(row.fact_value_number));
+          }
+        }
+
+        results = results.filter((inst: any) => {
+          const latestCra = latestCraByEntity.get(inst.id);
+          return latestCra != null && craRating.includes(latestCra);
+        });
+      } else if (craFactsError && !isMissingTableError(craFactsError)) {
+        console.warn(`CRA fact filter fallback triggered: ${craFactsError.message}`);
+      }
+    }
+
+    if (!appliedWarehouseFacts) {
+      results = results.filter((inst: any) => {
+        if (!inst.raw_data) return false;
+        const crara = Number(inst.raw_data['CRARA']);
+        return craRating.includes(crara);
+      });
+    }
   }
 
   // Deposit growth YoY: requires financial_history lookup

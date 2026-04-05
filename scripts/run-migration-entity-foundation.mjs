@@ -36,8 +36,13 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 const ref = SUPABASE_URL.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
-const sqlFile = join(__dirname, 'add-entity-foundation.sql');
-const sql = readFileSync(sqlFile, 'utf-8');
+const sqlFiles = [
+  join(__dirname, 'add-entity-foundation.sql'),
+  join(__dirname, 'add-failure-events-table.sql'),
+];
+const sql = sqlFiles
+  .map((filePath) => readFileSync(filePath, 'utf-8'))
+  .join('\n\n');
 
 async function runViaMgmtApi(accessToken) {
   console.log(`Applying entity foundation migration via Supabase Management API (project: ${ref})...`);
@@ -65,7 +70,7 @@ function printManualInstructions() {
   console.log('Apply the SQL migration manually using one of these methods:\n');
   console.log('OPTION 1 — Supabase Dashboard SQL Editor:');
   console.log(`  1. Open: https://supabase.com/dashboard/project/${ref}/sql/new`);
-  console.log(`  2. Paste the contents of: ${sqlFile}`);
+  console.log(`  2. Paste the contents of:\n     - ${sqlFiles[0]}\n     - ${sqlFiles[1]}`);
   console.log('  3. Click "Run"\n');
   console.log('OPTION 2 — Supabase CLI:');
   console.log(`  supabase login && supabase link --project-ref ${ref}`);

@@ -26,6 +26,7 @@ export const WAREHOUSE_TABLES = [
   'entity_facts',
   'entity_relationships',
   'charter_events',
+  'failure_events',
   'financial_history_quarterly',
   'branch_history_annual',
   'macro_series',

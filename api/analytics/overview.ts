@@ -5,6 +5,22 @@ import { getSupabase } from '../../lib/supabase.js';
 export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: VercelResponse) => {
   const supabase = getSupabase();
 
+  const safeCount = async (table: string) => {
+    const { count, error } = await supabase.from(table).select('*', { count: 'exact', head: true });
+    if (error) {
+      if (
+        error.code === '42P01' ||
+        error.code === 'PGRST205' ||
+        /relation .* does not exist/i.test(error.message ?? '') ||
+        /schema cache/i.test(error.message ?? '')
+      ) {
+        return null;
+      }
+      throw error;
+    }
+    return count ?? 0;
+  };
+
   // Run all count queries in parallel
   const [
     totalRes,
@@ -14,6 +30,12 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     assetDataRes,
     sourceDataRes,
     dataSourcesRes,
+    registryCount,
+    ecosystemCount,
+    relationshipCount,
+    charterEventCount,
+    failureEventCount,
+    macroSeriesCount,
   ] = await Promise.all([
     // Total active institutions
     supabase
@@ -58,8 +80,15 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     // Source registry summary if available
     supabase
       .from('data_sources')
-      .select('source_key, status')
+      .select('source_key, status, institution_count, data_as_of, last_synced_at')
       .order('source_key', { ascending: true }),
+
+    safeCount('registry_entities'),
+    safeCount('ecosystem_entities'),
+    safeCount('entity_relationships'),
+    safeCount('charter_events'),
+    safeCount('failure_events'),
+    safeCount('macro_series'),
   ]);
 
   // Aggregate by state
@@ -126,6 +155,13 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     pending: 0,
     unavailable: 0,
   };
+  const sourcePosture: Array<{
+    source_key: string;
+    status: string;
+    institution_count: number | null;
+    data_as_of: string | null;
+    last_synced_at: string | null;
+  }> = [];
   if (dataSourcesRes.data) {
     sourceRegistrySummary.tracked = dataSourcesRes.data.length;
     for (const row of dataSourcesRes.data) {
@@ -133,6 +169,13 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
       if (status === 'active') sourceRegistrySummary.active += 1;
       if (status === 'pending') sourceRegistrySummary.pending += 1;
       if (status === 'unavailable') sourceRegistrySummary.unavailable += 1;
+      sourcePosture.push({
+        source_key: row.source_key as string,
+        status,
+        institution_count: 'institution_count' in row ? Number((row as { institution_count?: number | null }).institution_count ?? 0) : null,
+        data_as_of: 'data_as_of' in row ? ((row as { data_as_of?: string | null }).data_as_of ?? null) : null,
+        last_synced_at: 'last_synced_at' in row ? ((row as { last_synced_at?: string | null }).last_synced_at ?? null) : null,
+      });
     }
   }
 
@@ -146,6 +189,15 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     by_state: byState,
     by_regulator: byRegulatorMap,
     source_registry: sourceRegistrySummary,
+    source_posture: sourcePosture,
+    warehouse_summary: {
+      registry_entities: registryCount,
+      ecosystem_entities: ecosystemCount,
+      entity_relationships: relationshipCount,
+      charter_events: charterEventCount,
+      failure_events: failureEventCount,
+      macro_series: macroSeriesCount,
+    },
   };
 
   res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { apiHandler } from '../../lib/api-handler.js';
+import { getSupabase } from '../../lib/supabase.js';
 
 const FDIC_FAILURES_BASE = 'https://banks.data.fdic.gov/api/failures';
 
@@ -18,6 +19,15 @@ interface FdicApiResponse {
   meta: { total: number };
 }
 
+interface FailureEventRow {
+  cert_number: number;
+  institution_name: string;
+  fail_date: string;
+  resolution_type: string | null;
+  estimated_loss: number | null;
+  charter_class: string | null;
+}
+
 export interface BankFailure {
   cert_number: number;
   name: string;
@@ -27,10 +37,56 @@ export interface BankFailure {
   charter_class: string | null;
 }
 
+function isMissingTableError(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+  const maybe = error as { code?: string; message?: string };
+  return (
+    maybe.code === '42P01' ||
+    maybe.code === 'PGRST205' ||
+    /relation .* does not exist/i.test(maybe.message ?? '') ||
+    /schema cache/i.test(maybe.message ?? '')
+  );
+}
+
+function normalizeWarehouseFailure(row: FailureEventRow): BankFailure {
+  return {
+    cert_number: Number(row.cert_number),
+    name: row.institution_name ?? '',
+    fail_date: row.fail_date ?? '',
+    resolution_type: row.resolution_type ?? '',
+    estimated_loss: row.estimated_loss != null ? Number(row.estimated_loss) : null,
+    charter_class: row.charter_class ?? null,
+  };
+}
+
 export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: VercelResponse) => {
   const yearMin = Number(req.query.year_min ?? 2000);
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
   const limit = Math.min(Number(req.query.limit ?? 50), 500);
+  const supabase = getSupabase();
+
+  const { data: warehouseRows, error: warehouseError } = await supabase
+    .from('failure_events')
+    .select('cert_number, institution_name, fail_date, resolution_type, estimated_loss, charter_class')
+    .order('fail_date', { ascending: false });
+
+  if (!warehouseError && (warehouseRows?.length ?? 0) > 0) {
+    const filtered = (warehouseRows ?? [])
+      .map((row) => normalizeWarehouseFailure(row as FailureEventRow))
+      .filter((failure) => {
+        const year = Number(String(failure.fail_date).slice(0, 4));
+        if (Number.isFinite(year) && year < yearMin) return false;
+        if (search && !failure.name.toLowerCase().includes(search.toLowerCase())) return false;
+        return true;
+      });
+
+    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
+    return res.json({ failures: filtered.slice(0, limit), total: filtered.length, source: 'warehouse' });
+  }
+
+  if (warehouseError && !isMissingTableError(warehouseError)) {
+    return res.status(500).json({ error: warehouseError.message ?? 'Unable to read warehouse failures' });
+  }
 
   const fields = 'CERT,INSTNAME,FAILDATE,RESTYPE,SAVR,COST,CHCLASS';
   const filterParts: string[] = [`FAILDATE:[${yearMin}0101 TO 99991231]`];
@@ -71,5 +127,5 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   const total = raw.meta?.total ?? failures.length;
 
   res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
-  return res.json({ failures, total });
+  return res.json({ failures, total, source: 'fdic_live' });
 });

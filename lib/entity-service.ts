@@ -126,6 +126,8 @@ const SOURCE_META: Record<
   fintrac: { authority: 'FINTRAC MSB Registry', country: 'CA', countryLabel: 'Canada', sourceKind: 'official' },
   fincen: { authority: 'FinCEN MSB Registry', country: 'US', countryLabel: 'United States', sourceKind: 'official' },
   fdic_history: { authority: 'FDIC History API', country: 'US', countryLabel: 'United States', sourceKind: 'official' },
+  fdic_enforcement: { authority: 'FDIC Enforcement API', country: 'US', countryLabel: 'United States', sourceKind: 'official' },
+  ffiec_cra: { authority: 'FFIEC CRA Ratings', country: 'US', countryLabel: 'United States', sourceKind: 'official' },
   ffiec_nic: { authority: 'FFIEC NIC', country: 'US', countryLabel: 'United States', sourceKind: 'official' },
   cfpb_complaints: { authority: 'CFPB Complaint Database', country: 'US', countryLabel: 'United States', sourceKind: 'official' },
   curated: { authority: 'Curated Research', country: 'NA', countryLabel: 'North America', sourceKind: 'curated' },
@@ -1344,6 +1346,7 @@ export async function getEntityContext(entityId: string): Promise<EntityContextR
   const latestHistory = history[0] ?? null;
   const latestCharterEvent = charterEvents[0] ?? null;
   const craRating = facts.find((fact) => fact.fact_key === 'cra_rating');
+  const latestEnforcement = facts.find((fact) => fact.fact_key === 'fdic_enforcement_action');
   const complaintTotal = facts.find((fact) =>
     ['cfpb_complaints_recent_12m_total', 'cfpb_complaints_total', 'cfpb_complaints_summary'].includes(fact.fact_key ?? '')
   );
@@ -1375,6 +1378,13 @@ export async function getEntityContext(entityId: string): Promise<EntityContextR
         { label: 'Data as of', value: entity.data_as_of ?? entity.last_synced_at ?? 'Unknown freshness' },
         ...(craRating?.fact_value_text
           ? [{ label: 'CRA posture', value: craRating.fact_value_text }]
+          : []),
+        ...(latestEnforcement?.fact_value_text
+          ? [{
+              label: 'Latest enforcement action',
+              value: `${latestEnforcement.fact_value_text}${latestEnforcement.observed_at ? ` · ${latestEnforcement.observed_at}` : ''}`,
+              tone: 'caution' as const,
+            }]
           : []),
         ...(latestCharterEvent
           ? [{
@@ -1429,13 +1439,20 @@ export async function getEntityContext(entityId: string): Promise<EntityContextR
       key: 'market',
       title: 'Market Context',
       summary:
-        complaintTotal?.fact_value_number != null
-          ? 'Market context combines geography, source posture, and live complaint-pressure signals.'
+        complaintTotal?.fact_value_number != null || latestEnforcement != null
+          ? 'Market context combines geography, source posture, and regulatory-pressure signals.'
           : 'Market context combines geography, source class, and cross-border positioning.',
       items: [
         { label: 'Jurisdiction', value: entity.country_label },
         { label: 'Source class', value: entity.source_kind === 'official' ? 'Official regulatory source' : entity.source_kind === 'company' ? 'Company disclosure' : 'Curated research' },
         { label: 'Cross-border lens', value: entity.country === 'CA' ? 'Canada-facing profile' : entity.country === 'US' ? 'United States-facing profile' : 'North America' },
+        ...(latestEnforcement?.fact_value_text
+          ? [{
+              label: 'Supervisory signal',
+              value: latestEnforcement.fact_value_text,
+              tone: 'caution' as const,
+            }]
+          : []),
         ...(complaintTotal?.fact_value_number != null
           ? [{
               label: 'CFPB complaint signal',
@@ -1470,8 +1487,8 @@ export async function getEntityContext(entityId: string): Promise<EntityContextR
           value:
             relationships.length === 0
               ? 'Relationship graph still needs enrichment.'
-              : latestCharterEvent == null && complaintTotal == null
-                ? 'Relationship coverage is improving, but event and complaint context are still sparse here.'
+              : latestCharterEvent == null && complaintTotal == null && latestEnforcement == null
+                ? 'Relationship coverage is improving, but event and regulatory context are still sparse here.'
                 : 'Relationship graph is beginning to form.',
         },
         { label: 'Evidence posture', value: entity.source_kind === 'official' ? 'Primary-source anchored.' : 'Mix of curated and source-backed context.' },
