@@ -1,4 +1,4 @@
-import type { DataSourceCategory, DataSourceCoverageType, DataSourceStatus } from '../src/types/data-source';
+import type { DataSourceCategory, DataSourceCoverageType, DataSourceStatus } from '../src/types/data-source.js';
 
 export interface SourceCatalogEntry {
   source_key: string;

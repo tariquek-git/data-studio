@@ -22,6 +22,7 @@ import {
   startSyncJob,
   tableExists,
   formatUsDateToIso,
+  updateDataSourceSnapshot,
 } from './_sync-utils.mjs';
 import {
   batchUpsert,
@@ -188,6 +189,27 @@ function eventId(certNumber, event) {
   );
 }
 
+async function fetchAllSupabaseRows(table, columns, pageSize = 1000) {
+  const rows = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from(table)
+      .select(columns)
+      .range(from, from + pageSize - 1);
+
+    if (error) throw new Error(`Unable to query ${table}: ${error.message}`);
+    if (!data || data.length === 0) break;
+
+    rows.push(...data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return rows;
+}
+
 async function fetchHistoryRows() {
   const rows = [];
   let offset = 0;
@@ -240,14 +262,8 @@ async function fetchHistoryRows() {
 }
 
 async function loadInstitutionLookupFromSupabase() {
-  const { data, error } = await supabase
-    .from('institutions')
-    .select('id, cert_number, source')
-    .limit(20000);
-
-  if (error) throw new Error(`Unable to query institutions: ${error.message}`);
-
-  return new Map((data ?? []).map((row) => [String(row.cert_number), row]));
+  const rows = await fetchAllSupabaseRows('institutions', 'id, cert_number, source');
+  return new Map(rows.map((row) => [String(row.cert_number), row]));
 }
 
 async function loadInstitutionLookupFromLocalPg(client) {
@@ -259,14 +275,16 @@ async function loadEntityExternalIdLookupFromSupabase() {
   const hasTable = await tableExists(supabase, 'entity_external_ids');
   if (!hasTable) return new Map();
 
-  const { data, error } = await supabase
-    .from('entity_external_ids')
-    .select('entity_table, entity_id, id_value, id_type')
-    .in('id_type', ['fdic_cert', 'legacy_cert_number']);
+  const rows = await fetchAllSupabaseRows(
+    'entity_external_ids',
+    'entity_table, entity_id, id_value, id_type'
+  );
 
-  if (error) throw new Error(`Unable to query FDIC external IDs: ${error.message}`);
-
-  return new Map((data ?? []).map((row) => [String(row.id_value), row]));
+  return new Map(
+    rows
+      .filter((row) => ['fdic_cert', 'legacy_cert_number'].includes(String(row.id_type ?? '')))
+      .map((row) => [String(row.id_value), row])
+  );
 }
 
 async function loadEntityExternalIdLookupFromLocalPg(client) {

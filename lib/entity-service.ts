@@ -11,7 +11,7 @@ import type {
   EntityStorageTable,
   EntitySummary,
   EntityTag,
-} from '../src/types/entity';
+} from '../src/types/entity.js';
 
 type InstitutionRow = {
   id: string;
@@ -113,6 +113,8 @@ const REGULATED_SOURCES = new Set(['fdic', 'ncua', 'osfi']);
 const REGISTRY_SOURCES = new Set(['rpaa', 'ciro', 'fintrac', 'fincen']);
 const TABLE_EXISTENCE_CACHE_TTL_MS = 60_000;
 const TABLE_EXISTENCE_CACHE = new Map<string, { exists: boolean; checkedAt: number }>();
+const ENTITY_ID_CHUNK_SIZE = 100;
+const CERT_CHUNK_SIZE = 400;
 
 const SOURCE_META: Record<
   string,
@@ -149,7 +151,7 @@ async function safeRows<T>(promise: PromiseLike<{ data: T[] | null; error: { cod
   const { data, error } = await promise;
   if (error) {
     if (isMissingTableError(error)) return [];
-    throw new Error(error.message ?? 'Database query failed');
+    throw new Error(error.code ? `${error.code}: ${error.message ?? 'Database query failed'}` : (error.message ?? 'Database query failed'));
   }
   return data ?? [];
 }
@@ -221,6 +223,14 @@ function countryMeta(sourceKey: string, explicitCountry?: string | null) {
 
 function formatSourceAuthority(sourceKey: string, fallback?: string | null) {
   return fallback ?? SOURCE_META[sourceKey]?.authority ?? sourceKey.toUpperCase();
+}
+
+function chunkValues<T>(values: T[], size = 400) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+  return chunks;
 }
 
 function inferInstitutionProfileKind(source: string) {
@@ -371,12 +381,18 @@ async function loadCapabilityMap(certs: number[]) {
   if (certs.length === 0) return new Map<number, CapabilityRow>();
   if (!(await tableExists('bank_capabilities'))) return new Map<number, CapabilityRow>();
   const supabase = getSupabase();
-  const rows = await safeRows<CapabilityRow>(
-    supabase
-      .from('bank_capabilities')
-      .select('cert_number, baas_platform, baas_partners, notes, fed_master_account, fedwire_participant, visa_principal, mastercard_principal')
-      .in('cert_number', certs)
-  );
+  const rows: CapabilityRow[] = [];
+
+  for (const certChunk of chunkValues(certs, CERT_CHUNK_SIZE)) {
+    const chunkRows = await safeRows<CapabilityRow>(
+      supabase
+        .from('bank_capabilities')
+        .select('cert_number, baas_platform, baas_partners, notes, fed_master_account, fedwire_participant, visa_principal, mastercard_principal')
+        .in('cert_number', certChunk)
+    );
+    rows.push(...chunkRows);
+  }
+
   return new Map(rows.map((row) => [row.cert_number, row]));
 }
 
@@ -458,12 +474,17 @@ async function loadTags(entityRefs: Array<{ entity_table: EntityStorageTable; en
   const tags = new Map<string, EntityTag[]>();
 
   if (hasWarehouseTags) {
-    const rows = await safeRows<EntityTag>(
-      supabase
-        .from('entity_tags')
-        .select('id, entity_table, entity_id, tag_key, tag_value, source_kind, source_url, confidence_score, effective_start, effective_end, notes')
-        .in('entity_id', entityRefs.map((ref) => ref.entity_id))
-    );
+    const rows: EntityTag[] = [];
+
+    for (const idChunk of chunkValues(entityRefs.map((ref) => ref.entity_id), ENTITY_ID_CHUNK_SIZE)) {
+      const chunkRows = await safeRows<EntityTag>(
+        supabase
+          .from('entity_tags')
+          .select('id, entity_table, entity_id, tag_key, tag_value, source_kind, source_url, confidence_score, effective_start, effective_end, notes')
+          .in('entity_id', idChunk)
+      );
+      rows.push(...chunkRows);
+    }
 
     for (const row of rows) {
       const key = `${row.entity_table}:${row.entity_id}`;
@@ -484,12 +505,17 @@ async function loadTags(entityRefs: Array<{ entity_table: EntityStorageTable; en
     .map((ref) => ref.entity_id);
 
   if (missingInstitutionIds.length > 0) {
-    const institutionRows = await safeRows<InstitutionRow>(
-      supabase
-        .from('institutions')
-        .select('id, cert_number, source, name, legal_name, charter_type, active, city, state, website, regulator, holding_company, total_assets, total_deposits, total_loans, net_income, roa, roi, raw_data, data_as_of, last_synced_at, created_at, updated_at')
-        .in('id', missingInstitutionIds)
-    );
+    const institutionRows: InstitutionRow[] = [];
+
+    for (const idChunk of chunkValues(missingInstitutionIds, ENTITY_ID_CHUNK_SIZE)) {
+      const chunkRows = await safeRows<InstitutionRow>(
+        supabase
+          .from('institutions')
+          .select('id, cert_number, source, name, legal_name, charter_type, active, city, state, website, regulator, holding_company, total_assets, total_deposits, total_loans, net_income, roa, roi, raw_data, data_as_of, last_synced_at, created_at, updated_at')
+          .in('id', idChunk)
+      );
+      institutionRows.push(...chunkRows);
+    }
 
     const capabilityMap = await loadCapabilityMap(
       institutionRows
@@ -504,12 +530,17 @@ async function loadTags(entityRefs: Array<{ entity_table: EntityStorageTable; en
   }
 
   if (missingRegistryIds.length > 0) {
-    const registryRows = await safeRows<RegistryEntityRow>(
-      supabase
-        .from('registry_entities')
-        .select('id, source_key, name, legal_name, entity_subtype, active, city, state, website, regulator, registration_number, status, description, raw_data, data_as_of, last_synced_at, created_at, updated_at, country')
-        .in('id', missingRegistryIds)
-    );
+    const registryRows: RegistryEntityRow[] = [];
+
+    for (const idChunk of chunkValues(missingRegistryIds, ENTITY_ID_CHUNK_SIZE)) {
+      const chunkRows = await safeRows<RegistryEntityRow>(
+        supabase
+          .from('registry_entities')
+          .select('id, source_key, name, legal_name, entity_subtype, active, city, state, website, regulator, registration_number, status, description, raw_data, data_as_of, last_synced_at, created_at, updated_at, country')
+          .in('id', idChunk)
+      );
+      registryRows.push(...chunkRows);
+    }
 
     for (const row of registryRows) {
       const derived = deriveRegistryTags(row);
@@ -518,12 +549,17 @@ async function loadTags(entityRefs: Array<{ entity_table: EntityStorageTable; en
   }
 
   if (missingEcosystemIds.length > 0) {
-    const ecosystemRows = await safeRows<EcosystemEntityRow>(
-      supabase
-        .from('ecosystem_entities')
-        .select('id, source_key, source_authority, name, legal_name, entity_type, business_model, active, status, country, city, state, website, description, parent_name, confidence_score, raw_data, data_as_of, last_synced_at, created_at, updated_at')
-        .in('id', missingEcosystemIds)
-    );
+    const ecosystemRows: EcosystemEntityRow[] = [];
+
+    for (const idChunk of chunkValues(missingEcosystemIds, ENTITY_ID_CHUNK_SIZE)) {
+      const chunkRows = await safeRows<EcosystemEntityRow>(
+        supabase
+          .from('ecosystem_entities')
+          .select('id, source_key, source_authority, name, legal_name, entity_type, business_model, active, status, country, city, state, website, description, parent_name, confidence_score, raw_data, data_as_of, last_synced_at, created_at, updated_at')
+          .in('id', idChunk)
+      );
+      ecosystemRows.push(...chunkRows);
+    }
 
     for (const row of ecosystemRows) {
       const derived = deriveEcosystemTags(row);

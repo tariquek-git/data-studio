@@ -1,4 +1,4 @@
-import type { Institution, FinancialHistory, Branch } from '../src/types/institution';
+import type { Institution, FinancialHistory, Branch } from '../src/types/institution.js';
 
 const BASE_URL = 'https://banks.data.fdic.gov/api';
 

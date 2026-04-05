@@ -1,7 +1,7 @@
 import { getSupabase } from './supabase.js';
 import { SOURCE_CATALOG, SOURCE_CATEGORY_LABELS, type SourceCatalogEntry } from './source-registry.js';
 import { getSourceSyncStatus } from './source-sync.js';
-import type { DataSourceDetail, DataSourceSummary, DataSourceSyncJob, DataSourcesResponse } from '../src/types/data-source';
+import type { DataSourceDetail, DataSourceSummary, DataSourceSyncJob, DataSourcesResponse } from '../src/types/data-source.js';
 
 type DataSourceRow = {
   id: string;
