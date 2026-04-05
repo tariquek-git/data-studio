@@ -28,6 +28,7 @@ export const WAREHOUSE_TABLES = [
   'charter_events',
   'financial_history_quarterly',
   'branch_history_annual',
+  'macro_series',
 ] as const;
 
 async function probeTable(table: string): Promise<WarehouseTableStatus> {

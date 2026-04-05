@@ -8,8 +8,9 @@
  * 3. enrich FDIC institutions with RSSD / CRA context
  * 4. load FDIC institution-level history events
  * 5. seed the local sponsor-bank / embedded-banking ecosystem graph
- * 6. load Bank of Canada macro context
- * 7. verify local warehouse counts
+ * 6. load CFPB complaint context for matched entities
+ * 7. load Bank of Canada macro context
+ * 8. verify local warehouse counts
  *
  * Usage:
  *   node scripts/run-local-data-pipeline.mjs
@@ -24,6 +25,7 @@ const STEPS = [
   'scripts/sync-fdic-rssd-cra-local.mjs',
   'scripts/sync-fdic-history.mjs',
   'scripts/sync-baas-ecosystem-local.mjs',
+  'scripts/sync-cfpb-complaints.mjs',
   'scripts/sync-boc-series.mjs',
   'scripts/verify-local-entity-warehouse.mjs',
 ];
@@ -33,7 +35,11 @@ for (const script of STEPS) {
   execFileSync('node', [script], {
     stdio: 'inherit',
     env:
-      script === 'scripts/sync-boc-series.mjs' || script === 'scripts/sync-fdic-history.mjs'
+      (
+        script === 'scripts/sync-boc-series.mjs' ||
+        script === 'scripts/sync-fdic-history.mjs' ||
+        script === 'scripts/sync-cfpb-complaints.mjs'
+      )
         ? { ...process.env, WRITE_TARGET: 'local_pg' }
         : process.env,
   });

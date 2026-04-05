@@ -284,10 +284,12 @@ async function loadEntityExternalIdLookupFromLocalPg(client) {
 
 function buildCharterEvents(rows, institutionLookup, externalIdLookup) {
   const events = [];
+  const dedupedEvents = new Map();
   const matchedCerts = new Set();
   let skippedBranches = 0;
   let skippedNoInstitution = 0;
   let skippedNoEvent = 0;
+  let skippedDuplicates = 0;
 
   for (const row of rows) {
     const certNumber = normalizeText(row.CERT);
@@ -310,7 +312,7 @@ function buildCharterEvents(rows, institutionLookup, externalIdLookup) {
     }
 
     matchedCerts.add(certNumber);
-    events.push({
+    const payload = {
       id: eventId(certNumber, event),
       entity_table: institution.entity_table ?? 'institutions',
       entity_id: institution.entity_id ?? institution.id,
@@ -324,7 +326,15 @@ function buildCharterEvents(rows, institutionLookup, externalIdLookup) {
       source_url: SOURCE_URL,
       confidence_score: 1,
       raw_data: row,
-    });
+    };
+
+    if (dedupedEvents.has(payload.id)) {
+      skippedDuplicates += 1;
+      continue;
+    }
+
+    dedupedEvents.set(payload.id, payload);
+    events.push(payload);
   }
 
   return {
@@ -333,6 +343,7 @@ function buildCharterEvents(rows, institutionLookup, externalIdLookup) {
     skippedBranches,
     skippedNoInstitution,
     skippedNoEvent,
+    skippedDuplicates,
   };
 }
 
@@ -344,7 +355,7 @@ async function writeSupabase(events, dataAsOf) {
 
   const institutionLookup = await loadInstitutionLookupFromSupabase();
   const externalIdLookup = await loadEntityExternalIdLookupFromSupabase();
-  const { events: charterEvents, matched_institutions, skippedBranches, skippedNoInstitution, skippedNoEvent } =
+  const { events: charterEvents, matched_institutions, skippedBranches, skippedNoInstitution, skippedNoEvent, skippedDuplicates } =
     buildCharterEvents(events, institutionLookup, externalIdLookup);
 
   let jobId = null;
@@ -362,7 +373,7 @@ async function writeSupabase(events, dataAsOf) {
       last_synced_at: new Date().toISOString(),
       data_as_of: dataAsOf,
       institution_count: matched_institutions,
-      notes: `Institution-level FDIC history sync. Branch rows filtered out. Skipped branches: ${skippedBranches}; unmatched certs: ${skippedNoInstitution}; no-event rows: ${skippedNoEvent}.`,
+      notes: `Institution-level FDIC history sync. Branch rows filtered out. Skipped branches: ${skippedBranches}; unmatched certs: ${skippedNoInstitution}; no-event rows: ${skippedNoEvent}; duplicate derived events: ${skippedDuplicates}.`,
     });
 
     await finishSyncJob(supabase, jobId, {
@@ -370,7 +381,7 @@ async function writeSupabase(events, dataAsOf) {
       records_processed: charterEvents.length,
     });
 
-    return { charterEvents, matched_institutions, skippedBranches, skippedNoInstitution, skippedNoEvent };
+    return { charterEvents, matched_institutions, skippedBranches, skippedNoInstitution, skippedNoEvent, skippedDuplicates };
   } catch (error) {
     await finishSyncJob(supabase, jobId, {
       status: 'failed',
@@ -389,7 +400,7 @@ async function writeLocal(events, dataAsOf) {
 
   const institutionLookup = await loadInstitutionLookupFromLocalPg(client);
   const externalIdLookup = await loadEntityExternalIdLookupFromLocalPg(client);
-  const { events: charterEvents, matched_institutions, skippedBranches, skippedNoInstitution, skippedNoEvent } =
+  const { events: charterEvents, matched_institutions, skippedBranches, skippedNoInstitution, skippedNoEvent, skippedDuplicates } =
     buildCharterEvents(events, institutionLookup, externalIdLookup);
 
   let jobId = null;
@@ -424,7 +435,7 @@ async function writeLocal(events, dataAsOf) {
       last_synced_at: new Date().toISOString(),
       data_as_of: dataAsOf,
       institution_count: matched_institutions,
-      notes: `Institution-level FDIC history sync. Branch rows filtered out. Skipped branches: ${skippedBranches}; unmatched certs: ${skippedNoInstitution}; no-event rows: ${skippedNoEvent}.`,
+      notes: `Institution-level FDIC history sync. Branch rows filtered out. Skipped branches: ${skippedBranches}; unmatched certs: ${skippedNoInstitution}; no-event rows: ${skippedNoEvent}; duplicate derived events: ${skippedDuplicates}.`,
     });
 
     await finishLocalSyncJob(client, jobId, {
@@ -432,7 +443,7 @@ async function writeLocal(events, dataAsOf) {
       records_processed: charterEvents.length,
     });
 
-    return { charterEvents, matched_institutions, skippedBranches, skippedNoInstitution, skippedNoEvent };
+    return { charterEvents, matched_institutions, skippedBranches, skippedNoInstitution, skippedNoEvent, skippedDuplicates };
   } catch (error) {
     await finishLocalSyncJob(client, jobId, {
       status: 'failed',
@@ -472,7 +483,7 @@ async function main() {
         externalIdLookup = await loadEntityExternalIdLookupFromSupabase();
       }
 
-      const { events, matched_institutions, skippedBranches, skippedNoInstitution, skippedNoEvent } =
+      const { events, matched_institutions, skippedBranches, skippedNoInstitution, skippedNoEvent, skippedDuplicates } =
         buildCharterEvents(rows, institutionLookup, externalIdLookup);
 
       console.log(`Dry run: derived ${events.length.toLocaleString()} institution-level charter events.`);
@@ -480,6 +491,7 @@ async function main() {
       console.log(`Skipped branch rows: ${skippedBranches.toLocaleString()}`);
       console.log(`Skipped unmatched certs: ${skippedNoInstitution.toLocaleString()}`);
       console.log(`Skipped no-event rows: ${skippedNoEvent.toLocaleString()}`);
+      console.log(`Skipped duplicate derived events: ${skippedDuplicates.toLocaleString()}`);
       console.log(`Latest event date: ${dataAsOf ?? 'unknown'}`);
     } finally {
       if (client) await client.end();

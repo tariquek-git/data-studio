@@ -87,6 +87,14 @@ function main() {
       FROM entity_facts
      WHERE fact_key = 'cra_rating'
     UNION ALL
+    SELECT 'cfpb_complaint_facts', COUNT(*)
+      FROM entity_facts
+     WHERE fact_key IN ('cfpb_complaints_total', 'cfpb_complaints_recent_12m_total', 'cfpb_complaints_summary')
+    UNION ALL
+    SELECT 'fdic_history_events', COUNT(*)
+      FROM charter_events
+     WHERE source_url = 'https://api.fdic.gov/banks/history'
+    UNION ALL
     SELECT 'sponsor_bank_relationships', COUNT(*)
       FROM entity_relationships
      WHERE relationship_type = 'sponsor_bank_for'

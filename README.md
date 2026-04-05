@@ -15,7 +15,7 @@ Live or seeded source coverage includes:
 - `ciro` for Canadian dealer registry coverage
 - `fintrac` and starter `fincen` coverage for MSB-style entities
 - `cmhc` and `boc` for macro / market context
-- registry entries for planned sources such as `ffiec_cdr`, `ffiec_nic`, `occ`, `frb_routing`, `sec_edgar`, `cfpb_complaints`, `ffiec_hmda`, `ffiec_census`, `ffiec_cra`, and `nmls`
+- registry entries for active or queued sources such as `fdic_history`, `ffiec_cdr`, `ffiec_nic`, `occ`, `frb_routing`, `sec_edgar`, `cfpb_complaints`, `ffiec_hmda`, `ffiec_census`, `ffiec_cra`, and `nmls`
 
 Recent platform additions:
 

@@ -125,7 +125,9 @@ const SOURCE_META: Record<
   ciro: { authority: 'CIRO', country: 'CA', countryLabel: 'Canada', sourceKind: 'official' },
   fintrac: { authority: 'FINTRAC MSB Registry', country: 'CA', countryLabel: 'Canada', sourceKind: 'official' },
   fincen: { authority: 'FinCEN MSB Registry', country: 'US', countryLabel: 'United States', sourceKind: 'official' },
+  fdic_history: { authority: 'FDIC History API', country: 'US', countryLabel: 'United States', sourceKind: 'official' },
   ffiec_nic: { authority: 'FFIEC NIC', country: 'US', countryLabel: 'United States', sourceKind: 'official' },
+  cfpb_complaints: { authority: 'CFPB Complaint Database', country: 'US', countryLabel: 'United States', sourceKind: 'official' },
   curated: { authority: 'Curated Research', country: 'NA', countryLabel: 'North America', sourceKind: 'curated' },
 };
 
@@ -945,12 +947,14 @@ async function loadEntityFacts(storageTable: EntityStorageTable, entityId: strin
         fact_type: string | null;
         fact_key: string | null;
         fact_value_text: string | null;
+        fact_value_number: number | null;
+        fact_value_json: Record<string, unknown> | null;
         confidence_score: number | null;
         observed_at: string | null;
       }>(
         supabase
           .from('entity_facts')
-          .select('id, source_kind, source_url, fact_type, fact_key, fact_value_text, confidence_score, observed_at')
+          .select('id, source_kind, source_url, fact_type, fact_key, fact_value_text, fact_value_number, fact_value_json, confidence_score, observed_at')
           .eq('entity_table', storageTable)
           .eq('entity_id', entityId)
           .order('observed_at', { ascending: false })
@@ -970,6 +974,8 @@ async function loadEntityFacts(storageTable: EntityStorageTable, entityId: strin
     fact_type: string | null;
     fact_key: string | null;
     fact_value_text: string | null;
+    fact_value_number: number | null;
+    fact_value_json: Record<string, unknown> | null;
     confidence_score: number | null;
     observed_at: string | null;
   }>;
@@ -984,6 +990,8 @@ async function loadEntityFacts(storageTable: EntityStorageTable, entityId: strin
             fact_type: 'identity',
             fact_key: 'cert_number',
             fact_value_text: String(entity.cert_number),
+            fact_value_number: entity.cert_number,
+            fact_value_json: null,
             confidence_score: 0.7,
             observed_at: entity.data_as_of ?? entity.last_synced_at,
           }]
@@ -998,6 +1006,8 @@ async function loadEntityFacts(storageTable: EntityStorageTable, entityId: strin
     fact_type: 'source',
     fact_key: 'source_authority',
     fact_value_text: entity.source_authority,
+    fact_value_number: null,
+    fact_value_json: null,
     confidence_score: 0.9,
     observed_at: entity.data_as_of ?? entity.last_synced_at,
   });
@@ -1327,7 +1337,17 @@ export async function getEntityContext(entityId: string): Promise<EntityContextR
 
   if (!entity) return null;
 
+  const [facts, charterEvents] = await Promise.all([
+    loadEntityFacts(entity.storage_table, entity.id),
+    loadCharterEvents(entity.storage_table, entity.id),
+  ]);
   const latestHistory = history[0] ?? null;
+  const latestCharterEvent = charterEvents[0] ?? null;
+  const craRating = facts.find((fact) => fact.fact_key === 'cra_rating');
+  const complaintTotal = facts.find((fact) =>
+    ['cfpb_complaints_recent_12m_total', 'cfpb_complaints_total', 'cfpb_complaints_summary'].includes(fact.fact_key ?? '')
+  );
+  const complaintSummary = facts.find((fact) => fact.fact_key === 'cfpb_complaints_summary');
   const sourceTone = toneFromStatus(entity.active, entity.status);
   const sections = [
     {
@@ -1344,12 +1364,25 @@ export async function getEntityContext(entityId: string): Promise<EntityContextR
     {
       key: 'regulatory',
       title: 'Regulatory Context',
-      summary: `${entity.source_authority} is the primary authority for this profile today.`,
+      summary:
+        latestCharterEvent
+          ? `${entity.source_authority} anchors the profile, and the latest recorded charter event is ${latestCharterEvent.event_type.replace(/_/g, ' ')} on ${latestCharterEvent.event_date}.`
+          : `${entity.source_authority} is the primary authority for this profile today.`,
       items: [
         { label: 'Regulator / authority', value: entity.regulator ?? entity.source_authority },
         { label: 'Charter / registration family', value: entity.charter_family?.replace(/_/g, ' ') ?? 'Not classified yet' },
         { label: 'Source authority', value: entity.source_authority },
         { label: 'Data as of', value: entity.data_as_of ?? entity.last_synced_at ?? 'Unknown freshness' },
+        ...(craRating?.fact_value_text
+          ? [{ label: 'CRA posture', value: craRating.fact_value_text }]
+          : []),
+        ...(latestCharterEvent
+          ? [{
+              label: 'Latest charter event',
+              value: `${(latestCharterEvent.event_subtype ?? latestCharterEvent.event_type).replace(/_/g, ' ')} · ${latestCharterEvent.event_date}`,
+              tone: latestCharterEvent.event_type === 'failure' ? 'critical' as const : 'default' as const,
+            }]
+          : []),
       ],
     },
     {
@@ -1395,11 +1428,24 @@ export async function getEntityContext(entityId: string): Promise<EntityContextR
     {
       key: 'market',
       title: 'Market Context',
-      summary: 'Market context combines geography, source class, and cross-border positioning.',
+      summary:
+        complaintTotal?.fact_value_number != null
+          ? 'Market context combines geography, source posture, and live complaint-pressure signals.'
+          : 'Market context combines geography, source class, and cross-border positioning.',
       items: [
         { label: 'Jurisdiction', value: entity.country_label },
         { label: 'Source class', value: entity.source_kind === 'official' ? 'Official regulatory source' : entity.source_kind === 'company' ? 'Company disclosure' : 'Curated research' },
         { label: 'Cross-border lens', value: entity.country === 'CA' ? 'Canada-facing profile' : entity.country === 'US' ? 'United States-facing profile' : 'North America' },
+        ...(complaintTotal?.fact_value_number != null
+          ? [{
+              label: 'CFPB complaint signal',
+              value: complaintTotal.fact_value_text ?? `${complaintTotal.fact_value_number.toLocaleString()} complaints`,
+              tone: complaintTotal.fact_value_number >= 1000 ? 'caution' as const : 'default' as const,
+            }]
+          : []),
+        ...(complaintSummary?.fact_value_text
+          ? [{ label: 'Complaint summary', value: complaintSummary.fact_value_text }]
+          : []),
       ],
     },
     {
@@ -1419,7 +1465,15 @@ export async function getEntityContext(entityId: string): Promise<EntityContextR
       summary: entity.context_summary,
       items: [
         { label: 'Why this matters', value: entity.context_summary },
-        { label: 'Coverage gap', value: relationships.length === 0 ? 'Relationship graph still needs enrichment.' : 'Relationship graph is beginning to form.' },
+        {
+          label: 'Coverage gap',
+          value:
+            relationships.length === 0
+              ? 'Relationship graph still needs enrichment.'
+              : latestCharterEvent == null && complaintTotal == null
+                ? 'Relationship coverage is improving, but event and complaint context are still sparse here.'
+                : 'Relationship graph is beginning to form.',
+        },
         { label: 'Evidence posture', value: entity.source_kind === 'official' ? 'Primary-source anchored.' : 'Mix of curated and source-backed context.' },
       ],
     },

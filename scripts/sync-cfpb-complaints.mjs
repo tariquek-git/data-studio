@@ -46,12 +46,15 @@ const SUGGEST_API_URL = `${SEARCH_API_URL}_suggest_company`;
 const TREND_API_URL = `${SEARCH_API_URL}trends`;
 const WRITE_TARGET = /^(local|local_pg)$/i.test(process.env.WRITE_TARGET ?? '') ? 'local_pg' : 'supabase';
 const DRY_RUN = /^(1|true|yes)$/i.test(process.env.DRY_RUN ?? '');
-const ENTITY_LIMIT = Math.max(1, Number(process.env.CFPB_ENTITY_LIMIT ?? '120'));
-const INSTITUTION_LIMIT = Math.max(1, Number(process.env.CFPB_INSTITUTION_LIMIT ?? '100'));
-const ECOSYSTEM_LIMIT = Math.max(1, Number(process.env.CFPB_ECOSYSTEM_LIMIT ?? '40'));
-const CONCURRENCY = Math.max(1, Number(process.env.CFPB_CONCURRENCY ?? '4'));
+const ENTITY_LIMIT = Math.max(1, Number(process.env.CFPB_ENTITY_LIMIT ?? '60'));
+const INSTITUTION_LIMIT = Math.max(1, Number(process.env.CFPB_INSTITUTION_LIMIT ?? '60'));
+const ECOSYSTEM_LIMIT = Math.max(1, Number(process.env.CFPB_ECOSYSTEM_LIMIT ?? '20'));
+const CONCURRENCY = Math.max(1, Number(process.env.CFPB_CONCURRENCY ?? '1'));
 const TREND_DEPTH = Math.max(6, Number(process.env.CFPB_TREND_DEPTH ?? '12'));
+const REQUEST_DELAY_MS = Math.max(150, Number(process.env.CFPB_REQUEST_DELAY_MS ?? '600'));
+const MAX_RETRIES = Math.max(0, Number(process.env.CFPB_MAX_RETRIES ?? '3'));
 let supabaseClient = null;
+let lastRequestAt = 0;
 
 function getSupabaseClient() {
   if (!supabaseClient) {
@@ -105,27 +108,53 @@ function isLikelyCompanyMatch(label, company) {
 }
 
 async function fetchJson(url, options = {}) {
-  const response = await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      'User-Agent': 'DataStudio/1.0',
-      ...(options.headers ?? {}),
-    },
-    signal: options.signal,
-  });
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    const now = Date.now();
+    const waitMs = REQUEST_DELAY_MS - (now - lastRequestAt);
+    if (waitMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
 
-  if (!response.ok) {
+    lastRequestAt = Date.now();
+
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; DataStudio/1.0; +https://www.consumerfinance.gov/)',
+        Referer: SOURCE_URL,
+        Origin: 'https://www.consumerfinance.gov',
+        'Accept-Language': 'en-US,en;q=0.9',
+        ...(options.headers ?? {}),
+      },
+      signal: options.signal,
+    });
+
+    if (response.ok) {
+      return response.json();
+    }
+
     const body = await response.text();
+    const retryable = response.status === 403 || response.status === 408 || response.status === 425 || response.status === 429 || response.status >= 500;
+    if (retryable && attempt < MAX_RETRIES) {
+      await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS * (attempt + 1)));
+      continue;
+    }
+
     throw new Error(`CFPB request failed (${response.status}): ${body.slice(0, 400)}`);
   }
 
-  return response.json();
+  throw new Error('CFPB request exhausted retries');
 }
 
 async function fetchCompanySuggestions(label) {
   const url = `${SUGGEST_API_URL}?text=${encodeURIComponent(label)}&size=5`;
-  const payload = await fetchJson(url);
-  return Array.isArray(payload) ? payload : [];
+  try {
+    const payload = await fetchJson(url);
+    return Array.isArray(payload) ? payload : [];
+  } catch (error) {
+    console.warn(`CFPB suggest fallback for "${label}": ${error.message}`);
+    return [];
+  }
 }
 
 async function fetchComplaintTrends(company) {
@@ -395,6 +424,7 @@ async function resolveComplaintMappings(candidates) {
         matchLabel = label;
         break;
       }
+
     }
 
     if (!match) return null;
@@ -538,8 +568,13 @@ async function main() {
     console.log(`Resolved ${resolvedCompanies.length.toLocaleString()} complaint companies from ${selectedEntityCount.toLocaleString()} mapped entities.`);
 
     const companySummaries = await mapWithConcurrency(resolvedCompanies, CONCURRENCY, async (company) => {
-      const summary = await fetchComplaintTrends(company);
-      return summary.total > 0 ? summary : null;
+      try {
+        const summary = await fetchComplaintTrends(company);
+        return summary.total > 0 ? summary : null;
+      } catch (error) {
+        console.warn(`Skipping CFPB trends for "${company}": ${error.message}`);
+        return null;
+      }
     });
 
     const rows = [];
