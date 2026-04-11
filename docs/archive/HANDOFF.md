@@ -1,3 +1,8 @@
+> **HISTORICAL — do not edit. See `/STATE.md` for current status.**
+> Archived 2026-04-12 during Phase 0 standardization.
+
+---
+
 # Data Studio — Unified Handoff
 
 ## Architecture

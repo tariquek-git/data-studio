@@ -1,3 +1,8 @@
+> **HISTORICAL — do not edit. See `/STATE.md` for the current roadmap.**
+> Archived 2026-04-12 during Phase 0 standardization.
+
+---
+
 # MASTER_PLAN.md — Data Studio Multi-Agent Execution Plan
 
 > **Owner:** Claude (strategy) via claude.ai
@@ -216,7 +221,7 @@ The FDIC data is already in the database but some fields are stale. FFIEC CDR ha
 
 ## Phase 3: The Mesh Network UI
 
-This is the big frontend build. The goal: type "$14B" and see every institution near that asset level. Click one. See its holding company tree. See its branches on a map. See its financial trajectory. Compare it with peers. All instant.
+This is the big frontend build. The goal: search by name, city, state, asset range, charter type, or any combination — and explore every matching institution in real time. Click one. See its holding company tree. See its branches on a map. See its financial trajectory. Compare it with peers. All instant.
 
 ### Architecture
 
@@ -256,10 +261,10 @@ src/
 -- Uses pg_trgm (already installed) for fuzzy matching
 -- Single input searches across: name, city, state, holding_company
 -- Also parses special syntax:
---   "$14B" → total_assets BETWEEN 13e9 AND 15e9
 --   "OH" → state = 'OH'
 --   "credit union" → charter_type = 'credit_union'
 --   "roa>2" → roa > 2.0
+--   asset range queries handled via FilterPanel slider, not inline search
 
 SELECT * FROM institutions
 WHERE name ILIKE '%' || $1 || '%'

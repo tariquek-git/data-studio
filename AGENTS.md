@@ -1,50 +1,30 @@
-# AGENTS.md — Data Studio (Codex Instructions)
+# AGENTS.md — Data Studio
 
-> **For the full technical brief, read `CODEX.md` in this same directory.**
-> **For handoff/status between you and Claude, read and update `HANDOFF.md`.**
+**Read `STATE.md` first.** It is the single source of truth for this project. This file exists so Codex (and any other agent harness that looks for `AGENTS.md`) auto-loads a pointer to the real docs.
 
-## Your Role
-You and Claude are equal partners on this project. Either of you can make architecture calls, fix bugs, add features, or do data work. Use your judgment. The shared status log is `HANDOFF.md` — read it before starting, update it when done, so the other knows what happened.
+## Orientation
 
-## Critical Rules
-1. Run `npm run build` before every commit. Husky pre-push enforces this. If it fails, fix it.
-2. No `any` types, no `@ts-ignore`. Strict TypeScript.
+- **`STATE.md`** — current state, locked decisions, database inventory, roadmap.
+- **`CONTRIBUTING.md`** — how to run dev, run agents, run sync scripts, and commit.
+- **`docs/archive/`** — historical planning docs. Do not trust as current. Do not edit.
+
+## Your role
+
+You are one of several sessions (Claude, Codex, Cursor, humans) editing the same git repo and the same Supabase project. There is no "partner" coordination layer — the only shared state is `git` and `STATE.md`. Before you commit, check `git status`. Before you make strategy decisions, read `STATE.md`. After you make strategy decisions, update `STATE.md` in the same commit.
+
+## Critical rules
+
+See `STATE.md` → "Rules". Highlights:
+
+1. Run `npm run build` before every commit. Husky `pre-push` enforces TypeScript strict.
+2. No `any` types, no `@ts-ignore`.
 3. `cert_number` is the unique key for institutions. Never change this.
-4. FDIC API returns amounts in **thousands** — multiply by 1000 on ingest. Always.
-5. Use `upsert` (ON CONFLICT) for all data ingestion. Scripts must be rerunnable.
-6. Keep API routes thin. Business logic goes in `lib/`.
-7. Don't add new npm dependencies without strong justification.
-8. Don't refactor working code. Additive changes only.
-9. Don't add auth, GraphQL, Redis, or a separate backend server.
+4. FDIC amounts are in thousands — multiply by 1000 on ingest.
+5. Use `upsert` with `onConflict` for all ingestion. Scripts must be rerunnable.
+6. Don't add new npm dependencies without strong justification.
+7. Don't refactor working code. Additive changes only, unless the current phase in `STATE.md` explicitly authorizes the refactor.
+8. Never use the word "engine" in code, comments, or docs.
 
-## Current State
-- **Active branch**: `codex/entity-intelligence-foundation` (20 commits ahead of main)
-- **Stack**: React 19 + Vite 8 + TS 5.9 + Tailwind 4 + Supabase + Vercel serverless
-- **125 frontend files, 40 API endpoints, 20+ ingestion scripts**
-- **Two data models coexist**: Legacy `institutions` table + new `entity_warehouse`. Don't try to unify them.
+## After completing work
 
-## Priority Tasks
-See `CODEX.md` for the full prioritized task list. Summary:
-1. P0: Verify entity tables in prod Supabase, merge entity branch → main
-2. P1: FFIEC CDR/NIC ingestion, FinCEN MSB
-3. P2: Indexes, pagination, freshness badges, `.env.example`
-
-## After Completing Work
-**You MUST update `HANDOFF.md`** with:
-- What you did (commits, files changed)
-- What worked vs. what broke
-- What's left / blocked
-- Any decisions you need from Tarique or Claude
-
-Format your update as a new section at the TOP of the file with today's date.
-
-## MCP Tools Available
-You have `supabase_postgrest` MCP — use it to query/verify Supabase tables directly.
-
-## Verification
-After every change:
-```bash
-npm run build
-npm run dev
-# Then hit: /api/qa/status, /api/institutions/search?q=chase, /api/analytics/overview
-```
+Update `STATE.md` if you changed strategy, schema, roadmap, or a locked decision. Otherwise a regular commit message is fine. Do not write to `docs/archive/`.

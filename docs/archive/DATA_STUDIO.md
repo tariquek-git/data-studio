@@ -1,3 +1,8 @@
+> **HISTORICAL — do not edit. See `/STATE.md` at the repo root for the current source of truth.**
+> Archived 2026-04-12 during Phase 0 standardization. Several claims in this file are stale (agents marked NOT BUILT that are actually built, counts that were fabricated). Mine for context, don't trust as current.
+
+---
+
 # DATA_STUDIO.md — Single Source of Truth
 
 > Last synced by Claude: April 11, 2026 23:30 UTC

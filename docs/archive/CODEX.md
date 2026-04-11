@@ -1,3 +1,8 @@
+> **HISTORICAL — do not edit. See `/STATE.md` and `/CONTRIBUTING.md` at the repo root.**
+> Archived 2026-04-12 during Phase 0 standardization. The "active branch" claim in this file is stale — `codex/entity-intelligence-foundation` is fully contained in `main`.
+
+---
+
 # Data Studio — Codex Instructions
 
 ## What This Is

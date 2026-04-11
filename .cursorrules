@@ -1,32 +1,22 @@
-# Model: Use Sonnet for anything that matters. Optimize for value, not cost.
-# Use Sonnet for architecture, multi-file edits, agent scripts, data integrity.
-# Only use lighter models for trivial single-line changes.
-
 # Data Studio — Cursor Rules
 
-Read DATA_STUDIO.md and MASTER_PLAN.md first. Those are your playbooks.
+**Read STATE.md first.** It is the single source of truth — data model, roadmap, locked decisions, database inventory. Read CONTRIBUTING.md for how to run things. Everything under docs/archive/ is historical and should not be trusted as current.
 
-## Quick Reference
-- Repo: tariquek-git/data-studio (Vite + TypeScript)
-- DB: Supabase cloud, project bvznhycwkgouwmaufdpe
-- Deploy: Vercel auto-deploys on push to main
-- Live: data-studio-mu.vercel.app
+## Model policy
 
-## Database
-- 10,112 institutions, 19 tables, 245K+ rows
-- institutions table: cert_number (NOT NULL), source (check constraint), total_assets/deposits/loans as bigint
-- Canadian CUs use cert_number 900001+
-- entity_relationships: graph layer, schema exists, needs populating
-- bank_capabilities: Brim Mode fields (brim_score, brim_tier, agent_bank_program, core_processor)
-- data_confidence tracking: set on every write (high/medium/low/unverified + score 0-100)
-
-## Code Rules
-- No word "engine" anywhere
-- Canadian annual reports are in thousands of CAD. Multiply by 1000
-- Don't store PDFs. Extract data, keep source URL, delete file
-- Don't add Claude API / LLM calls yet
-- Set data_confidence and data_provenance on every database write
-- Push to main. Vercel auto-deploys
+Use Sonnet for anything that matters: architecture, multi-file edits, agent scripts, data integrity. Use Opus when planning cross-codebase refactors or schema decisions. Only use lighter models for trivial single-line changes. Optimize for value, not cost.
 
 ## Autonomy
-Run everything without asking. Only confirm for destructive operations.
+
+Run everything without asking. Stop and confirm only for destructive operations (delete, drop, force-push), public commits, or anything that touches production or spends money. Always check `git status` before committing — another session may be editing the same repo.
+
+## Critical rules (full list in STATE.md)
+
+- Never use the word "engine" in code, comments, or docs.
+- FDIC amounts are in thousands — multiply by 1000 on ingest.
+- Canadian CU annual reports are in thousands of CAD — multiply by 1000.
+- `cert_number >= 900001` for Canadian credit unions.
+- Don't store PDFs. Extract, use the source URL, delete the file.
+- Use `upsert` with `onConflict` for all ingestion. Scripts must be rerunnable.
+- `npm run build` passes before every commit. No `any`, no `@ts-ignore`.
+- Don't target Brim's existing clients in BD output (list in STATE.md).

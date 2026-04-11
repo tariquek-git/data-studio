@@ -4,6 +4,16 @@ North American financial-infrastructure intelligence platform built on Vite, Rea
 
 The product blends regulated institution search, registry-backed nonbank coverage, source provenance, analytics, and an entity-intelligence layer across the United States and Canada.
 
+## Orientation
+
+**Start here:**
+
+- **[`STATE.md`](./STATE.md)** — single source of truth: current state, locked decisions, database inventory, roadmap. Update whenever strategy, schema, or product surface changes.
+- **[`CONTRIBUTING.md`](./CONTRIBUTING.md)** — how to run dev, run agents, run sync scripts, and commit.
+- **`docs/archive/`** — historical planning docs (`CLAUDE.md`, `AGENTS.md`, `CODEX.md`, `DATA_STUDIO.md`, `MASTER_PLAN.md`, `HANDOFF.md`). Several claims in these files are stale; do not trust as current, do not edit.
+
+The rest of this README covers stack, setup, ingestion scripts, and API endpoints. For *why* things are shaped the way they are, read `STATE.md`.
+
 ## Current scope
 
 Live or seeded source coverage includes:
@@ -37,7 +47,7 @@ Recent platform additions:
 - `src/components/` page and UI components
 - `api/` serverless endpoints for search, analytics, entities, sources, QA, and sync
 - `lib/` shared server utilities and service layers
-- `scripts/` database setup, migrations, and ingestion jobs
+- `scripts/` database setup, migrations, Node ingestion (`sync-*.mjs`), and Python agents (`agent_*.py`) for QA, fills, relationships, and Brim scoring
 
 ## Local setup
 
@@ -231,22 +241,13 @@ Sync endpoint notes:
 
 ## Product direction
 
-The target model is a layered warehouse:
+See [`STATE.md`](./STATE.md) → "Locked decisions" and "Roadmap" for current strategy. The short version:
 
-- regulated institutions
-- registry-backed nonbank entities
-- ecosystem entities
-- historical relationships
-- source provenance
-- macro and market series
-
-Near-term implementation priorities:
-
-1. finish the entity warehouse migration layer
-2. add FFIEC CDR and FFIEC NIC ingestion
-3. ship terminal-style entity search and profile UI
-4. persist failures, enforcement, and charter events with warehouse-first reads
-5. expand QA and freshness checks
+- **Converging onto `entity_warehouse`.** The legacy `institutions` table is being deprecated in place; new reads go through `lib/entity-service.ts`.
+- **Brim Mode is a lens, not a standalone product** — its filters fold into the unified Explore page.
+- **Phase 1** (next): consolidate schema, populate `entity_relationships`, build `institution_summary_mv`, retrofit sync scripts to shared utilities.
+- **Phase 2**: staged API route migration to `entity-service`.
+- **Phase 3**: frontend consolidation (merge Search/Screener → Explore; fold Market Map into Analytics).
 
 ## QA checklist
 
@@ -274,8 +275,6 @@ For data updates, also verify:
 
 ## Branching
 
-Current active implementation branch:
+Work on `main`. Vercel auto-deploys on push. For larger slices (schema migrations, warehouse work, multi-file refactors), use a short-lived feature branch and open a PR against `main`.
 
-- `codex/entity-intelligence-foundation`
-
-Use feature branches with the `codex/` prefix for major slices like warehouse migrations, new source ingestion, and entity UI work.
+The historical `codex/entity-intelligence-foundation` branch is fully contained in `main` and should be considered archived.
