@@ -10,6 +10,7 @@ import { QuickStats } from '@/components/search/QuickStats';
 import { Button, Skeleton } from '@/components/ui';
 import { useSearchStore } from '@/stores/searchStore';
 import { exportSearchResultsToExcel } from '@/lib/export';
+import { parseSearchQuery } from '@/lib/searchParser';
 import type { SearchFilters, SearchResult, SortField } from '@/types/filters';
 
 async function fetchInstitutions(filters: SearchFilters): Promise<SearchResult> {
@@ -74,7 +75,17 @@ export default function SearchPage() {
 
   const handleQueryChange = useCallback(
     (query: string) => {
-      setFilters({ query });
+      // Parse special syntax: $14B, roa>2, OH, fdic, credit union, etc.
+      const parsed = parseSearchQuery(query);
+      const filterUpdate: Partial<SearchFilters> = { query: parsed.textQuery || query };
+      if (parsed.minAssets != null) filterUpdate.min_assets = parsed.minAssets;
+      if (parsed.maxAssets != null) filterUpdate.max_assets = parsed.maxAssets;
+      if (parsed.minRoa != null) filterUpdate.min_roa = parsed.minRoa;
+      if (parsed.maxRoa != null) filterUpdate.max_roa = parsed.maxRoa;
+      if (parsed.states?.length) filterUpdate.states = parsed.states;
+      if (parsed.sources?.length) filterUpdate.source = parsed.sources as SearchFilters['source'];
+      if (parsed.charterTypes?.length) filterUpdate.charter_types = parsed.charterTypes as SearchFilters['charter_types'];
+      setFilters(filterUpdate);
       const newParams = new URLSearchParams(searchParams);
       if (query) {
         newParams.set('q', query);

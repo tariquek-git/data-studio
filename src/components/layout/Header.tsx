@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { to: '/search', label: 'Search' },
   { to: '/entities', label: 'Entities' },
   { to: '/screen', label: 'Screener' },
+  { to: '/brim', label: 'Brim BD' },
   { to: '/compare', label: 'Compare' },
   { to: '/market', label: 'Market Map' },
   { to: '/analytics', label: 'Analytics' },

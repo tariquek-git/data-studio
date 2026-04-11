@@ -21,7 +21,25 @@ const COLUMNS: { key: SortField; label: string; align?: 'right'; hideMobile?: bo
   { key: 'num_branches', label: 'Branches', align: 'right', hideMobile: true },
   { key: 'roa', label: 'ROA', align: 'right' },
   { key: 'roi', label: 'ROE', align: 'right', hideMobile: true },
+  { key: 'credit_card_loans', label: 'Brim', align: 'right' },
 ];
+
+function BrimBadge({ score, tier }: { score: number | null; tier: string | null }) {
+  if (score == null) return <span className="text-content-tertiary text-xs">—</span>;
+  const colors: Record<string, string> = {
+    A: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    B: 'bg-blue-100 text-blue-800 border-blue-200',
+    C: 'bg-amber-100 text-amber-700 border-amber-200',
+    D: 'bg-surface-200 text-content-secondary border-surface-300',
+    F: 'bg-surface-100 text-content-tertiary border-surface-200',
+  };
+  const cls = colors[tier ?? 'F'] ?? colors['F'];
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium border ${cls}`}>
+      {tier} <span className="font-normal opacity-70">{score}</span>
+    </span>
+  );
+}
 
 // Deterministic color for initials avatar based on name
 const AVATAR_COLORS = [
@@ -241,6 +259,11 @@ export function ResultsTable({ institutions, sortBy, sortDir, onSort }: ResultsT
                   }`}
                 >
                   {formatPercent(inst.roi)}
+                </td>
+
+                {/* Brim score */}
+                <td className="px-4 py-3 whitespace-nowrap text-right">
+                  <BrimBadge score={(inst as any).brim_score ?? null} tier={(inst as any).brim_tier ?? null} />
                 </td>
 
                 {/* Watchlist */}

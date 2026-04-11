@@ -17,6 +17,7 @@ const ScreenerPage = lazy(() => import('./pages/ScreenerPage'));
 const FailuresPage = lazy(() => import('./pages/FailuresPage'));
 const EntitiesPage = lazy(() => import('./pages/EntitiesPage'));
 const EntityPage = lazy(() => import('./pages/EntityPage'));
+const BrimPage = lazy(() => import('./pages/BrimPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 5 * 60 * 1000, retry: 1 } },
@@ -52,6 +53,7 @@ export default function App() {
                 <Route path="/watchlist" element={<WatchlistPage />} />
                 <Route path="/screen" element={<ScreenerPage />} />
                 <Route path="/failures" element={<FailuresPage />} />
+                <Route path="/brim" element={<BrimPage />} />
               </Routes>
             </Suspense>
           </main>

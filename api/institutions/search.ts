@@ -24,16 +24,24 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   const hasCreditCards =
     req.query.has_credit_cards === 'true' ||
     req.query.has_credit_card_program === 'true';
+  const minBrimScore = req.query.min_brim_score ? Number(req.query.min_brim_score) : null;
+  const brimTier = (req.query.brim_tier as string || '').trim().toUpperCase() || null;
   const sortBy = (req.query.sort_by as string) || 'total_assets';
   const sortDir = (req.query.sort_dir as string) === 'asc';
   const page = Math.max(1, Number(req.query.page) || 1);
   const perPage = Math.min(100, Math.max(1, Number(req.query.per_page) || 25));
   const offset = (page - 1) * perPage;
 
-  // Build query
+  // Build query — join bank_capabilities for brim_score/tier/card_portfolio_size
   let query = supabase
     .from('institutions')
-    .select('*', { count: 'exact' })
+    .select(`
+      *,
+      bank_capabilities (
+        brim_score, brim_tier, card_portfolio_size, issues_credit_cards,
+        core_processor, agent_bank_program
+      )
+    `, { count: 'exact' })
     .eq('active', true);
 
   // Text search
@@ -58,6 +66,9 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   if (maxRoi != null) query = query.lte('roi', maxRoi);
   if (hasCreditCards) query = query.gt('credit_card_loans', 0);
 
+  // Brim filters (applied post-query since bank_capabilities is a join)
+  // minBrimScore and brimTier filtered in JS below after fetching
+
   // Sort + paginate
   const allowedSorts = [
     'name', 'total_assets', 'total_deposits', 'total_loans',
@@ -77,8 +88,25 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     return res.status(500).json({ error: 'Search failed' });
   }
 
+  // Flatten bank_capabilities join into top-level fields for convenience
+  let pageInstitutions = (institutions || []).map((inst: any) => {
+    const cap = Array.isArray(inst.bank_capabilities) ? inst.bank_capabilities[0] : inst.bank_capabilities;
+    return {
+      ...inst,
+      brim_score: cap?.brim_score ?? null,
+      brim_tier: cap?.brim_tier ?? null,
+      card_portfolio_size: cap?.card_portfolio_size ?? inst.credit_card_loans ?? null,
+      core_processor: cap?.core_processor ?? null,
+      agent_bank_program: cap?.agent_bank_program ?? null,
+      bank_capabilities: undefined,
+    };
+  });
+
+  // Apply brim filters in JS (bank_capabilities is a joined table, not filterable server-side easily)
+  if (minBrimScore != null) pageInstitutions = pageInstitutions.filter((i: any) => (i.brim_score ?? 0) >= minBrimScore!);
+  if (brimTier) pageInstitutions = pageInstitutions.filter((i: any) => i.brim_tier === brimTier);
+
   // Compute aggregations from the returned page (lightweight — full aggs via RPC if needed)
-  const pageInstitutions = institutions || [];
   const totalAssetsSum = pageInstitutions.reduce((sum: number, i: any) => sum + (i.total_assets || 0), 0);
   const stateMap: Record<string, number> = {};
   const charterMap: Record<string, number> = {};
