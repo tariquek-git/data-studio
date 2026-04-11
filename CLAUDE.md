@@ -1,139 +1,56 @@
 # CLAUDE.md — Data Studio
 
-> **Shared status with Codex: read `HANDOFF.md` before starting work. Update it when done.**
-> **Full Codex brief: `CODEX.md`**
+## Infra
+- Supabase: bvznhycwkgouwmaufdpe
+- Vercel: team_STzWxd5CFWZJluy9ayRxCorw, project data-studio
+- Live: data-studio-mu.vercel.app (auto-deploys on push to main)
+- Repo: tariquek-git/data-studio
 
-## Project Overview
+## Model Strategy
+Default: opusplan (Opus for planning, Sonnet for execution)
+- Use Opus when: architecture decisions, complex debugging, multi-file refactors, schema design
+- Use Sonnet when: building scripts, writing features, running agents, standard coding
+- Use Haiku when: quick syntax questions, formatting, simple single-line edits
+- Always optimize for value over cost. Don't shy away from Opus when quality matters.
 
-Financial institution intelligence platform — search, analytics, entity profiles for U.S. and Canadian banks, credit unions, fintechs. Bloomberg Terminal for community banking.
+## Database
+- 10,112 institutions across 13+ sources (FDIC, NCUA, OSFI, BCFSA, FSRA, CUDGC, DGCM, etc.)
+- 19 tables, 245K+ total rows
+- 35K+ financial history records (annual + quarterly)
+- 74K branches
+- entity_relationships table exists but is EMPTY (populate from holding_company field)
+- bank_capabilities table has Brim Mode fields (brim_score, brim_tier, agent_bank_program, core_processor)
+- data_confidence tracking on institutions table (high/medium/low/unverified)
+- cert_number 900001+ for Canadian CUs
 
-- **Live URL:** data.fintechcommons.com (planned)
-- **Part of:** Fintech Commons ecosystem (fintechcommons.com)
-- **Hosted on:** Vercel (SPA + serverless API routes)
-- **Repo:** github.com/tariquek-git/data-studio
+## Key Files
+- DATA_STUDIO.md: Single source of truth, database health, agent registry, priority list
+- MASTER_PLAN.md: Multi-agent execution plan, QA agents, frontend mesh network architecture
+- BRIM_MODE.md: Card issuing BD intelligence layer, scoring model, Elan migration tracker
+- .cursorrules: Cursor-specific context (if using Cursor alongside Claude Code)
 
-## Stack
+## Rules
+1. Never use "engine" in code or comments
+2. Canadian CU reports are in thousands of CAD. Multiply by 1000
+3. cert_number 900001+ for Canadian CUs
+4. source field must match check constraint (lowercase)
+5. No LLM/AI API calls in agents. Phase 1 is pdfplumber only
+6. Don't store PDFs. Extract, store data, delete file
+7. Don't target existing Brim clients: Manulife, Affinity CU, Laurentian Bank, CWB, Zolve/Continental, Air France KLM, PayFacto
+8. Set data_confidence and data_provenance on every database write
+9. Every agent prints a summary report when done
+10. Push to main. Vercel auto-deploys.
 
-| Layer | Technology |
-|---|---|
-| Framework | React 19 + TypeScript 5.9 |
-| Build | Vite 8, `@vitejs/plugin-react` |
-| Styling | Tailwind CSS 4 (`@tailwindcss/vite`) |
-| State | Zustand (search filters), TanStack React Query (server state) |
-| Charts | Recharts + D3 (sankey, sunburst) |
-| Routing | React Router 7 |
-| Database | Supabase (PostgreSQL) |
-| PDF | @react-pdf/renderer |
-| Export | xlsx (Excel), CSV |
-| Icons | lucide-react |
-| AI | Anthropic SDK (institution summaries) |
-| Deploy | Vercel (SPA + serverless + cron) |
-| Node | >= 20 |
+## Agent Priority (build in this order)
+1. agent_qa_completeness.py — per-source data coverage scorecard
+2. agent_fill_roa.py — calculate ROA where missing
+3. agent_relationships.py — populate entity_relationships from holding_company + charter_events
+4. agent_brim_cards.py — copy 698 card portfolios into bank_capabilities
+5. All remaining QA agents (balance, orphans, dupes, staleness, ranges, yoy)
+6. agent_scraper_ca.py — Canadian CU annual report PDF extraction
+7. agent_brim_score.py — 0-100 Brim fit scoring
+8. Frontend rebuild as mesh network with real-time Supabase connection
 
-## Project Structure
-
-```
-data-studio/
-├── api/                        # 40 Vercel serverless API routes
-│   ├── institutions/           # search, screen, detail, branches, capabilities, enrich, peers, history
-│   ├── entities/               # search, detail, context, history, relationships, sources
-│   ├── analytics/              # overview, discovery, failures, benchmarks, state-metrics, distribution,
-│   │                           # branches, leaderboard, correlation, market-map, cmhc, fed-funds, rates
-│   ├── qa/                     # status, check, data-readiness, warehouse-status
-│   ├── sources/                # list, detail
-│   ├── sync/                   # fdic, occ, generic
-│   ├── relationships/          # search
-│   ├── series/                 # search
-│   └── ai/                     # summary (Claude-generated)
-├── lib/                        # Shared server utilities
-│   ├── supabase.ts             # Supabase client singleton
-│   ├── fdic-client.ts          # FDIC BankFind API wrapper
-│   ├── api-handler.ts          # API route error handling
-│   ├── entity-service.ts       # Entity business logic
-│   ├── source-registry.ts      # Data source registry
-│   ├── source-sync.ts          # Sync orchestration
-│   ├── warehouse-readiness.ts  # Schema validation
-│   └── format.ts               # Number/currency formatters
-├── src/
-│   ├── components/             # 47 components
-│   │   ├── analytics/          # 7 visualization components
-│   │   ├── entity/             # 8 entity components
-│   │   ├── institution/        # 18 institution components
-│   │   ├── layout/             # Header, Footer
-│   │   ├── market/             # Market map
-│   │   ├── search/             # SearchBar, FilterPanel, ResultsTable, QuickStats
-│   │   └── ui/                 # Button, Badge, Card, Skeleton, Input
-│   ├── pages/                  # 13 pages (HomePage, SearchPage, InstitutionPage, AnalyticsPage,
-│   │                           # MarketMapPage, ComparePage, QAPage, DataSourcesPage, WatchlistPage,
-│   │                           # ScreenerPage, FailuresPage, EntitiesPage, EntityPage)
-│   ├── stores/                 # Zustand search state
-│   ├── hooks/                  # watchlist hook
-│   ├── types/                  # institution, entity, filters, data-source
-│   └── lib/                    # Client utils (format, export, supabase, watchlist, pdf/)
-├── scripts/                    # 20+ data ingestion scripts (ESM)
-├── CODEX.md                    # Full instructions for Codex
-├── HANDOFF.md                  # Shared Claude ↔ Codex status log
-├── AGENTS.md                   # Codex auto-read instructions
-├── vercel.json                 # Deploy config + FDIC quarterly cron
-├── vite.config.ts              # Vite + Tailwind + path aliases
-└── package.json
-```
-
-## Commands
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Vite dev server (port 5174) |
-| `npm run build` | TypeScript check + Vite build |
-| `npm run preview` | Preview production build |
-| `npm run lint` | ESLint |
-
-## Key Architecture
-
-- **Supabase as cache**: Government APIs are source of truth. Supabase stores processed snapshots.
-- **FDIC amounts in thousands**: FDIC API returns amounts in thousands → multiply by 1000 on ingest.
-- **`cert_number` as key**: Unique identifier for FDIC banks. NCUA charter uses same field.
-- **No auth**: Public read-only. No user accounts.
-- **Two data models**: Legacy `institutions` table + new `entity_warehouse` (entity, entity_relationships, entity_capabilities). Both coexist — don't unify.
-- **Lazy-loaded pages**: All pages lazy-loaded in App.tsx.
-- **API routes thin**: Business logic in `lib/`, API routes are wrappers.
-
-## Data Sources (10+ live)
-
-| Source | Country | Method | Auth | Frequency | Key Field |
-|--------|---------|--------|------|-----------|-----------|
-| FDIC BankFind | US | REST API | None | Quarterly | cert_number |
-| FDIC SOD | US | REST API | None | Annual | cert_number |
-| NCUA | US | Bulk CSV | None | Quarterly | charter_number |
-| OSFI | Canada | CSV/Excel | None | Quarterly | institution_name |
-| RPAA | Canada | BoC API | None | On change | psp_name |
-| CIRO | Canada | Bulk download | None | Monthly | dealer_id |
-| FINTRAC | Canada | Bulk download | None | Monthly | msb_reg_number |
-| OCC | US | REST API | None | Quarterly | cert/charter |
-| CMHC | Canada | API | None | Monthly | n/a (macro) |
-| Bank of Canada | Canada | Valet API | None | Daily | series_name |
-| Fed Funds | US | FRED | Free key | Daily | series_id |
-
-## Environment Variables
-
-| Variable | Purpose | Required |
-|---|---|---|
-| `VITE_SUPABASE_URL` | Supabase URL (client-side) | Yes |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anon key (client-side) | Yes |
-| `SUPABASE_URL` | Supabase URL (server-side) | Yes |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side) | Yes |
-| `CRON_SECRET` | Secret for sync endpoints | Yes |
-| `ANTHROPIC_API_KEY` | Claude AI summaries | Optional |
-| `FFIEC_CDR_USER_ID` | FFIEC CDR credentials | Optional |
-| `FFIEC_CDR_AUTH_TOKEN` | FFIEC CDR auth | Optional |
-| `FDIC_SOD_YEAR` | Override SOD year (default: current) | Optional |
-
-## Verification
-
-```bash
-npm run build                                          # Must pass
-curl http://localhost:5174/api/qa/status               # All green
-curl "http://localhost:5174/api/institutions/search?q=chase"  # Returns results
-curl http://localhost:5174/api/analytics/overview       # Returns data
-curl http://localhost:5174/api/sources                  # Lists all sources
-```
+## Autonomy
+Run commands, open files, edit files, install packages, start servers, iterate on code without asking.
+Only stop and confirm for: destructive ops (delete, drop DB), deploying to production, making public commits, or spending real money.

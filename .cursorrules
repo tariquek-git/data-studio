@@ -1,0 +1,32 @@
+# Model: Use Sonnet for anything that matters. Optimize for value, not cost.
+# Use Sonnet for architecture, multi-file edits, agent scripts, data integrity.
+# Only use lighter models for trivial single-line changes.
+
+# Data Studio — Cursor Rules
+
+Read DATA_STUDIO.md and MASTER_PLAN.md first. Those are your playbooks.
+
+## Quick Reference
+- Repo: tariquek-git/data-studio (Vite + TypeScript)
+- DB: Supabase cloud, project bvznhycwkgouwmaufdpe
+- Deploy: Vercel auto-deploys on push to main
+- Live: data-studio-mu.vercel.app
+
+## Database
+- 10,112 institutions, 19 tables, 245K+ rows
+- institutions table: cert_number (NOT NULL), source (check constraint), total_assets/deposits/loans as bigint
+- Canadian CUs use cert_number 900001+
+- entity_relationships: graph layer, schema exists, needs populating
+- bank_capabilities: Brim Mode fields (brim_score, brim_tier, agent_bank_program, core_processor)
+- data_confidence tracking: set on every write (high/medium/low/unverified + score 0-100)
+
+## Code Rules
+- No word "engine" anywhere
+- Canadian annual reports are in thousands of CAD. Multiply by 1000
+- Don't store PDFs. Extract data, keep source URL, delete file
+- Don't add Claude API / LLM calls yet
+- Set data_confidence and data_provenance on every database write
+- Push to main. Vercel auto-deploys
+
+## Autonomy
+Run everything without asking. Only confirm for destructive operations.

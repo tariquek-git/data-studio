@@ -1,241 +1,230 @@
-# HANDOFF.md — Claude ↔ Codex Shared Status
+# Data Studio — Unified Handoff
 
-> Claude and Codex are equal partners on this project. Both can make decisions, write code, fix things.
-> Read this file before starting work. Write your updates at the TOP (newest first).
-> Keep entries concise. This is a shared log, not documentation.
+## Architecture
 
----
+**One repo. One database. One deployment.**
 
-## 2026-04-05 — Codex (FDIC RSSD Coverage Fix + Enforcement Endpoint Check)
+| Layer | What | Where |
+|-------|------|-------|
+| Code | Vite + TypeScript frontend + API routes | github.com/tariquek-git/data-studio |
+| Database | Supabase cloud Postgres | Project: bvznhycwkgouwmaufdpe |
+| Hosting | Vercel (auto-deploy on push) | data-studio-mu.vercel.app |
+| Team | Vercel team: team_STzWxd5CFWZJluy9ayRxCorw |
 
-### What I Did
-1. **Resumed the U.S. banking / FDIC lane**
-   - Checked current `main` state and confirmed the next highest-value live data lane was FDIC RSSD / CRA enrichment.
+## Roles
 
-2. **Fixed `scripts/sync-fdic-rssd-cra.mjs`**
-   - Added explicit pagination against the FDIC financials API using `limit` + `offset`.
-   - Added explicit range-based pagination for the Supabase `institutions` lookup so the sync no longer silently stops at the first `1000` FDIC institutions.
+**Claude** (this file's author): Strategy, schema design, data source research, regulatory mapping, prompt engineering, quality review. Talks to Supabase and Vercel directly via MCP tools.
 
-3. **Reran the FDIC RSSD / CRA sync against prod Supabase**
-   - `node scripts/sync-fdic-rssd-cra.mjs`
-   - Result:
-     - `reporting_date=2025-12-31`
-     - `matched_institutions=4408`
-     - `rssd_upserts=4408`
-     - `cra_upserts=0`
+**Cursor** (this file's reader): All code execution. Scraper development, frontend iteration, deployment fixes, bug fixes, testing. Works in the tariquek-git/data-studio repo.
 
-4. **Verified build**
-   - `npm run build` passed after the script fix.
+## Database Inventory (as of April 11, 2026)
 
-### What Broke / What I Fixed
-- **FDIC RSSD / CRA sync only matched `1000` institutions**
-  - Cause 1: the FDIC financials request assumed a single oversized `limit` call would return the full latest-quarter set.
-  - Cause 2: the Supabase institution lookup also only loaded the first `1000` FDIC institutions.
-  - Fix: paginated both sides explicitly.
+### Tables with Data
+| Table | Rows | Description |
+|-------|------|-------------|
+| branches | 74,750 | Physical branch locations (US banks + CUs) |
+| financial_history | 38,118 | Annual financial snapshots |
+| financial_history_quarterly | 35,220 | Quarterly financial snapshots |
+| charter_events | 29,642 | Mergers, closures, charter changes |
+| entity_external_ids | 26,191 | Cross-reference IDs across systems |
+| entity_tags | 21,197 | Classification tags per entity |
+| institutions | 10,112 | Master institution list (US + CA) |
+| branch_history_annual | 4,336 | Branch network changes over time |
+| failure_events | 3,626 | Bank/CU failure records |
+| entity_facts | 1,046 | Key facts per entity |
+| registry_entities | 1,033 | Non-bank FI entities (fintechs, MSBs) |
+| sync_jobs | 33 | Data pipeline job tracking |
+| data_sources | 26 | Configured data sources |
 
-- **FDIC enforcement sync still fails**
-  - `node scripts/sync-fdic-enforcement.mjs`
-  - Current failure:
-    - `404 Cannot GET /api/enforcement`
-  - Meaning: the script is pointed at a non-working FDIC endpoint and needs to be rebuilt around a verified official machine-readable source or a different official scraping path.
+### Tables Ready (Schema Exists, No Data Yet)
+| Table | Purpose | Priority |
+|-------|---------|----------|
+| entity_relationships | Palantir-style graph: who owns whom, who services whom | HIGH |
+| ecosystem_entities | Non-institution entities (vendors, regulators, associations) | MEDIUM |
+| ai_summaries | LLM-generated summaries per institution | LOW (Phase 2) |
+| bank_capabilities | Product/service capability matrix per institution | MEDIUM |
+| saved_searches | User-saved search queries | LOW |
+| macro_series | Macro economic time series (rates, GDP, CPI) | MEDIUM |
 
-### What Worked
-- Full FDIC RSSD coverage is now loaded for all FDIC institutions in prod.
-- The repo still builds cleanly on `main`.
+### Data Sources (26 registered)
 
-### What's Left / Blocked
-1. **FDIC enforcement**
-   - The currently configured endpoint is dead.
-   - Rework is needed before enforcement can be treated as a live warehouse source.
+**Active with data:**
+| Source | Display Name | Country | Institutions | Notes |
+|--------|-------------|---------|-------------|-------|
+| fdic | FDIC BankFind Suite | US | 4,408 | Full financials, quarterly |
+| ncua | NCUA Call Report Data | US | 4,287 | Full financials, quarterly |
+| rpaa | Bank of Canada RPAA Registry | CA | 936 | Payment service providers, no financials |
+| osfi | OSFI Who We Regulate | CA | 357 | Banks, insurance, trust cos. No financials yet |
+| fintrac | FINTRAC MSB Registry | CA | 54 | Money service businesses |
+| fincen | FinCEN MSB Registry | US | 23 | Money service businesses |
+| ciro | CIRO Member Registry | CA | 20 | Investment dealers |
+| bcfsa | BC Financial Services Authority | CA | 9 | BC credit unions. Only Vancity has financials |
+| fsra | FSRA (Ontario) | CA | 8 | Ontario credit unions. No financials yet |
+| dgcm | DGCM (Manitoba) | CA | 4 | Manitoba credit unions. No financials yet |
+| cudgc_sk | CUDGC (Saskatchewan) | CA | 3 | SK credit unions. No financials yet |
+| cudgc | CUDGC (Alberta) | CA | 2 | AB credit unions. No financials yet |
+| nscudic | NSCUDIC (Nova Scotia) | CA | 1 | NS credit unions. No financials yet |
+| ccua | Canadian Credit Union Association | CA | 0 | Aggregate sector data source |
 
-2. **FFIEC**
-   - FFIEC CDR still needs credentials or a panel file.
-   - FFIEC NIC still needs local ZIP files.
+**Configured but pending:**
+ffiec_cdr, ffiec_nic, ffiec_hmda, ffiec_census, ffiec_cra, occ, frb_routing, sec_edgar, cfpb_complaints, nmls, cmhc, boc
 
-3. **Prod warehouse depth**
-   - `ecosystem_entities`, `entity_relationships`, `macro_series`, and `bank_capabilities` are still the next major live-fill targets.
+### institutions table schema
+id (uuid), cert_number (int, NOT NULL), source (text, check constraint), name, legal_name, charter_type, active, city, state, zip, county, latitude, longitude, website, established_date, regulator, holding_company, holding_company_id, total_assets (bigint), total_deposits (bigint), total_loans (bigint), num_branches (int), num_employees (int), roi (float), roa (float), equity_capital (bigint), net_income (bigint), credit_card_loans (bigint), credit_card_charge_offs (bigint), data_as_of (date), last_synced_at, raw_data (jsonb), created_at, updated_at
 
-## 2026-04-05 — Codex (Warehouse Backfill + API Smoke Test + Deploy Check)
+**source check constraint:** fdic, ncua, osfi, rpaa, ciro, fintrac, fincen, fintech_ca, bcfsa, fsra, cudgc, dgcm, cudgc_sk, nbcudic, nscudic, ccua
 
-### What I Did
-1. **Verified production deploy status**
-   - Vercel project is live and a fresh production deployment completed successfully:
-     - `https://data-studio-hetpoxgbw-tariquek-4483s-projects.vercel.app`
-     - aliased to `https://data-studio-mu.vercel.app`
-   - Important: `data.fintechcommons.com` still does **not** resolve because the domain DNS is misconfigured in Vercel (`A data.fintechcommons.com 76.76.21.21` missing, or nameservers not delegated).
+**cert_number convention:** FDIC/NCUA use real cert numbers. Canadian CUs use 900001+ to avoid collision.
 
-2. **Ran the entity warehouse backfill against prod Supabase**
-   - `node scripts/backfill-entity-warehouse.mjs`
-   - Result:
-     - `registry_entities=1033`
-     - `entity_external_ids=21783`
-     - `entity_tags=21197`
-     - `entity_facts=1033`
-     - `financial_history_quarterly=35220`
-     - `branch_history_annual=4336`
+### Existing Frontend Features (Vite app)
+Based on commit history, the existing app already has:
+- Institution screener with filters
+- Watchlist functionality
+- Discovery/exploration views
+- Anomaly detection
+- Failure analytics with terminal dashboards
+- Rate sensitivity analysis
+- Entity warehouse with enrichment pipeline
+- Context-aware institution profiles
+- API routes for data syncing
 
-3. **Ran FDIC failures sync**
-   - `node scripts/sync-fdic-failures.mjs`
-   - Result:
-     - `failure_events=3626`
-     - latest failure date `2026-01-30`
-
-4. **Ran FDIC history sync**
-   - `node scripts/sync-fdic-history.mjs`
-   - Final result after fixes:
-     - `charter_events=30145`
-     - matched institutions `4407`
-     - latest event date `2026-04-01`
-
-5. **Added `.env.example`**
-   - Includes required app/Supabase vars plus optional FFIEC/FDIC/CFPB/local sandbox vars.
-
-6. **Smoke-tested requested endpoints via local Vercel runtime**
-   - `/api/qa/status` → `200`, `healthy`
-   - `/api/institutions/search?q=chase` → `200`, `7` institutions
-   - `/api/entities/search?q=bank` → `200`, `24` results on page 1, `5445` total
-   - `/api/analytics/overview` → `200`, `total_institutions=10076`, `charter_events=30145`, `failure_events=3626`
-   - `/api/sources` → `200`, `22` sources
-
-### What Broke / What I Fixed
-- **`scripts/sync-fdic-history.mjs` failed after fetching all rows**
-  - Cause: `updateDataSourceSnapshot` was called but never imported.
-  - Fix: imported it.
-
-- **FDIC history coverage was incomplete (`5211` events / `770` institutions)**
-  - Cause: Supabase lookup used `.limit(20000)`, but only `1000` rows were actually returned in practice.
-  - Fix: replaced the lookup with explicit range-based pagination for `institutions` and `entity_external_ids`.
-
-- **`/api/entities/search` 500ed**
-  - Cause: entity service sent very large `.in(...)` queries for UUIDs/cert lists, which caused PostgREST fetch failures.
-  - Fix: batched large `.in(...)` lookups in [lib/entity-service.ts](/Users/tarique/projects/data-studio/lib/entity-service.ts).
-
-- **Vercel-specific TS2835 warnings**
-  - Cause: some server-side type imports were missing explicit `.js` extensions under Node ESM resolution.
-  - Fix: normalized imports in `lib/entity-service.ts`, `lib/source-service.ts`, `lib/source-registry.ts`, and `lib/fdic-client.ts`.
-
-### What Worked
-- Prod Supabase warehouse tables are now seeded and queryable.
-- FDIC failures and FDIC history warehouse layers are populated.
-- Requested API smoke tests are green.
-- Local `npm run build` passes.
-- Fresh Vercel production deployment completed.
-
-### What's Left / Blocked
-1. **Fix custom domain DNS**
-   - `data.fintechcommons.com` is still not pointed correctly at Vercel.
-
-2. **FFIEC / extended sources**
-   - FFIEC CDR still needs credentials or a panel file.
-   - FFIEC NIC still needs local ZIP files.
-
-3. **Warehouse depth still to do**
-   - `ecosystem_entities`, `entity_relationships`, `macro_series`, and `bank_capabilities` are still empty in prod.
-
-## 2026-04-05 — Claude (Migrations + Merge to Main)
-
-### What I Did
-1. **Ran 4 migrations against prod Supabase** (project `bvznhycwkgouwmaufdpe`):
-   - `add_entity_warehouse_foundation` — 10 new tables: registry_entities, ecosystem_entities, entity_external_ids, entity_tags, entity_facts, entity_relationships, charter_events, financial_history_quarterly, branch_history_annual, macro_series
-   - `add_bank_capabilities` — bank_capabilities table (card networks, BaaS, Fed access)
-   - `add_failure_events` — failure_events table (FDIC failure history)
-   - `add_pg_trgm_fuzzy_search` — pg_trgm extension + GIN trigram indexes on institution/entity names + common query indexes on institutions(state, total_assets, charter_type)
-
-2. **Merged `codex/entity-intelligence-foundation` → `main`** — Fast-forward, 93 files, +17,665 lines, zero conflicts
-
-3. **Pushed to origin/main** — Vercel deploy triggered
-
-4. **Updated CLAUDE.md** — Was stale (described 4-page early project), now reflects full 125-file platform
-
-5. **Created coordination files**: AGENTS.md (Codex auto-reads), CODEX.md (full technical brief), HANDOFF.md (this file)
-
-### Prod Supabase State (19 tables)
-| Table | Rows | RLS |
-|-------|------|-----|
-| institutions | 10,082 | Yes |
-| financial_history | 38,116 | Yes |
-| branches | 74,750 | Yes |
-| sync_jobs | 22 | Yes |
-| data_sources | 19 | No |
-| registry_entities | 0 | Yes |
-| ecosystem_entities | 0 | Yes |
-| entity_external_ids | 0 | Yes |
-| entity_tags | 0 | Yes |
-| entity_facts | 0 | Yes |
-| entity_relationships | 0 | Yes |
-| charter_events | 0 | Yes |
-| financial_history_quarterly | 0 | Yes |
-| branch_history_annual | 0 | Yes |
-| macro_series | 0 | Yes |
-| bank_capabilities | 0 | Yes |
-| failure_events | 0 | Yes |
-| saved_searches | 0 | Yes |
-| ai_summaries | 0 | No |
-
-### What's Next (for Codex or Claude)
-1. **Verify Vercel deploy succeeded** — check data.fintechcommons.com or Vercel dashboard
-2. **Populate entity warehouse** — Run `scripts/backfill-entity-warehouse.mjs` to seed registry_entities from existing institutions
-3. **Run failure sync** — `scripts/sync-fdic-failures.mjs` to populate failure_events
-4. **Run FDIC history sync** — `scripts/sync-fdic-history.mjs` to populate financial_history_quarterly
-5. **Add `.env.example`** — still missing
-6. **API pagination** — search/screener endpoints return unbounded results
-7. **Data freshness badges** — UI doesn't show when data was last synced
-
-### What Worked
-- All 4 migrations applied cleanly via Supabase MCP
-- Fast-forward merge — no conflicts (entity branch was purely additive)
-- Build passes on main post-merge
-
-### Decisions Still Needed (from Tarique)
-1. Do you have FFIEC CDR credentials? If not, skip CDR ingestion for now.
-2. Want to run the entity backfill scripts now, or let Codex handle it?
-3. Confirm Vercel deploy is healthy
+### Security Notes
+- 2 tables missing RLS: data_sources, ai_summaries (non-sensitive, but should fix)
+- 3 functions with mutable search_path: set_updated_at, institution_stats, update_updated_at
+- pg_trgm extension in public schema (acceptable)
 
 ---
 
-## 2026-04-05 — Claude (Initial Analysis)
+## Cursor TODO List
 
-### Project State
-- **Branch `codex/entity-intelligence-foundation`**: 20 commits ahead of main, +17,665 lines, 93 files changed. Clean build, clean working tree.
-- **Branch `main`**: 8 commits. Core platform (search, analytics, institution profiles).
-- **Both pushed to origin** — no data loss risk, but the entity branch needs to merge.
+### Phase 1: Fill Canadian CU Financial Gaps (THIS WEEK)
 
-### What Exists
-- 125 frontend files (47 components, 13 pages)
-- 40 API endpoints (institutions, entities, analytics, sources, sync, QA)
-- 20+ ingestion scripts (FDIC, NCUA, OSFI, RPAA, OCC, CFPB, FFIEC stubs)
-- Local Postgres sandbox setup
-- Husky pre-push TypeScript checks
-- Quarterly FDIC cron via Vercel
+**1.1 Scrape annual report financials for top Canadian CUs**
 
-### What's Missing / Broken
-- [ ] **Unknown: Do entity_warehouse tables exist in prod Supabase?** — Must verify before merging to main. If they don't exist, entity API routes will 500 in production.
-- [ ] **No `.env.example`** — new contributors have to guess env vars
-- [ ] **CLAUDE.md is stale** — describes early project state, not current 125-file platform
-- [ ] **FFIEC CDR** — registered in source registry but not implemented (needs credentials)
-- [ ] **FFIEC NIC** — registered but not implemented (needs manual ZIP download, CAPTCHA)
-- [ ] **No `pg_trgm`** — fuzzy name search won't match "JPMorgan" → "JP Morgan Chase"
-- [ ] **No materialized views** — analytics endpoints will slow down past 50K rows
-- [ ] **No API pagination** — screener/search can return unbounded result sets
-- [ ] **No data freshness badges in UI** — users can't tell if data is current
-- [ ] **Deduplication across sources** — same bank appears in FDIC + OCC + FFIEC with different IDs
-- [ ] **Bank merger chains** — no `successor_cert` field to track mergers
-- [ ] **Null normalization** — government APIs return -1, 0, "" for "not reported" — needs normalization to null
+These 29 institutions need financial data. Priority order (largest first):
 
-### Decisions Needed (from Tarique)
-1. Do you have FFIEC CDR credentials? If not, skip CDR for now.
-2. Confirm entity_warehouse tables are live in Supabase before merging.
-3. Should the merge happen now or after more testing on the branch?
+| Institution | Province | Source | Annual Report Location |
+|------------|----------|--------|----------------------|
+| Coast Capital Savings | BC | osfi | coastcapitalsavings.com |
+| Meridian Credit Union | ON | fsra | meridiancu.ca |
+| Servus Credit Union | AB | cudgc | servus.ca |
+| First West Credit Union | BC | bcfsa | firstwestcu.ca |
+| Conexus Credit Union | SK | cudgc_sk | conexus.ca |
+| Affinity Credit Union | SK | cudgc_sk | affinitycu.ca |
+| Access Credit Union | MB | dgcm | accesscu.ca |
+| Alterna Savings | ON | fsra | alterna.ca |
+| FirstOntario | ON | fsra | firstontario.com |
+| DUCA | ON | fsra | dfrcu.com |
 
-### Recommendations for Codex (Next Session)
-1. **First**: Query Supabase to check if entity tables exist (`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`)
-2. **If yes**: Merge entity branch → main, push, verify Vercel deploy
-3. **If no**: Run migration SQL from codebase, then merge
-4. Create `.env.example`
-5. Add `pg_trgm` extension + GIN index on institution name
-6. Add LIMIT/OFFSET pagination to search and screener endpoints
-7. Add `data_as_of` display to source-backed UI components
+For each CU:
+1. Find annual report PDF on their website
+2. Download it
+3. Extract key metrics with pdfplumber: total_assets, total_deposits, total_loans, net_income, equity_capital
+4. Reports are in thousands of CAD. Multiply by 1000 before storing
+5. UPDATE the existing institutions row (don't insert new)
+6. INSERT into financial_history table
+7. Delete the PDF
+
+SQL to update an institution:
+```sql
+UPDATE institutions SET
+  total_assets = [value],
+  total_deposits = [value],
+  total_loans = [value],
+  net_income = [value],
+  equity_capital = [value],
+  data_as_of = '[YYYY-MM-DD]',
+  last_synced_at = now()
+WHERE cert_number = [900XXX];
+```
+
+**1.2 Add validation script**
+
+Create scripts/validate.py that checks:
+- total_assets > total_deposits (should always be true)
+- total_assets > equity_capital (should always be true)
+- If net_income exists, ROA = net_income / total_assets (calculate and update roa field)
+- Flag any institution where total_assets changed >30% from financial_history
+
+**1.3 Populate entity_relationships**
+
+The holding company data is already in the institutions table (holding_company field). Use it to populate entity_relationships:
+```sql
+INSERT INTO entity_relationships (from_entity_table, from_entity_id, to_entity_table, to_entity_id, relationship_type, relationship_label, active)
+-- For each institution with a holding_company, create a "subsidiary_of" relationship
+```
+
+Canadian examples to add manually:
+- TD Bank NA → TORONTO-DOMINION BANK (already in holding_company)
+- BMO Bank NA → BANK OF MONTREAL (already in holding_company)
+- CIBC Bank USA → CANADIAN IMPERIAL BANK OF COMMERCE (already in holding_company)
+- Coast Capital Savings → federally regulated by OSFI
+- Vancity → provincially regulated by BCFSA
+
+### Phase 2: Frontend Improvements
+
+**2.1 Add Canadian CU view**
+
+Add a dedicated Canadian view that shows:
+- All CUs by province with data completeness indicators
+- Provincial regulator badges (BCFSA, FSRA, CUDGC, DGCM)
+- Canadian flag markers on Canadian institutions
+- Data gap dashboard (which CUs still need financials)
+
+**2.2 Connect entity_relationships to the UI**
+
+The Relationships view should query entity_relationships and show:
+- Holding company tree (expand/collapse)
+- Cross-border connections (Canadian parent → US subsidiary)
+- Regulatory relationship mapping
+
+**2.3 Improve search**
+
+Add full-text search using the pg_trgm extension (already installed):
+```sql
+SELECT * FROM institutions 
+WHERE name ILIKE '%' || $1 || '%' 
+   OR city ILIKE '%' || $1 || '%'
+   OR holding_company ILIKE '%' || $1 || '%'
+ORDER BY total_assets DESC NULLS LAST
+LIMIT 50;
+```
+
+### Phase 3: Expand Data Collection
+
+**3.1 Complete Canadian CU registry**
+
+Scrape BCFSA and FSRA public lists to get ALL credit unions (not just the 30 we seeded). Target: 200 Canadian CUs in the institutions table.
+
+**3.2 Populate bank_capabilities**
+
+For the top 50 institutions, populate the bank_capabilities table with:
+- Card issuing (Visa, Mastercard, both)
+- Mobile banking (yes/no)
+- Open banking (yes/no)
+- Wealth management
+- Insurance
+- Mortgage lending
+- Commercial lending
+
+**3.3 Populate macro_series**
+
+Ingest Bank of Canada overnight rate, CPI, GDP data from the Bank of Canada Valet API (boc data source already registered).
 
 ---
 
-<!-- Codex: add your entries above this line, newest first -->
+## Rules for Cursor
+
+1. Never create a new repo. Everything goes in tariquek-git/data-studio
+2. Never use the word "engine" in code or comments
+3. Canadian CU reports are in thousands of CAD. Always multiply by 1000
+4. cert_number for Canadian CUs: 900001+
+5. source field must match the check constraint (lowercase)
+6. Don't add Claude API calls. Phase 1 uses pdfplumber only
+7. Don't store PDFs. Extract, store data, delete file
+8. Push to main branch. Vercel auto-deploys on push
+9. When in doubt about schema changes, add a question below
+
+## Questions for Claude
+(Cursor: write questions here. Claude answers next session.)
+
