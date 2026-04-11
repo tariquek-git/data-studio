@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { to: '/brim', label: 'Brim BD' },
   { to: '/compare', label: 'Compare' },
   { to: '/geo', label: 'Geo Map' },
+  { to: '/graph', label: 'Graph' },
   { to: '/market', label: 'Market Map' },
   { to: '/analytics', label: 'Analytics' },
   { to: '/sources', label: 'Sources' },
