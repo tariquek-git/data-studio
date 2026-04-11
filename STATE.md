@@ -59,10 +59,11 @@ Brim is a filter + a few extra columns (`brim_score`, `brim_tier`, `core_process
 | With `total_assets` | 8,699 (86%) |
 | With `net_income` | 4,394 (43%) |
 | With `roa` | 8,695 (86%) |
+| With `lat/lng` | **9,932 (98%)** — city+state seeds via SQL; 173 need Nominatim refinement |
 | With `holding_company` | 3,672 (36%) |
 | With card data | 698 |
-| `entity_relationships` rows | **0** (needs `agent_relationships.py` run) |
-| `bank_capabilities` rows | **0** (needs `agent_brim_cards.py` run) |
+| `entity_relationships` rows | **190** — 8 subsidiary_of + 182 sibling_of (co-subsidiary FDIC pairs >$1B) |
+| `bank_capabilities` rows | **8,699** — Brim scores + card portfolios loaded |
 | `financial_history` rows | 38,118 annual / 35,220 quarterly |
 | `branches` rows | 74,750 |
 | `charter_events` rows | 29,642 |
