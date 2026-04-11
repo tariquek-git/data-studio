@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { to: '/screen', label: 'Screener' },
   { to: '/brim', label: 'Brim BD' },
   { to: '/compare', label: 'Compare' },
+  { to: '/geo', label: 'Geo Map' },
   { to: '/market', label: 'Market Map' },
   { to: '/analytics', label: 'Analytics' },
   { to: '/sources', label: 'Sources' },
