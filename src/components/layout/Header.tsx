@@ -4,15 +4,13 @@ import { Menu, X, Database, ExternalLink } from 'lucide-react';
 import { useWatchlist } from '@/hooks/useWatchlist';
 
 const NAV_LINKS = [
-  { to: '/search', label: 'Search' },
-  { to: '/entities', label: 'Entities' },
-  { to: '/screen', label: 'Screener' },
+  { to: '/explore', label: 'Explore' },
+  { to: '/analytics', label: 'Analytics' },
   { to: '/brim', label: 'Brim BD' },
   { to: '/compare', label: 'Compare' },
   { to: '/geo', label: 'Geo Map' },
   { to: '/graph', label: 'Graph' },
-  { to: '/market', label: 'Market Map' },
-  { to: '/analytics', label: 'Analytics' },
+  { to: '/entities', label: 'Entities' },
   { to: '/sources', label: 'Sources' },
 ];
 

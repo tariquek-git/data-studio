@@ -1540,3 +1540,163 @@ export async function getEntityContext(entityId: string): Promise<EntityContextR
     sections,
   };
 }
+
+
+// =============================================================================
+// Institution summary MV — typed reads for Phase 2 API convergence
+// =============================================================================
+
+export type InstitutionSummaryRow = {
+  id: string;
+  cert_number: number;
+  source: string;
+  name: string;
+  legal_name: string | null;
+  charter_type: string | null;
+  active: boolean;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  county: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  website: string | null;
+  established_date: string | null;
+  regulator: string | null;
+  holding_company: string | null;
+  holding_company_id: string | null;
+  total_assets: number | null;
+  total_deposits: number | null;
+  total_loans: number | null;
+  num_branches: number | null;
+  num_employees: number | null;
+  roa: number | null;
+  roi: number | null;
+  equity_capital: number | null;
+  net_income: number | null;
+  credit_card_loans: number | null;
+  bd_exclusion_reason: string | null;
+  data_as_of: string | null;
+  // Brim fields
+  brim_score: number | null;
+  brim_tier: string | null;
+  core_processor: string | null;
+  core_processor_confidence: string | null;
+  agent_bank_program: string | null;
+  card_portfolio_size: number | null;
+  issues_credit_cards: boolean | null;
+  issues_debit_cards: boolean | null;
+  credit_card_issuer_processor: string | null;
+  debit_network: string | null;
+  card_program_manager: string | null;
+  // Latest quarterly snapshot
+  latest_quarter: string | null;
+  q_total_assets: number | null;
+  q_roa: number | null;
+  q_net_income: number | null;
+  last_synced_at: string | null;
+  updated_at: string | null;
+};
+
+export type InstitutionSearchParams = {
+  q?: string;
+  states?: string[];
+  sources?: string[];
+  charter_types?: string[];
+  regulators?: string[];
+  min_assets?: number | null;
+  max_assets?: number | null;
+  min_deposits?: number | null;
+  max_deposits?: number | null;
+  min_branches?: number | null;
+  max_branches?: number | null;
+  min_roa?: number | null;
+  max_roa?: number | null;
+  min_roi?: number | null;
+  max_roi?: number | null;
+  has_credit_cards?: boolean;
+  min_brim_score?: number | null;
+  brim_tier?: string | null;
+  exclude_bd_exclusions?: boolean;
+  sort_by?: string;
+  sort_dir?: 'asc' | 'desc';
+  page?: number;
+  per_page?: number;
+};
+
+export type InstitutionSearchResult = {
+  data: InstitutionSummaryRow[];
+  total: number;
+  page: number;
+  per_page: number;
+};
+
+const ALLOWED_INSTITUTION_SORTS = new Set([
+  'name', 'total_assets', 'total_deposits', 'total_loans',
+  'num_branches', 'roa', 'roi', 'net_income', 'credit_card_loans',
+  'equity_capital', 'state', 'brim_score', 'card_portfolio_size',
+]);
+
+export async function searchInstitutions(params: InstitutionSearchParams): Promise<InstitutionSearchResult> {
+  const supabase = getSupabase();
+
+  const page = Math.max(1, params.page ?? 1);
+  const perPage = Math.min(100, Math.max(1, params.per_page ?? 25));
+  const offset = (page - 1) * perPage;
+  const sortBy = ALLOWED_INSTITUTION_SORTS.has(params.sort_by ?? '') ? (params.sort_by as string) : 'total_assets';
+  const ascending = params.sort_dir === 'asc';
+
+  let query = supabase
+    .from('institution_summary_mv')
+    .select('*', { count: 'exact' });
+
+  // Full-text search via ilike fallback (MV has search_vector but Supabase JS doesn't expose tsquery)
+  if (params.q) {
+    const term = `%${params.q}%`;
+    query = query.or(`name.ilike.${term},city.ilike.${term},holding_company.ilike.${term}`);
+  }
+
+  if (params.states?.length)       query = query.in('state', params.states);
+  if (params.sources?.length)      query = query.in('source', params.sources);
+  if (params.charter_types?.length) query = query.in('charter_type', params.charter_types);
+  if (params.regulators?.length)   query = query.in('regulator', params.regulators);
+  if (params.min_assets  != null)  query = query.gte('total_assets',   params.min_assets);
+  if (params.max_assets  != null)  query = query.lte('total_assets',   params.max_assets);
+  if (params.min_deposits != null) query = query.gte('total_deposits', params.min_deposits);
+  if (params.max_deposits != null) query = query.lte('total_deposits', params.max_deposits);
+  if (params.min_branches != null) query = query.gte('num_branches',   params.min_branches);
+  if (params.max_branches != null) query = query.lte('num_branches',   params.max_branches);
+  if (params.min_roa != null)      query = query.gte('roa', params.min_roa);
+  if (params.max_roa != null)      query = query.lte('roa', params.max_roa);
+  if (params.min_roi != null)      query = query.gte('roi', params.min_roi);
+  if (params.max_roi != null)      query = query.lte('roi', params.max_roi);
+  if (params.has_credit_cards)     query = query.gt('credit_card_loans', 0);
+  if (params.min_brim_score != null) query = query.gte('brim_score', params.min_brim_score);
+  if (params.brim_tier)            query = query.eq('brim_tier', params.brim_tier.toUpperCase());
+  if (params.exclude_bd_exclusions) query = query.is('bd_exclusion_reason', null);
+
+  query = query
+    .order(sortBy, { ascending, nullsFirst: false })
+    .range(offset, offset + perPage - 1);
+
+  const { data, error, count } = await query;
+  if (error) throw new Error(error.message);
+
+  return {
+    data: (data ?? []) as InstitutionSummaryRow[],
+    total: count ?? 0,
+    page,
+    per_page: perPage,
+  };
+}
+
+export async function getInstitutionSummary(certNumber: number): Promise<InstitutionSummaryRow | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('institution_summary_mv')
+    .select('*')
+    .eq('cert_number', certNumber)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data as InstitutionSummaryRow | null;
+}

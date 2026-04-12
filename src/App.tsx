@@ -1,19 +1,17 @@
-import { BrowserRouter, Routes, Route } from 'react-router';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Suspense, lazy } from 'react';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
-const SearchPage = lazy(() => import('./pages/SearchPage'));
+const ExplorePage = lazy(() => import('./pages/ExplorePage'));
 const InstitutionPage = lazy(() => import('./pages/InstitutionPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
-const MarketMapPage = lazy(() => import('./pages/MarketMapPage'));
 const ComparePage = lazy(() => import('./pages/ComparePage'));
 const QAPage = lazy(() => import('./pages/QAPage'));
 const DataSourcesPage = lazy(() => import('./pages/DataSourcesPage'));
 const WatchlistPage = lazy(() => import('./pages/WatchlistPage'));
-const ScreenerPage = lazy(() => import('./pages/ScreenerPage'));
 const FailuresPage = lazy(() => import('./pages/FailuresPage'));
 const EntitiesPage = lazy(() => import('./pages/EntitiesPage'));
 const EntityPage = lazy(() => import('./pages/EntityPage'));
@@ -43,17 +41,19 @@ export default function App() {
             <Suspense fallback={<Loading />}>
               <Routes>
                 <Route path="/" element={<HomePage />} />
-                <Route path="/search" element={<SearchPage />} />
+                <Route path="/explore" element={<ExplorePage />} />
+                {/* Legacy routes — kept for bookmarks / external links */}
+                <Route path="/search" element={<Navigate to="/explore" replace />} />
+                <Route path="/screen" element={<Navigate to="/explore?mode=screener" replace />} />
                 <Route path="/institution/:certNumber" element={<InstitutionPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/market" element={<MarketMapPage />} />
+                <Route path="/market" element={<Navigate to="/analytics" replace />} />
                 <Route path="/compare" element={<ComparePage />} />
                 <Route path="/qa" element={<QAPage />} />
                 <Route path="/sources" element={<DataSourcesPage />} />
                 <Route path="/entities" element={<EntitiesPage />} />
                 <Route path="/entities/:entityId" element={<EntityPage />} />
                 <Route path="/watchlist" element={<WatchlistPage />} />
-                <Route path="/screen" element={<ScreenerPage />} />
                 <Route path="/failures" element={<FailuresPage />} />
                 <Route path="/brim" element={<BrimPage />} />
                 <Route path="/geo" element={<GeoMapPage />} />

@@ -17,25 +17,17 @@
  * Run: node scripts/sync-ncua.mjs
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { readFileSync, createWriteStream, existsSync, mkdirSync } from 'fs';
+import { loadEnvLocal, createSupabaseServiceClient } from './_sync-utils.mjs';
+import { readFileSync, createWriteStream, existsSync, mkdirSync, createReadStream } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createUnzip } from 'zlib';
 import { pipeline } from 'stream/promises';
-import { createReadStream } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// ── Load env ──────────────────────────────────────────────────────────────────
-const envContent = readFileSync(join(__dirname, '..', '.env.local'), 'utf-8');
-const env = {};
-for (const line of envContent.split('\n')) {
-  const match = line.match(/^([^#=]+)=(.*)$/);
-  if (match) env[match[1].trim()] = match[2].trim();
-}
-
-const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+const env = loadEnvLocal();
+const supabase = createSupabaseServiceClient(env);
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 // NCUA charter numbers overlap with FDIC cert numbers — offset by 1M to avoid conflicts

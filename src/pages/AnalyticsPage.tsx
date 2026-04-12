@@ -21,6 +21,7 @@ import {
   Database,
   Sparkles,
   Landmark,
+  BarChart2,
 } from 'lucide-react';
 import { Badge, Card, Skeleton } from '@/components/ui';
 import { DistributionChart } from '@/components/analytics/DistributionChart';
@@ -30,6 +31,7 @@ import { CorrelationHeatmap } from '@/components/analytics/CorrelationHeatmap';
 import { StateMetricGrid } from '@/components/analytics/StateMetricGrid';
 import { RatesStrip } from '@/components/analytics/RatesStrip';
 import { CMHCSnapshot } from '@/components/analytics/CMHCSnapshot';
+import { BubbleChart } from '@/components/market/BubbleChart';
 import { formatNumber, formatCurrency, formatPercent } from '@/lib/format';
 
 interface AnalyticsOverview {
@@ -88,6 +90,46 @@ interface StateMetricsData {
   states: any[];
 }
 
+interface MarketMapInstitution {
+  cert_number: number;
+  name: string;
+  state: string | null;
+  charter_type: string | null;
+  total_assets: number;
+  roa: number;
+  roi: number;
+  num_branches: number | null;
+  size_bucket: string;
+  bubble_r: number;
+}
+
+interface MarketMapData {
+  institutions: MarketMapInstitution[];
+  count: number;
+  stats: {
+    median_roa: number;
+    mean_roa: number;
+    median_roi: number;
+    mean_roi: number;
+  };
+}
+
+const MM_SIZE_BUCKETS = [
+  { value: '', label: 'All Sizes' },
+  { value: 'mega', label: 'Mega ($250B+)' },
+  { value: 'large', label: 'Large ($10B+)' },
+  { value: 'regional', label: 'Regional ($1B+)' },
+  { value: 'community', label: 'Community ($100M+)' },
+  { value: 'small', label: 'Small (<$100M)' },
+];
+
+const MM_CHARTER_TYPES = [
+  { value: '', label: 'All Types' },
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'savings', label: 'Savings' },
+  { value: 'savings_association', label: 'Savings Assoc.' },
+];
+
 async function fetchOverview(): Promise<AnalyticsOverview> {
   const res = await fetch('/api/analytics/overview');
   if (!res.ok) throw new Error('Failed to load analytics');
@@ -114,6 +156,15 @@ async function fetchStateMetrics(): Promise<StateMetricsData> {
   return res.json();
 }
 
+async function fetchMarketMap(sizeBucket: string, charterType: string): Promise<MarketMapData> {
+  const params = new URLSearchParams();
+  if (sizeBucket) params.set('size_bucket', sizeBucket);
+  if (charterType) params.set('charter_type', charterType);
+  const res = await fetch(`/api/analytics/market-map?${params}`);
+  if (!res.ok) throw new Error('Failed to load market map');
+  return res.json();
+}
+
 const CHARTER_COLORS: Record<string, string> = {
   commercial: '#2563eb',
   savings: '#7c3aed',
@@ -121,7 +172,7 @@ const CHARTER_COLORS: Record<string, string> = {
   other: '#64748b',
 };
 
-type TabId = 'overview' | 'distribution' | 'concentration' | 'leaderboard' | 'correlations' | 'state-grid';
+type TabId = 'overview' | 'distribution' | 'concentration' | 'leaderboard' | 'correlations' | 'state-grid' | 'market-map';
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'overview', label: 'Overview', icon: <Building2 className="w-4 h-4" /> },
@@ -130,6 +181,7 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'leaderboard', label: 'Leaderboard', icon: <Award className="w-4 h-4" /> },
   { id: 'correlations', label: 'Correlations', icon: <Layers className="w-4 h-4" /> },
   { id: 'state-grid', label: 'State Grid', icon: <Table2 className="w-4 h-4" /> },
+  { id: 'market-map', label: 'Market Map', icon: <BarChart2 className="w-4 h-4" /> },
 ];
 
 function formatCompactShare(value: number): string {
@@ -251,6 +303,15 @@ export default function AnalyticsPage() {
     queryFn: fetchStateMetrics,
     enabled: activeTab === 'state-grid',
     staleTime: 30 * 60 * 1000,
+  });
+
+  const [mmSizeBucket, setMmSizeBucket] = useState('');
+  const [mmCharterType, setMmCharterType] = useState('');
+  const { data: mmData, isLoading: mmLoading } = useQuery({
+    queryKey: ['analytics-market-map', mmSizeBucket, mmCharterType],
+    queryFn: () => fetchMarketMap(mmSizeBucket, mmCharterType),
+    enabled: activeTab === 'market-map',
+    staleTime: 10 * 60 * 1000,
   });
 
   const totalSourceFeeds = overview?.source_registry?.tracked ?? Object.keys(overview?.total_by_source ?? {}).length;
@@ -948,6 +1009,93 @@ export default function AnalyticsPage() {
               </div>
             </Card>
           ) : null}
+        </div>
+      )}
+
+      {/* Tab: Market Map */}
+      {activeTab === 'market-map' && (
+        <div className="space-y-6">
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={mmSizeBucket}
+              onChange={e => setMmSizeBucket(e.target.value)}
+              className="text-sm border border-surface-300 rounded-lg px-3 py-2 bg-white text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {MM_SIZE_BUCKETS.map(b => (
+                <option key={b.value} value={b.value}>{b.label}</option>
+              ))}
+            </select>
+            <select
+              value={mmCharterType}
+              onChange={e => setMmCharterType(e.target.value)}
+              className="text-sm border border-surface-300 rounded-lg px-3 py-2 bg-white text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {MM_CHARTER_TYPES.map(c => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+            {mmData && (
+              <div className="flex flex-wrap gap-3 ml-1">
+                {[
+                  { label: 'Median ROA', value: formatPercent(mmData.stats.median_roa) },
+                  { label: 'Mean ROA', value: formatPercent(mmData.stats.mean_roa) },
+                  { label: 'Median ROE', value: formatPercent(mmData.stats.median_roi) },
+                  { label: 'Institutions', value: formatNumber(mmData.count) },
+                ].map(s => (
+                  <div key={s.label} className="flex items-center gap-2 bg-surface-50 border border-surface-200 rounded-full px-3 py-1">
+                    <span className="text-xs text-surface-500">{s.label}</span>
+                    <span className="text-sm font-semibold text-surface-900">{s.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Quadrant legend */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { icon: TrendingUp, label: 'High ROA + High ROE', desc: 'Efficient capital generators', color: 'bg-green-50 text-green-700 border-green-200' },
+              { icon: TrendingUp, label: 'High ROA + Low ROE', desc: 'Asset-rich, equity-light', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+              { icon: BarChart2, label: 'Low ROA + High ROE', desc: 'Leveraged performers', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+              { icon: Activity, label: 'Low ROA + Low ROE', desc: 'Underperformers or distressed', color: 'bg-red-50 text-red-700 border-red-200' },
+            ].map(q => {
+              const Icon = q.icon;
+              return (
+                <div key={q.label} className={`rounded-xl border p-3 ${q.color}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icon className="h-4 w-4" />
+                    <span className="text-xs font-semibold">{q.label}</span>
+                  </div>
+                  <p className="text-xs opacity-75">{q.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Chart */}
+          <Card className="overflow-hidden">
+            {mmLoading ? (
+              <Skeleton className="h-[560px] w-full" />
+            ) : mmData ? (
+              <BubbleChart institutions={mmData.institutions} stats={mmData.stats} />
+            ) : (
+              <div className="h-64 flex items-center justify-center text-surface-500 text-sm">
+                Failed to load data
+              </div>
+            )}
+          </Card>
+
+          {/* How-to */}
+          <div className="bg-gradient-to-r from-primary-50 to-cyan-50 border border-primary-200 rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-primary-900 mb-2">How to read this chart</h3>
+            <ul className="text-sm text-primary-800 space-y-1.5">
+              <li>• <strong>Upper-right quadrant:</strong> High ROA + High ROE — top performers generating strong returns on both assets and equity.</li>
+              <li>• <strong>Bubble size</strong> represents total assets on a logarithmic scale.</li>
+              <li>• <strong>Dashed lines</strong> show industry median ROA and ROE.</li>
+              <li>• <strong>Click any bubble</strong> to view the full institution profile.</li>
+            </ul>
+          </div>
         </div>
       )}
       </div>
