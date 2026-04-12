@@ -7,7 +7,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { apiHandler } from '../../lib/api-handler.js';
-import { getSupabase } from '../../lib/supabase.js';
+import { getQACheckInstitutions } from '../../lib/entity-service.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -502,70 +502,39 @@ async function checkInstitution(
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: VercelResponse) => {
-  const supabase = getSupabase();
-
   const certParam = req.query.cert as string | undefined;
   const sampleParam = req.query.sample as string | undefined;
 
-  let institutions: Record<string, unknown>[] = [];
-  let mode: 'single' | 'sample' = 'single';
-
-  if (certParam) {
-    // Single institution lookup
-    const cert = Number(certParam);
-    if (!cert || isNaN(cert)) {
-      return res.status(400).json({ error: 'Invalid cert parameter — must be a numeric FDIC cert number' });
-    }
-
-    const { data, error } = await supabase
-      .from('institutions')
-      .select('*')
-      .eq('cert_number', cert)
-      .eq('source', 'fdic')
-      .single();
-
-    if (error || !data) {
-      return res.status(404).json({ error: `Institution with cert ${cert} not found in database` });
-    }
-
-    institutions = [data as Record<string, unknown>];
-    mode = 'single';
-  } else if (sampleParam) {
-    // Random sample
-    const n = Math.min(50, Math.max(1, Number(sampleParam) || 20));
-    if (isNaN(n)) {
-      return res.status(400).json({ error: 'Invalid sample parameter — must be a number' });
-    }
-
-    // Supabase doesn't have a built-in RANDOM() — use a random offset heuristic
-    const { count } = await supabase
-      .from('institutions')
-      .select('*', { count: 'exact', head: true })
-      .eq('source', 'fdic')
-      .eq('active', true);
-
-    const total = count ?? 0;
-    const offset = total > n ? Math.floor(Math.random() * (total - n)) : 0;
-
-    const { data, error } = await supabase
-      .from('institutions')
-      .select('*')
-      .eq('source', 'fdic')
-      .eq('active', true)
-      .range(offset, offset + n - 1);
-
-    if (error) {
-      return res.status(500).json({ error: 'Failed to fetch sample from database' });
-    }
-
-    institutions = (data ?? []) as Record<string, unknown>[];
-    mode = 'sample';
-  } else {
+  if (!certParam && !sampleParam) {
     return res.status(400).json({
       error: 'Provide ?cert={certNumber} or ?sample={n}',
       examples: ['/api/qa/check?cert=3511', '/api/qa/check?sample=20'],
     });
   }
+
+  let result: { mode: 'single' | 'sample'; institutions: Record<string, unknown>[] };
+
+  try {
+    if (certParam) {
+      const cert = Number(certParam);
+      if (!cert || isNaN(cert)) {
+        return res.status(400).json({ error: 'Invalid cert parameter — must be a numeric FDIC cert number' });
+      }
+      result = await getQACheckInstitutions({ certNumber: cert });
+    } else {
+      const n = Number(sampleParam) || 20;
+      if (isNaN(n)) {
+        return res.status(400).json({ error: 'Invalid sample parameter — must be a number' });
+      }
+      result = await getQACheckInstitutions({ sample: n });
+    }
+  } catch (err) {
+    const e = err as Error & { status?: number };
+    const status = e.status ?? 500;
+    return res.status(status).json({ error: e.message ?? 'Failed to fetch institutions' });
+  }
+
+  const { mode, institutions } = result;
 
   // Run checks in parallel (cap concurrency at 5 to avoid FDIC rate limits)
   const CONCURRENCY = 5;

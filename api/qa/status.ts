@@ -8,7 +8,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { apiHandler } from '../../lib/api-handler.js';
-import { getSupabase } from '../../lib/supabase.js';
+import { getQADatabaseSummary } from '../../lib/entity-service.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,7 +52,6 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: VercelResponse) => {
-  const supabase = getSupabase();
   const now = Date.now();
   const bypassCache = req.query.refresh === '1';
 
@@ -65,40 +64,11 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
 
   // ── Database summary ──────────────────────────────────────────────────────
 
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-  const sixMonthsAgoStr = sixMonthsAgo.toISOString().split('T')[0];
-
-  const [totalResult, activeResult, rawDataResult, staleResult] = await Promise.all([
-    supabase
-      .from('institutions')
-      .select('*', { count: 'exact', head: true })
-      .eq('source', 'fdic'),
-
-    supabase
-      .from('institutions')
-      .select('*', { count: 'exact', head: true })
-      .eq('source', 'fdic')
-      .eq('active', true),
-
-    supabase
-      .from('institutions')
-      .select('*', { count: 'exact', head: true })
-      .eq('source', 'fdic')
-      .not('raw_data', 'is', null),
-
-    supabase
-      .from('institutions')
-      .select('*', { count: 'exact', head: true })
-      .eq('source', 'fdic')
-      .eq('active', true)
-      .lt('data_as_of', sixMonthsAgoStr),
-  ]);
-
-  const totalFdic = totalResult.count ?? 0;
-  const totalActive = activeResult.count ?? 0;
-  const withRawData = rawDataResult.count ?? 0;
-  const staleCount = staleResult.count ?? 0;
+  const dbSummary = await getQADatabaseSummary();
+  const totalFdic = dbSummary.total_fdic_institutions;
+  const totalActive = dbSummary.total_active_fdic;
+  const withRawData = dbSummary.institutions_with_raw_data;
+  const staleCount = dbSummary.stale_records_count;
 
   // ── Known issues ──────────────────────────────────────────────────────────
 

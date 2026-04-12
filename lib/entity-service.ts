@@ -1700,3 +1700,105 @@ export async function getInstitutionSummary(certNumber: number): Promise<Institu
   if (error) throw new Error(error.message);
   return data as InstitutionSummaryRow | null;
 }
+
+// ─── QA ───────────────────────────────────────────────────────────────────────
+
+export interface QADatabaseSummary {
+  total_fdic_institutions: number;
+  total_active_fdic: number;
+  institutions_with_raw_data: number;
+  stale_records_count: number;
+}
+
+/** Returns database-level counts used by GET /api/qa/status. */
+export async function getQADatabaseSummary(): Promise<QADatabaseSummary> {
+  const supabase = getSupabase();
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const sixMonthsAgoStr = sixMonthsAgo.toISOString().split('T')[0];
+
+  const [totalResult, activeResult, rawDataResult, staleResult] = await Promise.all([
+    supabase
+      .from('institutions')
+      .select('*', { count: 'exact', head: true })
+      .eq('source', 'fdic'),
+    supabase
+      .from('institutions')
+      .select('*', { count: 'exact', head: true })
+      .eq('source', 'fdic')
+      .eq('active', true),
+    supabase
+      .from('institutions')
+      .select('*', { count: 'exact', head: true })
+      .eq('source', 'fdic')
+      .not('raw_data', 'is', null),
+    supabase
+      .from('institutions')
+      .select('*', { count: 'exact', head: true })
+      .eq('source', 'fdic')
+      .eq('active', true)
+      .lt('data_as_of', sixMonthsAgoStr),
+  ]);
+
+  for (const r of [totalResult, activeResult, rawDataResult, staleResult]) {
+    if (r.error) throw new Error(r.error.message);
+  }
+
+  return {
+    total_fdic_institutions: totalResult.count ?? 0,
+    total_active_fdic: activeResult.count ?? 0,
+    institutions_with_raw_data: rawDataResult.count ?? 0,
+    stale_records_count: staleResult.count ?? 0,
+  };
+}
+
+export interface QACheckParams {
+  certNumber?: number;
+  sample?: number;
+}
+
+export interface QACheckInstitutionsResult {
+  mode: 'single' | 'sample';
+  institutions: InstitutionRow[];
+}
+
+/**
+ * Fetches institution rows for GET /api/qa/check.
+ * Returns a single institution by cert, or a random sample of N active FDIC institutions.
+ */
+export async function getQACheckInstitutions(
+  params: QACheckParams,
+): Promise<QACheckInstitutionsResult> {
+  const supabase = getSupabase();
+
+  if (params.certNumber != null) {
+    const { data, error } = await supabase
+      .from('institutions')
+      .select('*')
+      .eq('cert_number', params.certNumber)
+      .eq('source', 'fdic')
+      .single();
+    if (error) throw Object.assign(new Error(error.message), { status: 404 });
+    return { mode: 'single', institutions: [data as InstitutionRow] };
+  }
+
+  const n = Math.min(50, Math.max(1, params.sample ?? 20));
+  const { count } = await supabase
+    .from('institutions')
+    .select('*', { count: 'exact', head: true })
+    .eq('source', 'fdic')
+    .eq('active', true);
+
+  const total = count ?? 0;
+  const offset = total > n ? Math.floor(Math.random() * (total - n)) : 0;
+
+  const { data, error } = await supabase
+    .from('institutions')
+    .select('*')
+    .eq('source', 'fdic')
+    .eq('active', true)
+    .range(offset, offset + n - 1);
+
+  if (error) throw new Error(error.message);
+  return { mode: 'sample', institutions: (data ?? []) as InstitutionRow[] };
+}

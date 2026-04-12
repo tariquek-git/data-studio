@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test:shapes": "node api/__tests__/shape-diffs/shape-diff.mjs",
     "prepare": "husky"
   },
   "dependencies": {
