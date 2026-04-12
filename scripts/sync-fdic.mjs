@@ -5,22 +5,10 @@
  * Run: node scripts/sync-fdic.mjs
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { loadEnvLocal, createSupabaseServiceClient } from './_sync-utils.mjs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// Load env
-const envContent = readFileSync(join(__dirname, '..', '.env.local'), 'utf-8');
-const env = {};
-for (const line of envContent.split('\n')) {
-  const match = line.match(/^([^#=]+)=(.*)$/);
-  if (match) env[match[1].trim()] = match[2].trim();
-}
-
-const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+const env = loadEnvLocal();
+const supabase = createSupabaseServiceClient(env);
 
 const FDIC_API = 'https://banks.data.fdic.gov/api';
 const FIELDS = [

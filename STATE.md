@@ -184,11 +184,8 @@ Shared helper: `scripts/_sync-utils.mjs` (`loadEnvLocal`, `createSupabaseService
 
 ### Schema migrations
 
-- `scripts/schema.sql` (legacy base)
-- `scripts/add-*.sql` (7 incremental migrations)
-- `scripts/migrate-*.sql` (4 source-constraint migrations)
-
-Phase 1 consolidates all of the above into one idempotent file at `scripts/schema/000_current.sql`.
+- **`scripts/schema/000_current.sql`** — idempotent end-state schema. Single file of truth for tables, indexes, RLS, triggers. Apply this against a fresh Supabase branch.
+- `scripts/schema/archive/` — historical fragments (`schema.sql`, `add-*.sql`, `migrate-*.sql`) preserved for context and used by legacy helper scripts (`setup-local-postgres.mjs`, `run-migration-entity-foundation.mjs`) until those are retired.
 
 ---
 

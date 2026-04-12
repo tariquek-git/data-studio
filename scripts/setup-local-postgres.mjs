@@ -29,21 +29,21 @@ const RESET = /^(1|true|yes)$/i.test(process.env.RESET || '');
 
 const REQUIRED_FILES = [
   'local-postgres-bootstrap.sql',
-  'schema.sql',
-  'add-capabilities-table.sql',
-  'add-data-sources-table.sql',
-  'add-ai-summaries-table.sql',
-  'add-entity-foundation.sql',
-  'add-failure-events-table.sql',
+  'schema/archive/schema.sql',
+  'schema/archive/add-capabilities-table.sql',
+  'schema/archive/add-data-sources-table.sql',
+  'schema/archive/add-ai-summaries-table.sql',
+  'schema/archive/add-entity-foundation.sql',
+  'schema/archive/add-failure-events-table.sql',
 ];
 
 const MIGRATIONS = [
-  { name: 'core schema', marker: 'institutions', file: 'schema.sql' },
-  { name: 'bank capabilities', marker: 'bank_capabilities', file: 'add-capabilities-table.sql' },
-  { name: 'data sources', marker: 'data_sources', file: 'add-data-sources-table.sql' },
-  { name: 'ai summaries', marker: 'ai_summaries', file: 'add-ai-summaries-table.sql' },
-  { name: 'entity foundation', marker: 'registry_entities', file: 'add-entity-foundation.sql' },
-  { name: 'failure events', marker: 'failure_events', file: 'add-failure-events-table.sql' },
+  { name: 'core schema', marker: 'institutions', file: 'schema/archive/schema.sql' },
+  { name: 'bank capabilities', marker: 'bank_capabilities', file: 'schema/archive/add-capabilities-table.sql' },
+  { name: 'data sources', marker: 'data_sources', file: 'schema/archive/add-data-sources-table.sql' },
+  { name: 'ai summaries', marker: 'ai_summaries', file: 'schema/archive/add-ai-summaries-table.sql' },
+  { name: 'entity foundation', marker: 'registry_entities', file: 'schema/archive/add-entity-foundation.sql' },
+  { name: 'failure events', marker: 'failure_events', file: 'schema/archive/add-failure-events-table.sql' },
 ];
 
 function connArgs(database = DB_NAME) {

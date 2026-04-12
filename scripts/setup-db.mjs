@@ -34,7 +34,7 @@ console.log(`Connecting to ${url}...`);
 const supabase = createClient(url, key);
 
 // Split the schema into individual statements and run them
-const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf-8');
+const schema = readFileSync(join(__dirname, 'schema', 'archive', 'schema.sql'), 'utf-8');
 
 // Split on semicolons but respect dollar-quoted blocks
 const statements = [];
@@ -123,7 +123,7 @@ async function main() {
       console.log('Schema not yet applied.');
       console.log('\nPlease run the following in your Supabase SQL Editor:');
       console.log('  https://supabase.com/dashboard/project/bvznhycwkgouwmaufdpe/sql/new');
-      console.log('\nOr paste this URL in your browser and run the SQL from scripts/schema.sql');
+      console.log('\nOr paste this URL in your browser and run the SQL from scripts/schema/000_current.sql');
 
       // Try direct PostgreSQL connection as last resort
       console.log('\nAttempting to use psql if available...');

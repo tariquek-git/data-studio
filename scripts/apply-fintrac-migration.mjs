@@ -13,7 +13,7 @@
  *
  * Alternative (manual):
  *   1. Open: https://supabase.com/dashboard/project/bvznhycwkgouwmaufdpe/sql/new
- *   2. Paste and run: scripts/add-fintrac-source-constraint.sql
+ *   2. Paste and run: scripts/schema/archive/add-fintrac-source-constraint.sql
  */
 
 import { readFileSync } from 'fs';

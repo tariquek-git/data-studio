@@ -78,8 +78,9 @@ scripts/
   _sync-utils.mjs         Node ingestion helper — use this, don't hand-parse .env.local
   sync-*.mjs              Data ingestion (regulators, specialty sources)
   agent_*.py              QA, fill, Brim, and relationship agents
-  add-*.sql               Incremental schema migrations (being consolidated)
-  schema.sql              Legacy base schema (being consolidated)
+  schema/
+    000_current.sql       Consolidated end-state schema (idempotent; apply this)
+    archive/              Historical fragments (used only by legacy helpers)
 docs/
   archive/                Historical planning docs — do not edit
 ```

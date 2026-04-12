@@ -45,7 +45,7 @@ const ref = SUPABASE_URL.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
 // ---------------------------------------------------------------------------
 // Step 1 — Create table via Management API (if access token present)
 // ---------------------------------------------------------------------------
-const sqlFile = join(__dirname, 'add-data-sources-table.sql');
+const sqlFile = join(__dirname, 'schema', 'archive', 'add-data-sources-table.sql');
 const sql = readFileSync(sqlFile, 'utf-8');
 
 async function runViaMgmtApi(accessToken) {

@@ -27,7 +27,7 @@ for (const line of envContent.split('\n')) {
 
 const sqlFile = process.argv[2]
   ? resolve(process.argv[2])
-  : join(__dirname, 'add-capabilities-table.sql');
+  : join(__dirname, 'schema', 'archive', 'add-capabilities-table.sql');
 
 const sql = readFileSync(sqlFile, 'utf-8');
 const ref = env.SUPABASE_URL.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];

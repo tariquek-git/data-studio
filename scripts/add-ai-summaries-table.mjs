@@ -42,7 +42,7 @@ if (!ref) {
 // ---------------------------------------------------------------------------
 // Apply migration via Management API
 // ---------------------------------------------------------------------------
-const sqlFile = join(__dirname, 'add-ai-summaries-table.sql');
+const sqlFile = join(__dirname, 'schema', 'archive', 'add-ai-summaries-table.sql');
 const sql = readFileSync(sqlFile, 'utf-8');
 
 // Use token from env or fall back to the provided token

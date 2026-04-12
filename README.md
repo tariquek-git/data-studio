@@ -134,7 +134,7 @@ Initial setup and older schema helpers live in:
 
 - `scripts/setup-db.mjs`
 - `scripts/run-migration.mjs`
-- `scripts/schema.sql`
+- `scripts/schema/000_current.sql` (consolidated end-state; legacy fragments archived under `scripts/schema/archive/`)
 
 Source registry migration:
 

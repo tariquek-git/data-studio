@@ -37,8 +37,8 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 const ref = SUPABASE_URL.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
 const sqlFiles = [
-  join(__dirname, 'add-entity-foundation.sql'),
-  join(__dirname, 'add-failure-events-table.sql'),
+  join(__dirname, 'schema', 'archive', 'add-entity-foundation.sql'),
+  join(__dirname, 'schema', 'archive', 'add-failure-events-table.sql'),
 ];
 const sql = sqlFiles
   .map((filePath) => readFileSync(filePath, 'utf-8'))

@@ -27,7 +27,7 @@ for (const line of envContent.split('\n')) {
 }
 
 const ref = env.SUPABASE_URL?.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
-const sql = readFileSync(join(__dirname, 'add-occ-source-constraint.sql'), 'utf-8');
+const sql = readFileSync(join(__dirname, 'schema', 'archive', 'add-occ-source-constraint.sql'), 'utf-8');
 const accessToken = process.env.SUPABASE_ACCESS_TOKEN;
 
 if (!accessToken) {
