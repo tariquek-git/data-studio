@@ -26,7 +26,7 @@ def fetch_history():
             f'{SUPABASE_URL}/rest/v1/financial_history',
             headers=HEADERS,
             params={
-                'select': 'cert_number,period_date,total_assets,total_deposits,net_income,equity_capital',
+                'select': 'cert_number,period,total_assets,total_deposits,net_income,equity_capital',
                 'total_assets': 'not.is.null',
                 'limit': limit,
                 'offset': offset,
@@ -42,19 +42,41 @@ def fetch_history():
     return rows
 
 def fetch_merger_certs():
-    """Get cert_numbers that have merger events (expected YoY jumps)."""
+    """Get cert_numbers that have merger events (expected YoY jumps).
+    charter_events uses warehouse schema (entity_id UUID), so we load
+    institutions id→cert map and resolve.
+    """
+    # Load institution id → cert_number mapping
+    rows = []
+    limit = 1000
+    offset = 0
+    while True:
+        resp = requests.get(
+            f'{SUPABASE_URL}/rest/v1/institutions',
+            headers=HEADERS,
+            params={'select': 'id,cert_number', 'limit': limit, 'offset': offset},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        batch = resp.json()
+        rows.extend(batch)
+        if len(batch) < limit:
+            break
+        offset += limit
+    id_to_cert = {r['id']: r['cert_number'] for r in rows}
+
     resp = requests.get(
         f'{SUPABASE_URL}/rest/v1/charter_events',
         headers=HEADERS,
         params={
-            'select': 'cert_number',
+            'select': 'entity_id',
             'event_type': 'in.(merger,acquired,merged_into,consolidation)',
             'limit': 10000,
         },
         timeout=60,
     )
     resp.raise_for_status()
-    return {r['cert_number'] for r in resp.json()}
+    return {id_to_cert[r['entity_id']] for r in resp.json() if r.get('entity_id') in id_to_cert}
 
 def main():
     print(f'\n{"="*60}')
@@ -68,12 +90,12 @@ def main():
     merger_certs = fetch_merger_certs()
     print(f'Loaded {len(history):,} annual records, {len(merger_certs):,} merger certs\n')
 
-    # Group by cert_number and sort by period_date
+    # Group by cert_number and sort by period
     by_cert = defaultdict(list)
     for r in history:
         by_cert[r['cert_number']].append(r)
     for cert in by_cert:
-        by_cert[cert].sort(key=lambda x: x.get('period_date') or '')
+        by_cert[cert].sort(key=lambda x: x.get('period') or '')
 
     flags = []
     checked_pairs = 0
@@ -101,8 +123,8 @@ def main():
                             'cert': cert,
                             'field': field,
                             'change_pct': change * 100,
-                            'prev_date': prev.get('period_date'),
-                            'curr_date': curr.get('period_date'),
+                            'prev_date': prev.get('period'),
+                            'curr_date': curr.get('period'),
                             'prev_val': pv,
                             'curr_val': cv,
                         })

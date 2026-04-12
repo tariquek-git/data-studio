@@ -91,13 +91,17 @@ CREATE TABLE IF NOT EXISTS institutions (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Source CHECK constraint — cumulative set across all prior migrate-* files.
+-- Source CHECK constraint — 16 sources as of prod state 2026-04-11.
+-- Includes 7 Canadian provincial CU regulators added by sync-canadian-credit-unions.mjs.
+-- DO NOT reduce this list: removing sources would break existing rows.
 ALTER TABLE institutions DROP CONSTRAINT IF EXISTS institutions_source_check;
 ALTER TABLE institutions
   ADD CONSTRAINT institutions_source_check
   CHECK (source IN (
     'fdic', 'ncua', 'osfi', 'rpaa', 'ciro',
-    'fintrac', 'fincen', 'fintech_ca', 'occ'
+    'fintrac', 'fincen', 'fintech_ca',
+    'bcfsa', 'fsra', 'cudgc', 'dgcm',
+    'cudgc_sk', 'nbcudic', 'nscudic', 'ccua'
   ));
 
 CREATE INDEX IF NOT EXISTS idx_institutions_name_search

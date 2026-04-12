@@ -13,13 +13,12 @@ Run: python scripts/agent_relationships.py [--dry-run]
 import sys
 import uuid
 sys.path.insert(0, __file__.rsplit('/', 1)[0])
-from _db import check_write_access, SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_ANON_KEY
+from _db import check_write_access, SUPABASE_URL, get_headers
 import requests
 from datetime import datetime
 
 DRY_RUN = '--dry-run' in sys.argv
-KEY = SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY
-HEADERS_R = {'apikey': KEY, 'Authorization': f'Bearer {KEY}', 'Content-Type': 'application/json'}
+HEADERS_R = get_headers()
 HEADERS_W = {**HEADERS_R, 'Prefer': 'return=minimal'}
 
 def fetch_all(endpoint, params):

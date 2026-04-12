@@ -46,7 +46,7 @@ def main():
     issues = []
 
     # Check financial_history orphans
-    fh = fetch_all('financial_history', 'id,cert_number,period_date')
+    fh = fetch_all('financial_history', 'id,cert_number,period')
     null_cert_fh = [r for r in fh if r.get('cert_number') is None]
     orphan_fh = [r for r in fh if r.get('cert_number') is not None and r['cert_number'] not in valid_certs]
     print(f'financial_history: {len(fh):,} records')
@@ -55,17 +55,20 @@ def main():
     if orphan_fh:
         issues.append(f'[C002] {len(orphan_fh)} financial_history records with no matching institution')
         for r in orphan_fh[:5]:
-            print(f'  Orphan: cert={r["cert_number"]} period={r.get("period_date")}')
+            print(f'  Orphan: cert={r["cert_number"]} period={r.get("period")}')
 
     # Check financial_history_quarterly orphans
-    fhq = fetch_all('financial_history_quarterly', 'id,cert_number,period_date')
-    null_cert_fhq = [r for r in fhq if r.get('cert_number') is None]
-    orphan_fhq = [r for r in fhq if r.get('cert_number') is not None and r['cert_number'] not in valid_certs]
+    # Uses warehouse schema: entity_table + entity_id (UUID), no cert_number
+    fhq = fetch_all('financial_history_quarterly', 'id,entity_table,entity_id,period')
+    null_eid_fhq = [r for r in fhq if r.get('entity_id') is None]
+    orphan_fhq = [r for r in fhq if r.get('entity_id') is not None
+                  and r.get('entity_table') == 'institutions'
+                  and r['entity_id'] not in valid_ids]
     print(f'financial_history_quarterly: {len(fhq):,} records')
-    if null_cert_fhq:
-        issues.append(f'[C003] {len(null_cert_fhq)} financial_history_quarterly records with NULL cert_number')
+    if null_eid_fhq:
+        issues.append(f'[C003] {len(null_eid_fhq)} financial_history_quarterly records with NULL entity_id')
     if orphan_fhq:
-        issues.append(f'[C004] {len(orphan_fhq)} quarterly records with no matching institution')
+        issues.append(f'[C004] {len(orphan_fhq)} quarterly records with no matching institution entity_id')
 
     # Check branches orphans (branches table uses cert_number not institution_id)
     branches = fetch_all('branches', 'id,cert_number,branch_name')
@@ -78,8 +81,11 @@ def main():
         issues.append(f'[C006] {len(orphan_br)} branches with no matching institution')
 
     # Check charter_events orphans
-    events = fetch_all('charter_events', 'id,cert_number,event_type')
-    orphan_ev = [r for r in events if r.get('cert_number') is not None and r['cert_number'] not in valid_certs]
+    # Uses warehouse schema: entity_table + entity_id (UUID), no cert_number
+    events = fetch_all('charter_events', 'id,entity_table,entity_id,event_type')
+    orphan_ev = [r for r in events if r.get('entity_id') is not None
+                 and r.get('entity_table') == 'institutions'
+                 and r['entity_id'] not in valid_ids]
     print(f'charter_events: {len(events):,} records')
     if orphan_ev:
         issues.append(f'[W001] {len(orphan_ev)} charter_events with no matching institution (may be historical)')
