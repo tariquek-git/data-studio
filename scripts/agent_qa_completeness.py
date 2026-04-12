@@ -8,12 +8,11 @@ Run: python scripts/agent_qa_completeness.py
 """
 import sys
 sys.path.insert(0, __file__.rsplit('/', 1)[0])
-from _db import select, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY
+from _db import select, SUPABASE_URL, get_headers
 import requests
 from datetime import datetime
 
-KEY = SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY
-HEADERS = {'apikey': KEY, 'Authorization': f'Bearer {KEY}', 'Content-Type': 'application/json'}
+HEADERS = get_headers()
 
 def fetch_all(table, columns='*', filters=None):
     rows = []

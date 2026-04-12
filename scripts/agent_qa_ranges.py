@@ -8,12 +8,11 @@ Run: python scripts/agent_qa_ranges.py
 """
 import sys
 sys.path.insert(0, __file__.rsplit('/', 1)[0])
-from _db import SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_ANON_KEY
+from _db import SUPABASE_URL, get_headers
 import requests
 from datetime import datetime
 
-KEY = SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY
-HEADERS = {'apikey': KEY, 'Authorization': f'Bearer {KEY}', 'Content-Type': 'application/json'}
+HEADERS = get_headers()
 
 def fetch_all():
     rows = []

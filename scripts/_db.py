@@ -40,6 +40,11 @@ def _headers(write=False):
         'Prefer': 'return=minimal',
     }
 
+# Public alias — agents should import this instead of building HEADERS by hand.
+def get_headers(write=False):
+    """Return PostgREST auth headers. Pass write=True for INSERT/PATCH/DELETE."""
+    return _headers(write)
+
 
 def sql(query: str, write=False) -> list[dict]:
     """Execute raw SQL via Supabase REST RPC endpoint."""

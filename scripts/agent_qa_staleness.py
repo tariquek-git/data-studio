@@ -8,11 +8,10 @@ Run: python scripts/agent_qa_staleness.py
 import sys
 from datetime import datetime, date
 sys.path.insert(0, __file__.rsplit('/', 1)[0])
-from _db import SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_ANON_KEY
+from _db import SUPABASE_URL, get_headers
 import requests
 
-KEY = SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY
-HEADERS = {'apikey': KEY, 'Authorization': f'Bearer {KEY}', 'Content-Type': 'application/json'}
+HEADERS = get_headers()
 STALE_MONTHS = 18
 TODAY = date.today()
 

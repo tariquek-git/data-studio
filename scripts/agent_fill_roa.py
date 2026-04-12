@@ -9,18 +9,12 @@ Run: python scripts/agent_fill_roa.py [--dry-run]
 import sys
 import time
 sys.path.insert(0, __file__.rsplit('/', 1)[0])
-from _db import check_write_access, SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_ANON_KEY
+from _db import check_write_access, SUPABASE_URL, get_headers
 import requests
 from datetime import datetime
 
 DRY_RUN = '--dry-run' in sys.argv
-KEY = SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY
-HEADERS = {
-    'apikey': KEY,
-    'Authorization': f'Bearer {KEY}',
-    'Content-Type': 'application/json',
-    'Prefer': 'return=minimal',
-}
+HEADERS = get_headers(write=True)
 
 def fetch_missing_roa():
     """Fetch institutions where roa is NULL but net_income and total_assets are set."""
