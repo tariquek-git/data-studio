@@ -2,6 +2,70 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { apiHandler } from '../../lib/api-handler.js';
 import { getSupabase } from '../../lib/supabase.js';
 
+/** Strip PostgREST special characters from user input before interpolating into .or() filters. */
+function sanitizePostgrestText(text: string): string {
+  return text.replace(/[(),\\.*"'%]/g, '');
+}
+
+interface BankCapabilities {
+  brim_score: number | null;
+  brim_tier: string | null;
+  card_portfolio_size: number | null;
+  issues_credit_cards: boolean | null;
+  core_processor: string | null;
+  agent_bank_program: string | null;
+}
+
+interface InstitutionRow {
+  id: string;
+  cert_number: number;
+  name: string;
+  state: string | null;
+  city: string | null;
+  charter_type: string | null;
+  total_assets: number | null;
+  total_deposits: number | null;
+  total_loans: number | null;
+  num_branches: number | null;
+  roa: number | null;
+  roi: number | null;
+  net_income: number | null;
+  credit_card_loans: number | null;
+  equity_capital: number | null;
+  source: string;
+  country: string;
+  active: boolean;
+  bd_exclusion_reason: string | null;
+  bank_capabilities: BankCapabilities | BankCapabilities[] | null;
+  [key: string]: unknown;
+}
+
+interface FlattenedInstitution {
+  id: string;
+  cert_number: number;
+  name: string;
+  state: string | null;
+  city: string | null;
+  charter_type: string | null;
+  total_assets: number | null;
+  total_deposits: number | null;
+  total_loans: number | null;
+  num_branches: number | null;
+  roa: number | null;
+  roi: number | null;
+  net_income: number | null;
+  credit_card_loans: number | null;
+  equity_capital: number | null;
+  source: string;
+  country: string;
+  brim_score: number | null;
+  brim_tier: string | null;
+  card_portfolio_size: number | null;
+  core_processor: string | null;
+  agent_bank_program: string | null;
+  [key: string]: unknown;
+}
+
 export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: VercelResponse) => {
   const supabase = getSupabase();
 
@@ -46,9 +110,13 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     `, { count: 'exact' })
     .eq('active', true);
 
-  // Text search
+  // Text search — sanitize user input before interpolating into PostgREST filter
   if (q) {
-    query = query.or(`name.ilike.%${q}%,city.ilike.%${q}%,holding_company.ilike.%${q}%`);
+    const safe = sanitizePostgrestText(q);
+    if (safe.length > 0) {
+      const term = `%${safe}%`;
+      query = query.or(`name.ilike.${term},city.ilike.${term},holding_company.ilike.${term}`);
+    }
   }
 
   // Filters
@@ -92,7 +160,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   }
 
   // Flatten bank_capabilities join into top-level fields for convenience
-  let pageInstitutions = (institutions || []).map((inst: any) => {
+  let pageInstitutions: FlattenedInstitution[] = ((institutions ?? []) as InstitutionRow[]).map((inst) => {
     const cap = Array.isArray(inst.bank_capabilities) ? inst.bank_capabilities[0] : inst.bank_capabilities;
     return {
       ...inst,
@@ -106,22 +174,29 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   });
 
   // Apply brim filters in JS (bank_capabilities is a joined table, not filterable server-side easily)
-  if (minBrimScore != null) pageInstitutions = pageInstitutions.filter((i: any) => (i.brim_score ?? 0) >= minBrimScore!);
-  if (brimTier) pageInstitutions = pageInstitutions.filter((i: any) => i.brim_tier === brimTier);
-  if (migrationTargetsOnly) pageInstitutions = pageInstitutions.filter((i: any) => i.agent_bank_program != null && i.agent_bank_program !== '');
+  if (minBrimScore != null) {
+    pageInstitutions = pageInstitutions.filter((i) => (i.brim_score ?? 0) >= minBrimScore);
+  }
+  if (brimTier) {
+    pageInstitutions = pageInstitutions.filter((i) => i.brim_tier === brimTier);
+  }
+  if (migrationTargetsOnly) {
+    pageInstitutions = pageInstitutions.filter((i) => i.agent_bank_program != null && i.agent_bank_program !== '');
+  }
 
-  // Compute aggregations from the returned page (lightweight — full aggs via RPC if needed)
-  const totalAssetsSum = pageInstitutions.reduce((sum: number, i: any) => sum + (i.total_assets || 0), 0);
+  // Compute aggregations from the filtered page
+  const totalAssetsSum = pageInstitutions.reduce((sum, i) => sum + (i.total_assets || 0), 0);
   const stateMap: Record<string, number> = {};
   const charterMap: Record<string, number> = {};
   for (const inst of pageInstitutions) {
-    if ((inst as any).state) stateMap[(inst as any).state] = (stateMap[(inst as any).state] || 0) + 1;
-    if ((inst as any).charter_type) charterMap[(inst as any).charter_type] = (charterMap[(inst as any).charter_type] || 0) + 1;
+    if (inst.state) stateMap[inst.state] = (stateMap[inst.state] || 0) + 1;
+    if (inst.charter_type) charterMap[inst.charter_type] = (charterMap[inst.charter_type] || 0) + 1;
   }
   const aggregations = {
     total_count: count || 0,
+    filtered_count: pageInstitutions.length,
     total_assets_sum: totalAssetsSum,
-    total_deposits_sum: pageInstitutions.reduce((sum: number, i: any) => sum + (i.total_deposits || 0), 0),
+    total_deposits_sum: pageInstitutions.reduce((sum, i) => sum + (i.total_deposits || 0), 0),
     avg_assets: pageInstitutions.length > 0 ? totalAssetsSum / pageInstitutions.length : 0,
     by_state: stateMap,
     by_charter_type: charterMap,
@@ -129,8 +204,9 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
 
   res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
   return res.json({
-    institutions: institutions || [],
+    institutions: pageInstitutions,
     total: count || 0,
+    filtered_total: pageInstitutions.length,
     page,
     per_page: perPage,
     aggregations,

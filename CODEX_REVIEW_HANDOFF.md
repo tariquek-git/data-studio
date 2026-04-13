@@ -275,6 +275,29 @@ None — between slices.
 
 ## Ready For Review
 
+### Slice: search-and-screen-fixes (2026-04-12)
+**Status:** Ready for Codex review
+
+**Files changed:**
+- `api/institutions/search.ts` — Three fixes:
+  1. Returns `pageInstitutions` (post-Brim-filtered, flattened) instead of raw `institutions`
+  2. Added `sanitizePostgrestText()` to sanitize user input before `.or()` interpolation
+  3. Replaced all `any` types with proper `InstitutionRow`, `BankCapabilities`, `FlattenedInstitution` interfaces
+  4. Added `filtered_total` and `filtered_count` to response so consumers know when Brim filters reduced the set
+- `api/institutions/screen.ts` — Replaced all `(inst: any)` casts with typed `ScreenRow` interface
+
+**Intent / expected behavior:**
+- Resolves Codex review finding HIGH #3: search response now matches what Brim filters actually produce
+- Resolves Codex review finding MEDIUM #5: raw PostgREST interpolation is sanitized
+- Resolves `any` type violations in both files per CODEX.md hard rule #1
+
+**Risk notes:**
+- `filtered_total` is a new field in the response — frontend consumers that rely on `total` for pagination will still work (unchanged), but can now also use `filtered_total` for accurate counts when Brim filters are active
+- screen.ts offset behavior is intentional: when post-filters are active, fetchOffset=0 fetches up to 2000 rows, then slices in JS at `results.slice(offset, offset + limit)` — this is correct for computed-ratio filters
+
+**Known intentional behavior:**
+- screen.ts post-filter paging is by design (can't push equity_ratio or LDR to SQL without generated columns)
+
 ### End-to-End Review Queue (2026-04-13)
 
 **Current status:** broad review requested (Codex on implementation slice; Codex for review).  

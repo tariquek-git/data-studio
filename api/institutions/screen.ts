@@ -92,19 +92,35 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     return res.status(500).json({ error: 'Screener query failed' });
   }
 
-  let results = institutions || [];
+  interface ScreenRow {
+    id: string;
+    cert_number: number;
+    name: string;
+    state: string | null;
+    total_assets: number | null;
+    total_deposits: number | null;
+    total_loans: number | null;
+    equity_capital: number | null;
+    credit_card_loans: number | null;
+    roa: number | null;
+    roi: number | null;
+    raw_data?: Record<string, unknown> | null;
+    [key: string]: unknown;
+  }
+
+  let results: ScreenRow[] = (institutions ?? []) as ScreenRow[];
 
   // ─── Post-filters ────────────────────────────────────────────────────────
 
   if (equityRatioMin != null) {
-    results = results.filter((inst: any) => {
+    results = results.filter((inst) => {
       if (!inst.total_assets || inst.equity_capital == null) return false;
       return (inst.equity_capital / inst.total_assets) * 100 >= equityRatioMin;
     });
   }
 
   if (ldrMin != null || ldrMax != null) {
-    results = results.filter((inst: any) => {
+    results = results.filter((inst) => {
       if (!inst.total_deposits || inst.total_loans == null) return false;
       const ldr = (inst.total_loans / inst.total_deposits) * 100;
       if (ldrMin != null && ldr < ldrMin) return false;
@@ -115,8 +131,8 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
 
   if (craRating.length > 0) {
     const institutionIds = results
-      .map((inst: any) => inst.id)
-      .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0);
+      .map((inst) => inst.id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
 
     let appliedWarehouseFacts = false;
     if (institutionIds.length > 0) {
@@ -137,7 +153,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
           }
         }
 
-        results = results.filter((inst: any) => {
+        results = results.filter((inst) => {
           const latestCra = latestCraByEntity.get(inst.id);
           return latestCra != null && craRating.includes(latestCra);
         });
@@ -147,7 +163,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     }
 
     if (!appliedWarehouseFacts) {
-      results = results.filter((inst: any) => {
+      results = results.filter((inst) => {
         if (!inst.raw_data) return false;
         const crara = Number(inst.raw_data['CRARA']);
         return craRating.includes(crara);
@@ -165,7 +181,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     };
 
     const certNumbers = results
-      .map((inst: any) => inst.cert_number)
+      .map((inst) => inst.cert_number)
       .filter((cert: unknown): cert is number => typeof cert === 'number' && Number.isFinite(cert));
 
     if (certNumbers.length > 0) {
@@ -185,7 +201,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
           byCert[key].push(row);
         }
 
-        results = results.filter((inst: any) => {
+        results = results.filter((inst) => {
           if (typeof inst.cert_number !== 'number') return false;
           const rows = byCert[String(inst.cert_number)];
           if (!rows || rows.length < 2) return false;
