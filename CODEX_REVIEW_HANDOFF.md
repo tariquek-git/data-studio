@@ -273,6 +273,21 @@ Other files likely to matter soon:
 ## Active Slice
 None — between slices.
 
+### Slice: entity-service-table-hint (2026-04-12)
+**Status:** Ready for Codex review
+
+**Files changed:**
+- `lib/entity-service.ts` — `getEntityById()` now accepts optional `tableHint?: EntityStorageTable` parameter. When provided, only queries the specified table instead of both `institutions` and `registry_entities` in parallel. `resolveEntityRefs()` now passes `ref.table` as the hint.
+
+**Intent / expected behavior:**
+- Resolves Codex finding HIGH #1: `resolveEntityRefs()` no longer ignores `ref.table` — it passes it to `getEntityById()` as a table hint
+- When table is known (relationship edges always carry `from_entity_table`/`to_entity_table`), only one DB query is made instead of two
+- All existing callers without a table hint (`getEntityRelationships`, `getEntityFacts`, `getEntitySources`, `getEntityHistory`, `getEntityContext`) continue to work with dual-table lookup
+
+**Risk notes:**
+- Backward-compatible: `tableHint` is optional, existing call sites unchanged
+- `loadInstitutionById` and `loadRegistryById` return types are inferred via `Awaited<ReturnType<...>>` to avoid hardcoding row shapes
+
 ### Slice: graph-hop-table-filter (2026-04-12)
 **Status:** Ready for Codex review
 

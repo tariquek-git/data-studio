@@ -806,11 +806,26 @@ async function loadRegistryById(entityId: string) {
   );
 }
 
-export async function getEntityById(entityId: string): Promise<EntityDetail | null> {
-  const [institutionRow, registryRow] = await Promise.all([
-    loadInstitutionById(entityId),
-    loadRegistryById(entityId),
-  ]);
+export async function getEntityById(
+  entityId: string,
+  tableHint?: EntityStorageTable,
+): Promise<EntityDetail | null> {
+  // When a table hint is provided, only query that table to avoid wasted lookups
+  // and prevent cross-table UUID collisions.
+  let institutionRow: Awaited<ReturnType<typeof loadInstitutionById>> = null;
+  let registryRow: Awaited<ReturnType<typeof loadRegistryById>> = null;
+
+  if (tableHint === 'institutions') {
+    institutionRow = await loadInstitutionById(entityId);
+  } else if (tableHint === 'registry_entities') {
+    registryRow = await loadRegistryById(entityId);
+  } else {
+    // No hint — query both tables in parallel (original behavior)
+    [institutionRow, registryRow] = await Promise.all([
+      loadInstitutionById(entityId),
+      loadRegistryById(entityId),
+    ]);
+  }
 
   if (!institutionRow && !registryRow) return null;
 
@@ -1078,7 +1093,7 @@ async function resolveEntityRefs(refs: Array<{ table: EntityStorageTable; id: st
 
   const resolved = new Map<string, EntitySummary>();
   for (const ref of unique) {
-    const entity = await getEntityById(ref.id);
+    const entity = await getEntityById(ref.id, ref.table);
     if (entity) {
       resolved.set(`${ref.table}:${ref.id}`, entity);
     }
