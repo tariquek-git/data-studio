@@ -6,7 +6,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { useNavigate } from 'react-router';
-import { Search, Compass, GitCompare, Map, Sparkles, X } from 'lucide-react';
+import { Search, Compass, GitCompare, Map, Sparkles, Target, X } from 'lucide-react';
 import { useCommandBar } from './CommandBarProvider';
 import { useCommandBarSearch, type CommandBarAction } from './useCommandBarSearch';
 import type { Institution } from '@/types/institution';
@@ -16,8 +16,8 @@ import type { Institution } from '@/types/institution';
 const SUGGESTED_QUERIES = [
   'Banks in Texas over $1B',
   'BaaS sponsor banks',
+  'Migration targets',
   'Credit card issuers in California',
-  'Largest credit unions',
   'Compare TD Bank and RBC',
 ];
 
@@ -38,10 +38,11 @@ function sourceLabel(source: string): string {
 // ─── Action icon ─────────────────────────────────────────────────────────────
 
 function ActionIcon({ icon }: { icon: CommandBarAction['icon'] }) {
-  const cls = 'h-4 w-4 shrink-0 text-blue-500';
-  if (icon === 'compare') return <GitCompare className={cls} />;
-  if (icon === 'map') return <Map className={cls} />;
-  return <Compass className={cls} />;
+  const cls = 'h-4 w-4 shrink-0';
+  if (icon === 'brim') return <Target className={`${cls} text-violet-500`} />;
+  if (icon === 'compare') return <GitCompare className={`${cls} text-blue-500`} />;
+  if (icon === 'map') return <Map className={`${cls} text-blue-500`} />;
+  return <Compass className={`${cls} text-blue-500`} />;
 }
 
 // ─── Result item types for unified keyboard nav ───────────────────────────────
@@ -194,8 +195,8 @@ export function CommandBar() {
         aria-label="Search"
       >
         {/* Input area */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100">
-          <Search className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-surface-700/50">
+          <Search className="h-5 w-5 shrink-0 text-surface-400" aria-hidden="true" />
           <input
             ref={inputRef}
             type="text"
@@ -206,12 +207,12 @@ export function CommandBar() {
             aria-label="Search institutions"
             autoComplete="off"
             spellCheck={false}
-            className="flex-1 text-lg bg-transparent outline-none text-slate-900 placeholder:text-slate-400"
+            className="flex-1 text-lg bg-transparent outline-none text-surface-100 placeholder:text-surface-500"
           />
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              className="p-1 rounded text-surface-400 hover:text-surface-200 hover:bg-surface-700"
               aria-label="Clear search"
             >
               <X className="h-4 w-4" />
@@ -219,7 +220,7 @@ export function CommandBar() {
           )}
           {(isLoadingInstitutions || isLoadingAi) && (
             <div
-              className="h-4 w-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"
+              className="h-4 w-4 rounded-full border-2 border-primary-400 border-t-transparent animate-spin"
               aria-label="Loading"
             />
           )}
@@ -232,7 +233,7 @@ export function CommandBar() {
               <button
                 key={sq}
                 onClick={() => setQuery(sq)}
-                className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+                className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-surface-700 text-surface-300 hover:bg-surface-600 hover:text-surface-100 transition-colors"
               >
                 {sq}
               </button>
@@ -251,7 +252,7 @@ export function CommandBar() {
             {/* Institution results */}
             {institutions.length > 0 && (
               <div className="py-1">
-                <div className="px-4 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <div className="px-4 py-1.5 text-xs font-semibold text-surface-500 uppercase tracking-wider">
                   Institutions
                 </div>
                 {institutions.map((inst, idx) => {
@@ -266,22 +267,22 @@ export function CommandBar() {
                         close();
                       }}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                        isSelected ? 'bg-blue-50' : 'hover:bg-slate-50'
+                        isSelected ? 'bg-primary-500/15' : 'hover:bg-surface-700/50'
                       }`}
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-slate-900 truncate">
+                        <div className="font-semibold text-surface-100 truncate">
                           {inst.name}
                         </div>
-                        <div className="text-sm text-slate-500 truncate">
+                        <div className="text-sm text-surface-400 truncate">
                           {[inst.city, inst.state].filter(Boolean).join(', ')}
                           {inst.total_assets != null && (
-                            <span className="ml-2">{formatAssets(inst.total_assets)}</span>
+                            <span className="ml-2 text-primary-400">{formatAssets(inst.total_assets)}</span>
                           )}
                         </div>
                       </div>
                       {inst.source && (
-                        <span className="shrink-0 text-xs font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">
+                        <span className="shrink-0 text-xs font-medium px-1.5 py-0.5 rounded bg-surface-700 text-surface-400">
                           {sourceLabel(inst.source)}
                         </span>
                       )}
@@ -293,8 +294,8 @@ export function CommandBar() {
 
             {/* Action rows */}
             {actions.length > 0 && (
-              <div className="py-1 border-t border-slate-100">
-                <div className="px-4 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <div className="py-1 border-t border-surface-700/50">
+                <div className="px-4 py-1.5 text-xs font-semibold text-surface-500 uppercase tracking-wider">
                   Actions
                 </div>
                 {actions.map((action, idx) => {
@@ -310,11 +311,13 @@ export function CommandBar() {
                         close();
                       }}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                        isSelected ? 'bg-blue-50' : 'hover:bg-slate-50'
+                        isSelected ? 'bg-primary-500/15' : 'hover:bg-surface-700/50'
                       }`}
                     >
                       <ActionIcon icon={action.icon} />
-                      <span className="text-blue-600 font-medium text-sm truncate">
+                      <span className={`font-medium text-sm truncate ${
+                        action.icon === 'brim' ? 'text-violet-600' : 'text-primary-400'
+                      }`}>
                         {action.label}
                       </span>
                     </button>
@@ -328,17 +331,17 @@ export function CommandBar() {
         {/* AI Insight section */}
         {aiResult?.explanation && (
           <div
-            className={`mx-4 mb-3 mt-1 rounded-xl p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 transition-all duration-300 ${
+            className={`mx-4 mb-3 mt-1 rounded-xl p-4 bg-gradient-to-r from-primary-500/10 to-violet-500/10 border border-primary-500/20 transition-all duration-300 ${
               showAi ? 'command-bar-ai-visible' : 'command-bar-ai-hidden'
             }`}
           >
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-4 w-4 text-blue-500 shrink-0" aria-hidden="true" />
-              <span className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
+              <Sparkles className="h-4 w-4 text-primary-400 shrink-0" aria-hidden="true" />
+              <span className="text-xs font-semibold text-primary-300 uppercase tracking-wider">
                 AI Insight
               </span>
             </div>
-            <p className="text-sm text-slate-700 leading-relaxed">
+            <p className="text-sm text-surface-200 leading-relaxed">
               {aiResult.explanation}
             </p>
             {Object.keys(aiResult.filters).length > 0 && (
@@ -356,7 +359,7 @@ export function CommandBar() {
                   navigate(`/explore?${params.toString()}`);
                   close();
                 }}
-                className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                className="mt-3 text-sm font-semibold text-primary-400 hover:text-primary-300 transition-colors"
               >
                 Explore results →
               </button>
@@ -366,23 +369,23 @@ export function CommandBar() {
 
         {/* Empty state */}
         {query.trim().length >= 1 && !hasResults && !isLoadingInstitutions && (
-          <div className="px-4 py-8 text-center text-slate-400 text-sm">
+          <div className="px-4 py-8 text-center text-surface-500 text-sm">
             No results for &ldquo;{query}&rdquo;
           </div>
         )}
 
         {/* Footer: keyboard hints */}
-        <div className="flex items-center gap-4 px-4 py-2.5 border-t border-slate-100 text-xs text-slate-400">
+        <div className="flex items-center gap-4 px-4 py-2.5 border-t border-surface-700/50 text-xs text-surface-500">
           <span>
-            <kbd className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono text-xs">↑↓</kbd>
+            <kbd className="px-1.5 py-0.5 rounded bg-surface-700 text-surface-400 font-mono text-xs">↑↓</kbd>
             {' '}navigate
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono text-xs">↵</kbd>
+            <kbd className="px-1.5 py-0.5 rounded bg-surface-700 text-surface-400 font-mono text-xs">↵</kbd>
             {' '}select
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono text-xs">Esc</kbd>
+            <kbd className="px-1.5 py-0.5 rounded bg-surface-700 text-surface-400 font-mono text-xs">Esc</kbd>
             {' '}close
           </span>
         </div>

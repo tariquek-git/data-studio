@@ -30,27 +30,27 @@ export function EntityProfileRail({
 
   return (
     <div className="space-y-4 xl:sticky xl:top-24">
-      <Card className="border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.92),rgba(2,6,23,0.96))] text-slate-100 shadow-2xl shadow-slate-950/30">
+      <Card className="border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-200/50/30">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-300/80">Identity rail</p>
-            <h2 className="mt-2 text-xl font-semibold text-white">{entity.name}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">{entity.context_summary}</p>
+            <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-600/80">Identity rail</p>
+            <h2 className="mt-2 text-xl font-semibold text-slate-900">{entity.name}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-700">{entity.context_summary}</p>
           </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-950 p-3 text-cyan-200">
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 text-cyan-600">
             <ShieldCheck className="h-5 w-5" />
           </div>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <Badge color="gray" className="bg-slate-900 text-slate-100 ring-slate-700">
+          <Badge color="gray" className="bg-slate-50 text-slate-900 ring-slate-200">
             {entity.profile_kind.replace(/_/g, ' ')}
           </Badge>
-          <Badge color="green" className="bg-emerald-950/70 text-emerald-200 ring-emerald-800/70">
+          <Badge color="green" className="bg-emerald-50 text-emerald-700 ring-emerald-200">
             {entity.source_authority}
           </Badge>
           {primaryRole && (
-            <Badge color="blue" className="bg-cyan-950/60 text-cyan-200 ring-cyan-800/60">
+            <Badge color="blue" className="bg-cyan-50 text-cyan-700 ring-cyan-200">
               {primaryRole.replace(/_/g, ' ')}
             </Badge>
           )}
@@ -65,15 +65,15 @@ export function EntityProfileRail({
             ['Freshness', entity.data_as_of ?? entity.last_synced_at ?? 'Unknown'],
             ['Confidence', entity.confidence_score != null ? `${Math.round(entity.confidence_score * 100)}%` : 'n/a'],
           ].map(([label, value]) => (
-            <div key={label} className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+            <div key={label} className="rounded-xl border border-slate-200 bg-white/70 p-3">
               <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{label}</p>
-              <p className="mt-1 text-sm text-slate-100">{value}</p>
+              <p className="mt-1 text-sm text-slate-900">{value}</p>
             </div>
           ))}
         </div>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900/80 text-slate-100">
+      <Card className="border-slate-200 bg-slate-50/80 text-slate-900">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Drill paths</p>
           <Waypoints className="h-4 w-4 text-slate-500" />
@@ -81,20 +81,20 @@ export function EntityProfileRail({
         <div className="mt-4 space-y-2">
           <Link
             to={buildSearchUrl({ country: entity.country, profile_kind: entity.profile_kind })}
-            className="block rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-3 text-sm text-slate-200 transition-colors hover:border-cyan-500/50 hover:bg-slate-900"
+            className="block rounded-xl border border-slate-200 bg-white/70 px-3 py-3 text-sm text-slate-800 transition-colors hover:border-cyan-500/50 hover:bg-slate-50"
           >
             Open peer set in {entity.country_label}
           </Link>
           <Link
             to={buildSearchUrl({ regulator: entity.regulator ?? entity.source_authority })}
-            className="block rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-3 text-sm text-slate-200 transition-colors hover:border-cyan-500/50 hover:bg-slate-900"
+            className="block rounded-xl border border-slate-200 bg-white/70 px-3 py-3 text-sm text-slate-800 transition-colors hover:border-cyan-500/50 hover:bg-slate-50"
           >
             Explore same regulator / authority
           </Link>
           {entity.charter_family && (
             <Link
               to={buildSearchUrl({ charter_family: entity.charter_family, country: entity.country })}
-              className="block rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-3 text-sm text-slate-200 transition-colors hover:border-cyan-500/50 hover:bg-slate-900"
+              className="block rounded-xl border border-slate-200 bg-white/70 px-3 py-3 text-sm text-slate-800 transition-colors hover:border-cyan-500/50 hover:bg-slate-50"
             >
               Compare same charter family
             </Link>
@@ -102,7 +102,7 @@ export function EntityProfileRail({
           {primaryRole && (
             <Link
               to={buildSearchUrl({ business_role: primaryRole })}
-              className="block rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-3 text-sm text-slate-200 transition-colors hover:border-cyan-500/50 hover:bg-slate-900"
+              className="block rounded-xl border border-slate-200 bg-white/70 px-3 py-3 text-sm text-slate-800 transition-colors hover:border-cyan-500/50 hover:bg-slate-50"
             >
               Trace same business role
             </Link>
@@ -110,7 +110,7 @@ export function EntityProfileRail({
         </div>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900/80 text-slate-100">
+      <Card className="border-slate-200 bg-slate-50/80 text-slate-900">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
           {[
             { label: 'Context', value: `${contextCompleteness}%`, icon: <Landmark className="h-4 w-4" /> },
@@ -118,12 +118,12 @@ export function EntityProfileRail({
             { label: 'Graph', value: relationshipCount.toLocaleString(), icon: <Waypoints className="h-4 w-4" /> },
             { label: 'Sources', value: sourceCount.toLocaleString(), icon: <Globe className="h-4 w-4" /> },
           ].map((metric) => (
-            <div key={metric.label} className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+            <div key={metric.label} className="rounded-xl border border-slate-200 bg-white/70 p-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{metric.label}</p>
                 <div className="text-slate-500">{metric.icon}</div>
               </div>
-              <p className="mt-2 text-lg font-semibold text-white">{metric.value}</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">{metric.value}</p>
             </div>
           ))}
         </div>

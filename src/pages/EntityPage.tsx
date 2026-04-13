@@ -61,7 +61,7 @@ function HeaderLinkButton({
   return (
     <Link
       to={to}
-      className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-800 hover:border-slate-600"
+      className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-100 hover:border-slate-200"
     >
       {children}
     </Link>
@@ -82,14 +82,14 @@ function InsightCard({
   icon: ReactNode;
 }) {
   return (
-    <Card className="border-slate-800 bg-slate-900/80 text-slate-100 shadow-2xl shadow-slate-950/30">
+    <Card className="border-slate-200 bg-slate-50/80 text-slate-900 shadow-2xl shadow-slate-200/50">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">{eyebrow}</p>
-          <h3 className="mt-2 text-lg font-semibold text-white">{title}</h3>
-          <p className="mt-1 text-sm leading-relaxed text-slate-400">{summary}</p>
+          <h3 className="mt-2 text-lg font-semibold text-slate-900">{title}</h3>
+          <p className="mt-1 text-sm leading-relaxed text-slate-500">{summary}</p>
         </div>
-        <div className="rounded-2xl border border-slate-800 bg-slate-950 p-3 text-cyan-200">{icon}</div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 text-cyan-600">{icon}</div>
       </div>
       {children}
     </Card>
@@ -109,8 +109,8 @@ function sourceTone(sourceKind: string) {
 }
 
 function toneByDelta(delta: number | null) {
-  if (delta == null) return 'bg-slate-900 text-slate-300';
-  return delta > 0 ? 'bg-emerald-950 text-emerald-200' : 'bg-amber-950 text-amber-200';
+  if (delta == null) return 'bg-slate-50 text-slate-700';
+  return delta > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700';
 }
 
 function formatSeriesValue(value: number, unit: string | null) {
@@ -291,11 +291,11 @@ export default function EntityPage() {
 
   if (entityQuery.isLoading && !entity) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] bg-slate-950 px-4 py-8 text-slate-100">
+      <div className="min-h-[calc(100vh-4rem)] bg-white px-4 py-8 text-slate-900">
         <div className="mx-auto max-w-7xl space-y-4">
-          <Skeleton className="h-12 bg-slate-900/70" />
-          <Skeleton className="h-36 bg-slate-900/70" />
-          <Skeleton className="h-80 bg-slate-900/70" />
+          <Skeleton className="h-12 bg-slate-50/70" />
+          <Skeleton className="h-36 bg-slate-50/70" />
+          <Skeleton className="h-80 bg-slate-50/70" />
         </div>
       </div>
     );
@@ -314,8 +314,8 @@ export default function EntityPage() {
           </HeaderLinkButton>
         }
       >
-        <Card className="border-slate-800 bg-slate-900/80 text-slate-100">
-          <p className="text-sm text-slate-300">Try a different entity ID or return to the entity search terminal.</p>
+        <Card className="border-slate-200 bg-slate-50/80 text-slate-900">
+          <p className="text-sm text-slate-700">Try a different entity ID or return to the entity search terminal.</p>
         </Card>
       </EntityShell>
     );
@@ -344,36 +344,36 @@ export default function EntityPage() {
         <EntityMetricStrip
           cards={metrics}
           rightSlot={
-            <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
               <div className="flex flex-wrap gap-2">
-                <Badge color={sourceTone(entity.source_kind)} className="bg-slate-800 text-slate-100 ring-slate-700">
+                <Badge color={sourceTone(entity.source_kind)} className="bg-slate-100 text-slate-900 ring-slate-700">
                   {entity.source_authority}
                 </Badge>
-                <Badge color="gray" className="bg-slate-800 text-slate-100 ring-slate-700">
+                <Badge color="gray" className="bg-slate-100 text-slate-900 ring-slate-700">
                   {entity.entity_type.replace(/_/g, ' ')}
                 </Badge>
                 {entity.business_roles.slice(0, 2).map((role) => (
-                  <Badge key={role} color="blue" className="bg-slate-800 text-slate-100 ring-slate-700">
+                  <Badge key={role} color="blue" className="bg-slate-100 text-slate-900 ring-slate-700">
                     {role.replace(/_/g, ' ')}
                   </Badge>
                 ))}
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-400">
+              <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-500">
                 <div>
                   <p className="uppercase tracking-[0.2em] text-slate-500">Status</p>
-                  <p className="mt-1 text-slate-100">{entity.status.replace(/_/g, ' ')}</p>
+                  <p className="mt-1 text-slate-900">{entity.status.replace(/_/g, ' ')}</p>
                 </div>
                 <div>
                   <p className="uppercase tracking-[0.2em] text-slate-500">Updated</p>
-                  <p className="mt-1 text-slate-100">{entity.last_synced_at ?? entity.data_as_of ?? 'Unknown'}</p>
+                  <p className="mt-1 text-slate-900">{entity.last_synced_at ?? entity.data_as_of ?? 'Unknown'}</p>
                 </div>
                 <div>
                   <p className="uppercase tracking-[0.2em] text-slate-500">Country</p>
-                  <p className="mt-1 text-slate-100">{entity.country_label}</p>
+                  <p className="mt-1 text-slate-900">{entity.country_label}</p>
                 </div>
                 <div>
                   <p className="uppercase tracking-[0.2em] text-slate-500">Confidence</p>
-                  <p className="mt-1 text-slate-100">{entity.confidence_score != null ? `${Math.round(entity.confidence_score * 100)}%` : 'n/a'}</p>
+                  <p className="mt-1 text-slate-900">{entity.confidence_score != null ? `${Math.round(entity.confidence_score * 100)}%` : 'n/a'}</p>
                 </div>
               </div>
             </div>
@@ -400,9 +400,9 @@ export default function EntityPage() {
                 ['External IDs', entity.external_ids.length > 0 ? entity.external_ids.map((id) => `${id.id_type}: ${id.id_value}`).join(' · ') : 'None'],
                 ['Tags', entity.tags.length > 0 ? entity.tags.slice(0, 4).map((tag) => `${tag.tag_key}: ${tag.tag_value}`).join(' · ') : 'No tags loaded'],
               ].map(([label, value]) => (
-                <div key={label} className="rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+                <div key={label} className="rounded-xl border border-slate-200 bg-white/80 p-3">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{label}</p>
-                  <p className="mt-1 text-sm leading-snug text-white">{value}</p>
+                  <p className="mt-1 text-sm leading-snug text-slate-900">{value}</p>
                 </div>
               ))}
             </div>
@@ -411,7 +411,7 @@ export default function EntityPage() {
                 href={entity.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-cyan-300 hover:text-cyan-200"
+                className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-cyan-600 hover:text-cyan-600"
               >
                 Open website
                 <ExternalLink className="h-4 w-4" />
@@ -431,15 +431,15 @@ export default function EntityPage() {
                 { label: 'Company', value: sourceBreakdown.company },
                 { label: 'Curated', value: sourceBreakdown.curated },
               ].map((bucket) => (
-                <div key={bucket.label} className="rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+                <div key={bucket.label} className="rounded-xl border border-slate-200 bg-white/80 p-3">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{bucket.label}</p>
-                  <p className="mt-1 text-lg font-semibold text-white">{bucket.value}</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">{bucket.value}</p>
                 </div>
               ))}
             </div>
-            <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+            <div className="mt-4 rounded-xl border border-slate-200 bg-white/80 p-3">
               <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Evidence summary</p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">
                 {sourceBreakdown.official > 0
                   ? 'This profile already has primary-source backing in the attached provenance set.'
                   : 'This profile still leans on curated or secondary context and should be treated as partially verified.'}
@@ -458,9 +458,9 @@ export default function EntityPage() {
         >
           <div className="space-y-3">
             {(contextByKey.get('regulatory')?.items ?? []).map((item) => (
-              <div key={item.label} className="flex items-start justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-3 text-sm">
-                <span className="text-slate-400">{item.label}</span>
-                <span className="text-right text-white">{item.value}</span>
+              <div key={item.label} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-3 text-sm">
+                <span className="text-slate-500">{item.label}</span>
+                <span className="text-right text-slate-900">{item.value}</span>
               </div>
             ))}
           </div>
@@ -473,26 +473,26 @@ export default function EntityPage() {
           icon={<Network className="h-5 w-5" />}
         >
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+            <div className="rounded-xl border border-slate-200 bg-white/80 p-3">
               <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Active edges</p>
-              <p className="mt-1 text-lg font-semibold text-white">{activeRelationships}</p>
+              <p className="mt-1 text-lg font-semibold text-slate-900">{activeRelationships}</p>
             </div>
-            <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+            <div className="rounded-xl border border-slate-200 bg-white/80 p-3">
               <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Counterparties</p>
-              <p className="mt-1 text-lg font-semibold text-white">{relationships.length}</p>
+              <p className="mt-1 text-lg font-semibold text-slate-900">{relationships.length}</p>
             </div>
           </div>
           <div className="mt-3 space-y-2">
             {relationships.slice(0, 3).map((relationship) => (
-              <div key={relationship.id} className="rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-3">
-                <p className="text-sm font-medium text-white">
+              <div key={relationship.id} className="rounded-xl border border-slate-200 bg-white/80 px-3 py-3">
+                <p className="text-sm font-medium text-slate-900">
                   {relationship.relationship_label ?? relationship.relationship_type.replace(/_/g, ' ')}
                 </p>
-                <p className="mt-1 text-xs text-slate-400">{relationship.counterparty.name}</p>
+                <p className="mt-1 text-xs text-slate-500">{relationship.counterparty.name}</p>
               </div>
             ))}
             {relationships.length === 0 && (
-              <div className="rounded-xl border border-dashed border-slate-800 p-4 text-sm text-slate-400">
+              <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
                 Relationship enrichment is still sparse for this profile.
               </div>
             )}
@@ -510,10 +510,10 @@ export default function EntityPage() {
               <Link
                 key={link.label}
                 to={link.to}
-                className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-3 text-sm transition-colors hover:border-cyan-500/50 hover:text-cyan-100"
+                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white/80 px-3 py-3 text-sm transition-colors hover:border-cyan-500/50 hover:text-cyan-500"
               >
                 <span>{link.label}</span>
-                <ArrowRight className="h-4 w-4 text-cyan-300" />
+                <ArrowRight className="h-4 w-4 text-cyan-600" />
               </Link>
             ))}
           </div>
@@ -529,12 +529,12 @@ export default function EntityPage() {
         >
           <div className="grid gap-3 sm:grid-cols-3">
             {macroSignals.map((signal) => (
-              <div key={signal.series_key} className="rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+              <div key={signal.series_key} className="rounded-xl border border-slate-200 bg-white/80 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{signal.display_name}</p>
-                    <p className="mt-2 text-lg font-semibold text-white">{formatSeriesValue(signal.value, signal.unit)}</p>
-                    <p className="mt-1 text-xs text-slate-400">{signal.period}</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-900">{formatSeriesValue(signal.value, signal.unit)}</p>
+                    <p className="mt-1 text-xs text-slate-500">{signal.period}</p>
                   </div>
                   <div className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${toneByDelta(signal.delta)}`}>
                     {signal.delta == null ? null : signal.delta > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
@@ -573,9 +573,9 @@ export default function EntityPage() {
             { label: 'Deposits delta', value: formatCurrency(depositDelta) },
             { label: 'Context sections', value: context ? String(context.sections.length) : '0' },
           ].map((item) => (
-            <div key={item.label} className="rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+            <div key={item.label} className="rounded-xl border border-slate-200 bg-white/80 p-3">
               <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{item.label}</p>
-              <p className="mt-1 text-sm font-semibold text-white">{item.value}</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{item.value}</p>
             </div>
           ))}
         </div>

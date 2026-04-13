@@ -42,11 +42,11 @@ function isMigrationTarget(agentProgram: string | null | undefined): boolean {
 }
 
 function BrimScoreBadge({ score }: { score: number | null }) {
-  if (score == null) return <span className="text-slate-400 text-xs">—</span>;
-  let cls = 'bg-slate-100 text-slate-500 border-slate-200';
-  if (score >= 80) cls = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-  else if (score >= 65) cls = 'bg-blue-100 text-blue-800 border-blue-200';
-  else if (score >= 50) cls = 'bg-amber-100 text-amber-700 border-amber-200';
+  if (score == null) return <span className="text-surface-600 text-xs">—</span>;
+  let cls = 'bg-surface-700 text-surface-400 border-surface-600';
+  if (score >= 80) cls = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  else if (score >= 65) cls = 'bg-blue-50 text-blue-700 border-blue-200';
+  else if (score >= 50) cls = 'bg-amber-50 text-amber-700 border-amber-200';
   return (
     <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold border ${cls}`}>
       {score}
@@ -85,13 +85,13 @@ function InstitutionAvatar({ name }: { name: string }) {
 }
 
 function BrimBadge({ score, tier }: { score: number | null; tier: string | null }) {
-  if (score == null) return <span className="text-slate-400 text-xs">—</span>;
+  if (score == null) return <span className="text-surface-600 text-xs">—</span>;
   const colors: Record<string, string> = {
-    A: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    B: 'bg-blue-100 text-blue-800 border-blue-200',
-    C: 'bg-amber-100 text-amber-700 border-amber-200',
-    D: 'bg-slate-200 text-slate-600 border-slate-300',
-    F: 'bg-slate-100 text-slate-400 border-slate-200',
+    A: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    B: 'bg-blue-50 text-blue-700 border-blue-200',
+    C: 'bg-amber-50 text-amber-700 border-amber-200',
+    D: 'bg-surface-700 text-surface-400 border-surface-600',
+    F: 'bg-surface-800 text-surface-500 border-surface-700',
   };
   const cls = colors[tier ?? 'F'] ?? colors['F'];
   return (
@@ -102,12 +102,12 @@ function BrimBadge({ score, tier }: { score: number | null; tier: string | null 
 }
 
 function RoaBadge({ roa }: { roa: number | null }) {
-  if (roa == null) return <span className="text-slate-400 text-sm font-mono">—</span>;
+  if (roa == null) return <span className="text-surface-600 text-sm font-mono">—</span>;
   if (roa < 0)
     return <span className="text-sm font-mono text-red-600">{formatPercent(roa)}</span>;
   if (roa < 1)
     return <span className="text-sm font-mono text-amber-600">{formatPercent(roa)}</span>;
-  return <span className="text-sm font-mono text-green-700">{formatPercent(roa)}</span>;
+  return <span className="text-sm font-mono text-emerald-600">{formatPercent(roa)}</span>;
 }
 
 function charterColor(type: string | null): 'blue' | 'green' | 'purple' | 'gray' {
@@ -147,26 +147,26 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
   }
 
   function SortIcon({ field }: { field: SortField }) {
-    if (store.sortBy !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-slate-300" />;
+    if (store.sortBy !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-surface-600" />;
     return store.sortDir === 'asc'
-      ? <ArrowUp className="h-3.5 w-3.5 text-blue-600" />
-      : <ArrowDown className="h-3.5 w-3.5 text-blue-600" />;
+      ? <ArrowUp className="h-3.5 w-3.5 text-primary-400" />
+      : <ArrowDown className="h-3.5 w-3.5 text-primary-400" />;
   }
 
   if (!isLoading && institutions.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 text-center py-16">
-        <p className="text-slate-500 text-sm">No institutions found. Try adjusting your filters.</p>
+      <div className="rounded-xl border border-surface-700/50 bg-surface-800/60 text-center py-16">
+        <p className="text-surface-400 text-sm">No institutions found. Try adjusting your filters.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
+      <div className="rounded-xl overflow-hidden border border-surface-700/50 bg-surface-800/40">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-100">
-            <thead className="bg-slate-50">
+          <table className="min-w-full divide-y divide-surface-700/30">
+            <thead className="bg-surface-800/60">
               <tr>
                 <th scope="col" className="px-3 py-3 w-10" aria-hidden="true" />
                 <th scope="col" className="px-3 py-3 w-8" aria-label="Select" />
@@ -174,7 +174,7 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
                   <th
                     key={col.key}
                     scope="col"
-                    className={`px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer select-none hover:text-slate-700 ${col.align === 'right' ? 'text-right' : 'text-left'} ${col.hideMobile ? 'hidden sm:table-cell' : ''}`}
+                    className={`px-4 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wider cursor-pointer select-none hover:text-surface-300 transition-colors ${col.align === 'right' ? 'text-right' : 'text-left'} ${col.hideMobile ? 'hidden sm:table-cell' : ''}`}
                     onClick={() => toggleSort(col.key)}
                   >
                     <span className="inline-flex items-center gap-1">
@@ -186,13 +186,13 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
                 <th scope="col" className="px-3 py-3 w-10" aria-label="Watchlist" />
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-slate-100">
+            <tbody className="divide-y divide-surface-700/20">
               {institutions.map((inst, idx) => {
                 const displayName = inst.name || inst.holding_company || `Cert #${inst.cert_number}`;
                 const isSelected = selected.has(inst.cert_number);
                 const isMigration = brimMode && isMigrationTarget(inst.agent_bank_program);
                 const rowBg = isSelected
-                  ? 'bg-blue-50'
+                  ? 'bg-primary-500/10'
                   : isMigration
                   ? 'bg-amber-50/50'
                   : idx % 2 === 1
@@ -201,7 +201,7 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
                 return (
                   <tr
                     key={inst.id}
-                    className={`hover:bg-blue-50/40 transition-colors ${rowBg}`}
+                    className={`hover:bg-surface-700/30 transition-colors ${rowBg}`}
                   >
                     {/* Avatar */}
                     <td className="px-3 py-3 w-10">
@@ -213,7 +213,7 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleSelect(inst.cert_number, displayName)}
-                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        className="h-3.5 w-3.5 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
                       />
                     </td>
 
@@ -224,17 +224,17 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
                           <div className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span
-                                className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${inst.active ? 'bg-green-500' : 'bg-slate-300'}`}
+                                className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${inst.active ? 'bg-emerald-500' : 'bg-surface-600'}`}
                                 title={inst.active ? 'Active' : 'Inactive'}
                               />
                               <Link
                                 to={`/institution/${inst.cert_number}`}
-                                className="text-sm font-medium text-blue-700 hover:text-blue-800 hover:underline"
+                                className="text-sm font-medium text-primary-400 hover:text-primary-300 hover:underline"
                               >
                                 {displayName}
                               </Link>
                               {inst.state && (
-                                <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-300/50">
+                                <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-surface-700 text-surface-400 ring-1 ring-inset ring-surface-600/50">
                                   {inst.state}
                                 </span>
                               )}
@@ -242,12 +242,12 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
                             <div className="flex items-center gap-1 flex-wrap">
                               <BrimOpportunityBadges institution={inst} />
                               {inst.agent_bank_program && (
-                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${isMigration ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${isMigration ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-surface-700 text-surface-400 border-surface-600'}`}>
                                   {inst.agent_bank_program}
                                 </span>
                               )}
                               {inst.core_processor && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border bg-slate-50 text-slate-500 border-slate-200">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border bg-surface-800 text-surface-500 border-surface-700">
                                   {inst.core_processor}
                                 </span>
                               )}
@@ -258,9 +258,8 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
                         <td className="px-4 py-3 whitespace-nowrap text-right">
                           <BrimScoreBadge score={inst.brim_score ?? null} />
                         </td>
-                        {/* State - shown in name cell for Brim mode, skip */}
                         {/* Assets */}
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right font-mono">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-surface-200 text-right font-mono">
                           {formatCurrency(inst.total_assets)}
                         </td>
                         {/* ROA */}
@@ -268,7 +267,7 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
                           <RoaBadge roa={inst.roa} />
                         </td>
                         {/* Card Portfolio */}
-                        <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-slate-700 text-right font-mono">
+                        <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-surface-300 text-right font-mono">
                           {formatCurrency(inst.card_portfolio_size ?? inst.credit_card_loans)}
                         </td>
                       </>
@@ -278,12 +277,12 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span
-                              className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${inst.active ? 'bg-green-500' : 'bg-slate-300'}`}
+                              className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${inst.active ? 'bg-emerald-500' : 'bg-surface-600'}`}
                               title={inst.active ? 'Active' : 'Inactive'}
                             />
                             <Link
                               to={`/institution/${inst.cert_number}`}
-                              className="text-sm font-medium text-blue-700 hover:text-blue-800 hover:underline"
+                              className="text-sm font-medium text-primary-400 hover:text-primary-300 hover:underline"
                             >
                               {displayName}
                             </Link>
@@ -297,19 +296,19 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
                         {/* State */}
                         <td className="px-4 py-3 whitespace-nowrap">
                           {inst.state ? (
-                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-300/50">
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-surface-700 text-surface-400 ring-1 ring-inset ring-surface-600/50">
                               {inst.state}
                             </span>
                           ) : (
-                            <span className="text-slate-400 text-sm">—</span>
+                            <span className="text-surface-600 text-sm">—</span>
                           )}
                         </td>
                         {/* Assets */}
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right font-mono">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-surface-200 text-right font-mono">
                           {formatCurrency(inst.total_assets)}
                         </td>
                         {/* Deposits */}
-                        <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right font-mono">
+                        <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-surface-200 text-right font-mono">
                           {formatCurrency(inst.total_deposits)}
                         </td>
                         {/* ROA */}
@@ -317,7 +316,7 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
                           <RoaBadge roa={inst.roa} />
                         </td>
                         {/* ROE */}
-                        <td className={`hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-right font-mono ${inst.roi != null && inst.roi < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                        <td className={`hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-right font-mono ${inst.roi != null && inst.roi < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                           {formatPercent(inst.roi)}
                         </td>
                         {/* Brim */}
@@ -342,24 +341,24 @@ export function ExploreResultsTable({ institutions, total, isLoading }: ExploreR
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-500">
-            Page {store.page} of {formatNumber(totalPages)} ({formatNumber(total)} total)
+          <p className="text-sm text-surface-500">
+            Page <span className="font-mono text-surface-300">{store.page}</span> of <span className="font-mono text-surface-300">{formatNumber(totalPages)}</span>
           </p>
           <div className="flex items-center gap-2">
             <button
               type="button"
               disabled={store.page <= 1}
               onClick={() => store.setPage(store.page - 1)}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-surface-700 text-sm text-surface-400 hover:text-surface-200 hover:bg-surface-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
+              Prev
             </button>
             <button
               type="button"
               disabled={store.page >= totalPages}
               onClick={() => store.setPage(store.page + 1)}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-surface-700 text-sm text-surface-400 hover:text-surface-200 hover:bg-surface-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
             >
               Next
               <ChevronRight className="h-4 w-4" />

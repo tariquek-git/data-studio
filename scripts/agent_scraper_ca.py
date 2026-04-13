@@ -11,7 +11,7 @@ Rules:
   - Reports are in thousands of CAD → multiply by 1000 before storing
   - cert_number 900001+ for Canadian CUs
   - Delete PDF after extraction
-  - Set data_confidence = 'medium', data_provenance = 'annual_report_pdf'
+  - Set data_confidence = 'medium' with structured annual-report provenance
 
 Run: python scripts/agent_scraper_ca.py [--dry-run] [--cert 900003]
 """
@@ -286,10 +286,10 @@ EXTRACTION_PATTERNS = {
         r'net\s+loans[^\d]+([\d,]+)',
     ],
     'equity_capital': [
-        r'total\s+(?:members\s*[\'']?\s*)?equity[^\d]+([\d,]+)',
-        r'members[\'']?\s+equity[^\d]+([\d,]+)',
+        r"total\s+(?:members\s*['\"]?\s*)?equity[^\d]+([\d,]+)",
+        r"members['\"]?\s+equity[^\d]+([\d,]+)",
         r'total\s+equity\s+and\s+reserves[^\d]+([\d,]+)',
-        r'shareholders[\'"]?\s+equity[^\d]+([\d,]+)',
+        r"shareholders['\"]?\s+equity[^\d]+([\d,]+)",
     ],
     'net_income': [
         r'net\s+(?:income|earnings|surplus|profit)[^\d-]+([\d,]+)',
@@ -514,12 +514,24 @@ def process_cu(target: dict) -> dict:
     print(f'  Extracted: assets={total_assets:,} deposits={financials.get("total_deposits","?"):,} roa={financials.get("roa", "—")}')
 
     # Step 7: Write to DB
+    synced_at = datetime.utcnow().isoformat() + 'Z'
     institution_update = {
         **financials,
         'data_as_of': target['data_as_of'],
-        'last_synced_at': datetime.utcnow().isoformat() + 'Z',
+        'last_synced_at': synced_at,
         'data_confidence': 'medium',
-        'data_provenance': 'annual_report_pdf',
+        'data_provenance': {
+            'sources': [
+                {
+                    'source_key': 'annual_report_pdf',
+                    'source_url': pdf_url,
+                    'fetched_at': synced_at,
+                    'confidence': 65,
+                }
+            ],
+            'last_verified_at': synced_at,
+            'verified_by': 'agent_scraper_ca',
+        },
     }
     ok1 = update_institution(cert, institution_update)
     ok2 = insert_financial_history(cert, financials, target['data_as_of'])

@@ -23,6 +23,9 @@ export function validateProvenance(raw: unknown): DataProvenance {
     if (typeof s.source_key !== 'string' || !s.source_key) {
       throw new Error('provenance source.source_key is required');
     }
+    if (typeof s.source_url !== 'string' || !s.source_url) {
+      throw new Error('provenance source.source_url is required');
+    }
     if (typeof s.fetched_at !== 'string' || !s.fetched_at) {
       throw new Error('provenance source.fetched_at is required');
     }

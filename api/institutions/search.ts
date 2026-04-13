@@ -7,6 +7,31 @@ function sanitizePostgrestText(text: string): string {
   return text.replace(/[(),\\.*"'%]/g, '');
 }
 
+function parseNumber(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseIntParam(value: unknown, fallback: number, min = 1, max = Number.POSITIVE_INFINITY): number {
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function parseIntList(value: unknown): number[] {
+  if (typeof value !== 'string') return [];
+  return value
+    .split(',')
+    .map((item) => Number.parseInt(item.trim(), 10))
+    .filter((num) => !Number.isNaN(num));
+}
+
 interface BankCapabilities {
   brim_score: number | null;
   brim_tier: string | null;
@@ -75,116 +100,155 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   const sources = (req.query.source as string || '').split(',').filter(Boolean);
   const charterTypes = (req.query.charter_types as string || '').split(',').filter(Boolean);
   const regulators = (req.query.regulators as string || '').split(',').filter(Boolean);
-  const minAssets = req.query.min_assets ? Number(req.query.min_assets) : null;
-  const maxAssets = req.query.max_assets ? Number(req.query.max_assets) : null;
-  const minDeposits = req.query.min_deposits ? Number(req.query.min_deposits) : null;
-  const maxDeposits = req.query.max_deposits ? Number(req.query.max_deposits) : null;
-  const minBranches = req.query.min_branches ? Number(req.query.min_branches) : null;
-  const maxBranches = req.query.max_branches ? Number(req.query.max_branches) : null;
-  const minRoa = req.query.min_roa ? Number(req.query.min_roa) : null;
-  const maxRoa = req.query.max_roa ? Number(req.query.max_roa) : null;
-  const minRoi = req.query.min_roi ? Number(req.query.min_roi) : null;
-  const maxRoi = req.query.max_roi ? Number(req.query.max_roi) : null;
+  const minAssets = parseNumber(req.query.min_assets);
+  const maxAssets = parseNumber(req.query.max_assets);
+  const minDeposits = parseNumber(req.query.min_deposits);
+  const maxDeposits = parseNumber(req.query.max_deposits);
+  const minBranches = parseNumber(req.query.min_branches);
+  const maxBranches = parseNumber(req.query.max_branches);
+  const minRoa = parseNumber(req.query.min_roa);
+  const maxRoa = parseNumber(req.query.max_roa);
+  const minRoi = parseNumber(req.query.min_roi);
+  const maxRoi = parseNumber(req.query.max_roi);
   const hasCreditCards =
     req.query.has_credit_cards === 'true' ||
     req.query.has_credit_card_program === 'true';
-  const minBrimScore = req.query.min_brim_score ? Number(req.query.min_brim_score) : null;
+  const minBrimScore = parseNumber(req.query.min_brim_score);
   const brimTier = (req.query.brim_tier as string || '').trim().toUpperCase() || null;
   const excludeBdExclusions = req.query.exclude_bd_exclusions === 'true';
   const migrationTargetsOnly = req.query.migration_targets_only === 'true';
   const sortBy = (req.query.sort_by as string) || 'total_assets';
   const sortDir = (req.query.sort_dir as string) === 'asc';
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const perPage = Math.min(100, Math.max(1, Number(req.query.per_page) || 25));
+  const page = parseIntParam(req.query.page, 1, 1);
+  const perPage = parseIntParam(req.query.per_page, 25, 1, 100);
   const offset = (page - 1) * perPage;
 
-  // Build query — join bank_capabilities for brim_score/tier/card_portfolio_size
-  let query = supabase
-    .from('institutions')
-    .select(`
-      *,
-      bank_capabilities (
-        brim_score, brim_tier, card_portfolio_size, issues_credit_cards,
-        core_processor, agent_bank_program
-      )
-    `, { count: 'exact' })
-    .eq('active', true);
+  const needsBrimFilter =
+    minBrimScore != null ||
+    Boolean(brimTier) ||
+    migrationTargetsOnly;
 
-  // Text search — sanitize user input before interpolating into PostgREST filter
-  if (q) {
-    const safe = sanitizePostgrestText(q);
-    if (safe.length > 0) {
-      const term = `%${safe}%`;
-      query = query.or(`name.ilike.${term},city.ilike.${term},holding_company.ilike.${term}`);
+  const buildInstitutionsQuery = (rangeStart?: number, rangeEnd?: number, withCount = false) => {
+    let query = supabase
+      .from('institutions')
+      .select(`
+        *,
+        bank_capabilities (
+          brim_score, brim_tier, card_portfolio_size, issues_credit_cards,
+          core_processor, agent_bank_program
+        )
+      `, { count: withCount ? 'exact' : undefined })
+      .eq('active', true);
+
+    // Text search — sanitize user input before interpolating into PostgREST filter
+    if (q) {
+      const safe = sanitizePostgrestText(q);
+      if (safe.length > 0) {
+        const term = `%${safe}%`;
+        query = query.or(`name.ilike.${term},city.ilike.${term},holding_company.ilike.${term}`);
+      }
     }
+
+    if (states.length > 0) query = query.in('state', states);
+    if (sources.length > 0) query = query.in('source', sources);
+    if (charterTypes.length > 0) query = query.in('charter_type', charterTypes);
+    if (regulators.length > 0) query = query.in('regulator', regulators);
+    if (minAssets != null) query = query.gte('total_assets', minAssets);
+    if (maxAssets != null) query = query.lte('total_assets', maxAssets);
+    if (minDeposits != null) query = query.gte('total_deposits', minDeposits);
+    if (maxDeposits != null) query = query.lte('total_deposits', maxDeposits);
+    if (minBranches != null) query = query.gte('num_branches', minBranches);
+    if (maxBranches != null) query = query.lte('num_branches', maxBranches);
+    if (minRoa != null) query = query.gte('roa', minRoa);
+    if (maxRoa != null) query = query.lte('roa', maxRoa);
+    if (minRoi != null) query = query.gte('roi', minRoi);
+    if (maxRoi != null) query = query.lte('roi', maxRoi);
+    if (hasCreditCards) query = query.gt('credit_card_loans', 0);
+    if (excludeBdExclusions) query = query.is('bd_exclusion_reason', null);
+
+    const allowedSorts = [
+      'name', 'total_assets', 'total_deposits', 'total_loans',
+      'num_branches', 'roi', 'roa', 'net_income', 'credit_card_loans',
+      'equity_capital', 'state',
+    ];
+    const safeSortBy = allowedSorts.includes(sortBy) ? sortBy : 'total_assets';
+    query = query.order(safeSortBy, { ascending: sortDir, nullsFirst: false });
+
+    if (rangeStart != null && rangeEnd != null) {
+      query = query.range(rangeStart, rangeEnd);
+    }
+
+    return query;
+  };
+
+  const flattenAndMap = (institutions: InstitutionRow[] | null) =>
+    ((institutions ?? []) as InstitutionRow[]).map((inst) => {
+      const cap = Array.isArray(inst.bank_capabilities) ? inst.bank_capabilities[0] : inst.bank_capabilities;
+      return {
+        ...inst,
+        brim_score: cap?.brim_score ?? null,
+        brim_tier: cap?.brim_tier ?? null,
+        card_portfolio_size: cap?.card_portfolio_size ?? inst.credit_card_loans ?? null,
+        core_processor: cap?.core_processor ?? null,
+        agent_bank_program: cap?.agent_bank_program ?? null,
+        bank_capabilities: undefined,
+      };
+    });
+
+  const applyBrimFilters = (rows: FlattenedInstitution[]) => {
+    let filtered = rows;
+    if (minBrimScore != null) {
+      filtered = filtered.filter((i) => (i.brim_score ?? 0) >= minBrimScore);
+    }
+    if (brimTier) {
+      filtered = filtered.filter((i) => i.brim_tier === brimTier);
+    }
+    if (migrationTargetsOnly) {
+      filtered = filtered.filter((i) => i.agent_bank_program != null && i.agent_bank_program !== '');
+    }
+    return filtered;
+  };
+
+  let total = 0;
+  let pageInstitutions: FlattenedInstitution[] = [];
+
+  if (needsBrimFilter) {
+    // For derived brim/migration filters, filter after full page candidate resolution so
+    // `offset/page` semantics remain stable across post-filtered results.
+    const fetchLimit = 500;
+    let cursor = 0;
+    const filteredInstitutions: FlattenedInstitution[] = [];
+
+    while (true) {
+      const { data: batch, error } = await buildInstitutionsQuery(cursor, cursor + fetchLimit - 1, false);
+      if (error) {
+        console.error('Search error:', error);
+        return res.status(500).json({ error: 'Search failed' });
+      }
+
+      const mappedBatch = applyBrimFilters(flattenAndMap(batch as InstitutionRow[]));
+      filteredInstitutions.push(...mappedBatch);
+      cursor += fetchLimit;
+
+      if (!batch || batch.length < fetchLimit) {
+        break;
+      }
+    }
+
+    total = filteredInstitutions.length;
+    pageInstitutions = filteredInstitutions.slice(offset, offset + perPage);
+  } else {
+    const { data: institutions, count, error } = await buildInstitutionsQuery(offset, offset + perPage - 1, true);
+    if (error) {
+      console.error('Search error:', error);
+      return res.status(500).json({ error: 'Search failed' });
+    }
+
+    total = count || 0;
+    pageInstitutions = flattenAndMap(institutions as InstitutionRow[]);
   }
 
-  // Filters
-  if (states.length > 0) query = query.in('state', states);
-  if (sources.length > 0) query = query.in('source', sources);
-  if (charterTypes.length > 0) query = query.in('charter_type', charterTypes);
-  if (regulators.length > 0) query = query.in('regulator', regulators);
-  if (minAssets != null) query = query.gte('total_assets', minAssets);
-  if (maxAssets != null) query = query.lte('total_assets', maxAssets);
-  if (minDeposits != null) query = query.gte('total_deposits', minDeposits);
-  if (maxDeposits != null) query = query.lte('total_deposits', maxDeposits);
-  if (minBranches != null) query = query.gte('num_branches', minBranches);
-  if (maxBranches != null) query = query.lte('num_branches', maxBranches);
-  if (minRoa != null) query = query.gte('roa', minRoa);
-  if (maxRoa != null) query = query.lte('roa', maxRoa);
-  if (minRoi != null) query = query.gte('roi', minRoi);
-  if (maxRoi != null) query = query.lte('roi', maxRoi);
-  if (hasCreditCards) query = query.gt('credit_card_loans', 0);
-  if (excludeBdExclusions) query = query.is('bd_exclusion_reason', null);
-
-  // Brim filters (applied post-query since bank_capabilities is a join)
-  // minBrimScore and brimTier filtered in JS below after fetching
-
-  // Sort + paginate
-  const allowedSorts = [
-    'name', 'total_assets', 'total_deposits', 'total_loans',
-    'num_branches', 'roi', 'roa', 'net_income', 'credit_card_loans',
-    'equity_capital', 'state',
-  ];
-  const safeSortBy = allowedSorts.includes(sortBy) ? sortBy : 'total_assets';
-
-  query = query
-    .order(safeSortBy, { ascending: sortDir, nullsFirst: false })
-    .range(offset, offset + perPage - 1);
-
-  const { data: institutions, count, error } = await query;
-
-  if (error) {
-    console.error('Search error:', error);
-    return res.status(500).json({ error: 'Search failed' });
-  }
-
-  // Flatten bank_capabilities join into top-level fields for convenience
-  let pageInstitutions: FlattenedInstitution[] = ((institutions ?? []) as InstitutionRow[]).map((inst) => {
-    const cap = Array.isArray(inst.bank_capabilities) ? inst.bank_capabilities[0] : inst.bank_capabilities;
-    return {
-      ...inst,
-      brim_score: cap?.brim_score ?? null,
-      brim_tier: cap?.brim_tier ?? null,
-      card_portfolio_size: cap?.card_portfolio_size ?? inst.credit_card_loans ?? null,
-      core_processor: cap?.core_processor ?? null,
-      agent_bank_program: cap?.agent_bank_program ?? null,
-      bank_capabilities: undefined,
-    };
-  });
-
-  // Apply brim filters in JS (bank_capabilities is a joined table, not filterable server-side easily)
-  if (minBrimScore != null) {
-    pageInstitutions = pageInstitutions.filter((i) => (i.brim_score ?? 0) >= minBrimScore);
-  }
-  if (brimTier) {
-    pageInstitutions = pageInstitutions.filter((i) => i.brim_tier === brimTier);
-  }
-  if (migrationTargetsOnly) {
-    pageInstitutions = pageInstitutions.filter((i) => i.agent_bank_program != null && i.agent_bank_program !== '');
-  }
-
-  // Compute aggregations from the filtered page
+  // Compute aggregations from the filtered result set
   const totalAssetsSum = pageInstitutions.reduce((sum, i) => sum + (i.total_assets || 0), 0);
   const stateMap: Record<string, number> = {};
   const charterMap: Record<string, number> = {};
@@ -193,7 +257,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     if (inst.charter_type) charterMap[inst.charter_type] = (charterMap[inst.charter_type] || 0) + 1;
   }
   const aggregations = {
-    total_count: count || 0,
+    total_count: total,
     filtered_count: pageInstitutions.length,
     total_assets_sum: totalAssetsSum,
     total_deposits_sum: pageInstitutions.reduce((sum, i) => sum + (i.total_deposits || 0), 0),
@@ -205,8 +269,8 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
   return res.json({
     institutions: pageInstitutions,
-    total: count || 0,
-    filtered_total: pageInstitutions.length,
+    total,
+    filtered_total: total,
     page,
     per_page: perPage,
     aggregations,

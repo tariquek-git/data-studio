@@ -2,11 +2,19 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { apiHandler } from '../../lib/api-handler.js';
 import { getSupabase } from '../../lib/supabase.js';
 
+function parseCertNumber(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number.parseInt(trimmed, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: VercelResponse) => {
   const supabase = getSupabase();
 
-  const certNumber = Number(req.query.certNumber);
-  if (!certNumber || isNaN(certNumber)) {
+  const certNumber = parseCertNumber(req.query.certNumber);
+  if (certNumber == null) {
     return res.status(400).json({ error: 'Invalid cert_number parameter' });
   }
 

@@ -34,6 +34,7 @@ import {
   tableExists,
   updateDataSourceSnapshot,
 } from './_sync-utils.mjs';
+import { createHash } from 'node:crypto';
 
 const SOURCE_KEY = 'ffiec_cdr';
 const SOURCE_URL = 'https://cdr.ffiec.gov/public/HelpFiles/PWSInfo.htm';
@@ -41,6 +42,14 @@ const API_SPEC_URL = 'https://cdr.ffiec.gov/public/Files/SIS611_-_Retrieve_Publi
 const REPORTING_PERIODS_URL = 'https://ffieccdr.azure-api.us/public/RetrieveReportingPeriods';
 const PANEL_OF_REPORTERS_URL = 'https://ffieccdr.azure-api.us/public/RetrievePanelOfReporters';
 const FILERS_SUBMISSION_URL = 'https://ffieccdr.azure-api.us/public/RetrieveFilersSubmissionDateTime';
+
+function stableId(seedParts: Array<string | number | boolean | null | undefined>) {
+  const seed = seedParts
+    .map((value) => (value == null ? '' : String(value)))
+    .join('|');
+  const hash = createHash('sha1').update(seed).digest('hex');
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+}
 
 const env = loadEnvLocal();
 const userId = getEnvValue(env, 'FFIEC_CDR_USER_ID');
@@ -208,6 +217,7 @@ async function main() {
       pushExternalId('routing_number', row.PrimaryABARoutNumber);
 
       tags.push({
+        id: stableId([entityTable, entityId, 'ffiec_cdr_panel', periodNote, row.FDICCertNumber]),
         entity_table: entityTable,
         entity_id: entityId,
         tag_key: 'ffiec_cdr_panel',
@@ -221,6 +231,7 @@ async function main() {
 
       if (row.FilingType != null && String(row.FilingType).trim() !== '') {
         tags.push({
+          id: stableId([entityTable, entityId, 'ffiec_cdr_filing_type', String(row.FilingType), periodNote]),
           entity_table: entityTable,
           entity_id: entityId,
           tag_key: 'ffiec_cdr_filing_type',
@@ -234,6 +245,15 @@ async function main() {
       }
 
       facts.push({
+        id: stableId([
+          entityTable,
+          entityId,
+          'ffiec_cdr_reporting_status',
+          String(Boolean(row.HasFiledForReportingPeriod)),
+          reportingPeriodIso,
+          row.FilingType ?? '',
+          submissionMap.get(String(row.ID_RSSD)) ?? '',
+        ]),
         entity_table: entityTable,
         entity_id: entityId,
         fact_type: 'filing',
@@ -275,7 +295,9 @@ async function main() {
         .eq('notes', periodNote);
 
       for (const batch of chunkArray(tags, 500)) {
-        const { error } = await supabase.from('entity_tags').insert(batch);
+        const { error } = await supabase
+          .from('entity_tags')
+          .upsert(batch, { onConflict: 'id' });
         if (error) throw new Error(`Unable to insert FFIEC CDR tags: ${error.message}`);
       }
     } else {
@@ -290,7 +312,9 @@ async function main() {
         .eq('notes', periodNote);
 
       for (const batch of chunkArray(facts, 400)) {
-        const { error } = await supabase.from('entity_facts').insert(batch);
+        const { error } = await supabase
+          .from('entity_facts')
+          .upsert(batch, { onConflict: 'id' });
         if (error) throw new Error(`Unable to insert FFIEC CDR facts: ${error.message}`);
       }
     } else {

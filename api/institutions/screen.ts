@@ -14,104 +14,153 @@ function isMissingTableError(error: unknown) {
   );
 }
 
+function parseNumber(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseIntParam(value: unknown, fallback: number, min = 1, max = Number.POSITIVE_INFINITY): number {
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function parseIntList(value: unknown): number[] {
+  if (typeof value !== 'string') return [];
+  return value
+    .split(',')
+    .map((item) => Number.parseInt(item.trim(), 10))
+    .filter((num) => !Number.isNaN(num));
+}
+
+interface ScreenRow {
+  id: string;
+  cert_number: number;
+  name: string;
+  state: string | null;
+  total_assets: number | null;
+  total_deposits: number | null;
+  total_loans: number | null;
+  equity_capital: number | null;
+  credit_card_loans: number | null;
+  roa: number | null;
+  roi: number | null;
+  raw_data?: Record<string, unknown> | null;
+  [key: string]: unknown;
+}
+
 export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: VercelResponse) => {
   const supabase = getSupabase();
 
   // ─── Parse params ────────────────────────────────────────────────────────
-  const assetMin     = req.query.asset_min     ? Number(req.query.asset_min)     : null;
-  const assetMax     = req.query.asset_max     ? Number(req.query.asset_max)     : null;
-  const depositMin   = req.query.deposit_min   ? Number(req.query.deposit_min)   : null;
-  const depositMax   = req.query.deposit_max   ? Number(req.query.deposit_max)   : null;
-  const roaMin       = req.query.roa_min       ? Number(req.query.roa_min)       : null;
-  const roaMax       = req.query.roa_max       ? Number(req.query.roa_max)       : null;
-  const roeMin       = req.query.roe_min       ? Number(req.query.roe_min)       : null;
-  const roeMax       = req.query.roe_max       ? Number(req.query.roe_max)       : null;
-  const equityRatioMin = req.query.equity_ratio_min ? Number(req.query.equity_ratio_min) : null;
-  const ldrMin       = req.query.loan_to_deposit_min ? Number(req.query.loan_to_deposit_min) : null;
-  const ldrMax       = req.query.loan_to_deposit_max ? Number(req.query.loan_to_deposit_max) : null;
-  const ccProgram    = req.query.cc_program    === 'true'  ? true
-                     : req.query.cc_program    === 'false' ? false
-                     : null;
-  const ccMin        = req.query.cc_min        ? Number(req.query.cc_min)        : null;
-  const activeOnly   = req.query.active_only !== 'false'; // default true
-  const craRating    = req.query.cra_rating    ? (req.query.cra_rating as string).split(',').map(Number).filter(Boolean) : [];
-  const sources      = (req.query.source       as string || '').split(',').filter(Boolean);
+  const assetMin = parseNumber(req.query.asset_min);
+  const assetMax = parseNumber(req.query.asset_max);
+  const depositMin = parseNumber(req.query.deposit_min);
+  const depositMax = parseNumber(req.query.deposit_max);
+  const roaMin = parseNumber(req.query.roa_min);
+  const roaMax = parseNumber(req.query.roa_max);
+  const roeMin = parseNumber(req.query.roe_min);
+  const roeMax = parseNumber(req.query.roe_max);
+  const equityRatioMin = parseNumber(req.query.equity_ratio_min);
+  const ldrMin = parseNumber(req.query.loan_to_deposit_min);
+  const ldrMax = parseNumber(req.query.loan_to_deposit_max);
+  const ccProgram =
+    req.query.cc_program === 'true' ? true
+      : req.query.cc_program === 'false' ? false
+      : null;
+  const ccMin = parseNumber(req.query.cc_min);
+  const activeOnly = req.query.active_only !== 'false';
+  const craRating = parseIntList(req.query.cra_rating);
+  const sources = (req.query.source as string || '').split(',').filter(Boolean);
   const charterTypes = (req.query.charter_type as string || '').split(',').filter(Boolean);
-  const states       = (req.query.state        as string || '').split(',').filter(Boolean);
+  const states = (req.query.state as string || '').split(',').filter(Boolean);
 
-  const sortBy       = (req.query.sort_by as string) || 'total_assets';
-  const sortOrder    = (req.query.sort_order as string) === 'asc';
-  const limit        = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
-  const offset       = Math.max(0, Number(req.query.offset) || 0);
+  const sortBy = (req.query.sort_by as string) || 'total_assets';
+  const sortOrder = (req.query.sort_order as string) === 'asc';
+  const limit = parseIntParam(req.query.limit, 50, 1, 200);
+  const offset = parseIntParam(req.query.offset, 0, 0);
 
-  const depositGrowthMin = req.query.deposit_growth_min ? Number(req.query.deposit_growth_min) : null;
+  const depositGrowthMin = parseNumber(req.query.deposit_growth_min);
 
-  // ─── Build base query ────────────────────────────────────────────────────
-  let query = supabase
-    .from('institutions')
-    .select('*', { count: 'exact' });
+  const needsPostFilter =
+    equityRatioMin != null ||
+    ldrMin != null ||
+    ldrMax != null ||
+    craRating.length > 0 ||
+    depositGrowthMin != null;
 
-  if (activeOnly) query = query.eq('active', true);
+  const buildScreenQuery = (rangeStart?: number, rangeEnd?: number, withCount = false) => {
+    let query = supabase
+      .from('institutions')
+      .select('*', { count: withCount ? 'exact' : undefined });
 
-  // Simple column filters
-  if (assetMin   != null) query = query.gte('total_assets',   assetMin);
-  if (assetMax   != null) query = query.lte('total_assets',   assetMax);
-  if (depositMin != null) query = query.gte('total_deposits', depositMin);
-  if (depositMax != null) query = query.lte('total_deposits', depositMax);
-  if (roaMin     != null) query = query.gte('roa',            roaMin);
-  if (roaMax     != null) query = query.lte('roa',            roaMax);
-  if (roeMin     != null) query = query.gte('roi',            roeMin);
-  if (roeMax     != null) query = query.lte('roi',            roeMax);
-  if (ccProgram  === true)  query = query.gt('credit_card_loans', 0);
-  if (ccProgram  === false) query = query.or('credit_card_loans.is.null,credit_card_loans.eq.0');
-  if (ccMin      != null) query = query.gte('credit_card_loans', ccMin);
+    if (activeOnly) query = query.eq('active', true);
 
-  if (sources.length)      query = query.in('source', sources);
-  if (charterTypes.length) query = query.in('charter_type', charterTypes);
-  if (states.length)       query = query.in('state', states);
+    if (assetMin != null) query = query.gte('total_assets', assetMin);
+    if (assetMax != null) query = query.lte('total_assets', assetMax);
+    if (depositMin != null) query = query.gte('total_deposits', depositMin);
+    if (depositMax != null) query = query.lte('total_deposits', depositMax);
+    if (roaMin != null) query = query.gte('roa', roaMin);
+    if (roaMax != null) query = query.lte('roa', roaMax);
+    if (roeMin != null) query = query.gte('roi', roeMin);
+    if (roeMax != null) query = query.lte('roi', roeMax);
+    if (ccProgram === true) query = query.gt('credit_card_loans', 0);
+    if (ccProgram === false) query = query.or('credit_card_loans.is.null,credit_card_loans.eq.0');
+    if (ccMin != null) query = query.gte('credit_card_loans', ccMin);
 
-  // Computed ratio filters: equity_ratio = equity_capital / total_assets
-  // These can't be filtered in Supabase directly without a generated column;
-  // we post-filter after fetching (see below) — fetching extra rows to compensate.
-  const needsPostFilter = equityRatioMin != null || ldrMin != null || ldrMax != null || craRating.length > 0 || depositGrowthMin != null;
+    if (sources.length) query = query.in('source', sources);
+    if (charterTypes.length) query = query.in('charter_type', charterTypes);
+    if (states.length) query = query.in('state', states);
 
-  // Sort
-  const allowedSorts = ['total_assets', 'total_deposits', 'roa', 'roi', 'net_income', 'credit_card_loans', 'name'];
-  const safeSortBy = allowedSorts.includes(sortBy) ? sortBy : 'total_assets';
-  query = query.order(safeSortBy, { ascending: sortOrder, nullsFirst: false });
+    const allowedSorts = ['total_assets', 'total_deposits', 'roa', 'roi', 'net_income', 'credit_card_loans', 'name'];
+    const safeSortBy = allowedSorts.includes(sortBy) ? sortBy : 'total_assets';
+    query = query.order(safeSortBy, { ascending: sortOrder, nullsFirst: false });
 
-  // For post-filtered queries, fetch more rows to ensure enough results after filtering
-  const fetchLimit  = needsPostFilter ? Math.min(2000, limit * 10) : limit;
-  const fetchOffset = needsPostFilter ? 0 : offset;
-  query = query.range(fetchOffset, fetchOffset + fetchLimit - 1);
+    if (rangeStart != null && rangeEnd != null) {
+      query = query.range(rangeStart, rangeEnd);
+    }
 
-  const { data: institutions, count, error } = await query;
+    return query;
+  };
 
-  if (error) {
-    console.error('Screen error:', error);
-    return res.status(500).json({ error: 'Screener query failed' });
+  let results: ScreenRow[] = [];
+  let totalCount = 0;
+
+  if (needsPostFilter) {
+    const fetchLimit = 500;
+    let cursor = 0;
+    while (true) {
+      const { data: batch, error } = await buildScreenQuery(cursor, cursor + fetchLimit - 1, false);
+      if (error) {
+        console.error('Screen error:', error);
+        return res.status(500).json({ error: 'Screener query failed' });
+      }
+
+      results.push(...((batch ?? []) as ScreenRow[]));
+      cursor += fetchLimit;
+
+      if (!batch || batch.length < fetchLimit) {
+        break;
+      }
+    }
+  } else {
+    const { data: institutions, count, error } = await buildScreenQuery(offset, offset + limit - 1, true);
+    if (error) {
+      console.error('Screen error:', error);
+      return res.status(500).json({ error: 'Screener query failed' });
+    }
+
+    results = (institutions ?? []) as ScreenRow[];
+    totalCount = count || 0;
   }
-
-  interface ScreenRow {
-    id: string;
-    cert_number: number;
-    name: string;
-    state: string | null;
-    total_assets: number | null;
-    total_deposits: number | null;
-    total_loans: number | null;
-    equity_capital: number | null;
-    credit_card_loans: number | null;
-    roa: number | null;
-    roi: number | null;
-    raw_data?: Record<string, unknown> | null;
-    [key: string]: unknown;
-  }
-
-  let results: ScreenRow[] = (institutions ?? []) as ScreenRow[];
 
   // ─── Post-filters ────────────────────────────────────────────────────────
-
   if (equityRatioMin != null) {
     results = results.filter((inst) => {
       if (!inst.total_assets || inst.equity_capital == null) return false;
@@ -171,8 +220,6 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     }
   }
 
-  // Deposit growth YoY: requires financial_history lookup
-  // Only applied if depositGrowthMin is set and we have a manageable result set
   if (depositGrowthMin != null && results.length > 0) {
     type DepositHistoryRow = {
       cert_number: number;
@@ -209,7 +256,6 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
           const latest = rows[0];
           if (!latest.total_deposits) return false;
 
-          // Find a row approximately 1 year prior (within ±60 days)
           const targetDate = new Date(latest.period);
           targetDate.setFullYear(targetDate.getFullYear() - 1);
           const targetTime = targetDate.getTime();
@@ -227,35 +273,36 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     }
   }
 
-  // Apply offset+limit after post-filtering
-  const totalCount = needsPostFilter ? results.length : (count || 0);
-  const paged = needsPostFilter ? results.slice(offset, offset + limit) : results;
+  if (needsPostFilter) {
+    totalCount = results.length;
+    results = results.slice(offset, offset + limit);
+  }
 
   // ─── Build applied_filters summary ──────────────────────────────────────
   const appliedFilters: Record<string, unknown> = {};
-  if (assetMin   != null) appliedFilters.asset_min   = assetMin;
-  if (assetMax   != null) appliedFilters.asset_max   = assetMax;
+  if (assetMin != null) appliedFilters.asset_min = assetMin;
+  if (assetMax != null) appliedFilters.asset_max = assetMax;
   if (depositMin != null) appliedFilters.deposit_min = depositMin;
   if (depositMax != null) appliedFilters.deposit_max = depositMax;
-  if (roaMin     != null) appliedFilters.roa_min     = roaMin;
-  if (roaMax     != null) appliedFilters.roa_max     = roaMax;
-  if (roeMin     != null) appliedFilters.roe_min     = roeMin;
-  if (roeMax     != null) appliedFilters.roe_max     = roeMax;
+  if (roaMin != null) appliedFilters.roa_min = roaMin;
+  if (roaMax != null) appliedFilters.roa_max = roaMax;
+  if (roeMin != null) appliedFilters.roe_min = roeMin;
+  if (roeMax != null) appliedFilters.roe_max = roeMax;
   if (equityRatioMin != null) appliedFilters.equity_ratio_min = equityRatioMin;
-  if (ldrMin     != null) appliedFilters.loan_to_deposit_min  = ldrMin;
-  if (ldrMax     != null) appliedFilters.loan_to_deposit_max  = ldrMax;
-  if (ccProgram  != null) appliedFilters.cc_program  = ccProgram;
-  if (ccMin      != null) appliedFilters.cc_min      = ccMin;
-  if (craRating.length)   appliedFilters.cra_rating  = craRating;
-  if (sources.length)     appliedFilters.source      = sources;
+  if (ldrMin != null) appliedFilters.loan_to_deposit_min = ldrMin;
+  if (ldrMax != null) appliedFilters.loan_to_deposit_max = ldrMax;
+  if (ccProgram != null) appliedFilters.cc_program = ccProgram;
+  if (ccMin != null) appliedFilters.cc_min = ccMin;
+  if (craRating.length) appliedFilters.cra_rating = craRating;
+  if (sources.length) appliedFilters.source = sources;
   if (charterTypes.length) appliedFilters.charter_type = charterTypes;
-  if (states.length)      appliedFilters.state       = states;
+  if (states.length) appliedFilters.state = states;
   if (depositGrowthMin != null) appliedFilters.deposit_growth_min = depositGrowthMin;
   appliedFilters.active_only = activeOnly;
 
   res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
   return res.json({
-    institutions: paged,
+    institutions: results,
     total_count: totalCount,
     offset,
     limit,

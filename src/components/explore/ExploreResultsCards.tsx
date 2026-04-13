@@ -29,8 +29,8 @@ export function ExploreResultsCards({ institutions }: ExploreResultsCardsProps) 
 
   if (institutions.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 text-center py-16">
-        <p className="text-slate-500 text-sm">No institutions found. Try adjusting your filters.</p>
+      <div className="rounded-xl border border-surface-700/50 bg-surface-800/60 text-center py-16">
+        <p className="text-surface-400 text-sm">No institutions found. Try adjusting your filters.</p>
       </div>
     );
   }
@@ -44,18 +44,18 @@ export function ExploreResultsCards({ institutions }: ExploreResultsCardsProps) 
         return (
           <div
             key={inst.id}
-            className="group bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow p-4 flex flex-col"
+            className="group rounded-xl border border-surface-700/50 bg-surface-800/60 backdrop-blur hover:border-surface-600 hover:bg-surface-800/80 transition-all p-4 flex flex-col"
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-2 mb-3">
               <div className="min-w-0">
                 <Link
                   to={`/institution/${inst.cert_number}`}
-                  className="text-sm font-bold text-slate-900 group-hover:text-blue-700 hover:underline line-clamp-2"
+                  className="text-sm font-bold text-surface-100 group-hover:text-primary-400 hover:underline line-clamp-2 transition-colors"
                 >
                   {displayName}
                 </Link>
-                <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
+                <div className="flex items-center gap-1 mt-1 text-xs text-surface-500">
                   <MapPin className="h-3 w-3 shrink-0" />
                   <span>{inst.city ? `${inst.city}, ` : ''}{inst.state ?? '—'}</span>
                 </div>
@@ -75,48 +75,48 @@ export function ExploreResultsCards({ institutions }: ExploreResultsCardsProps) 
             {/* Metrics */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs mb-3 flex-1">
               <div>
-                <span className="text-slate-400 flex items-center gap-1">
+                <span className="text-surface-500 flex items-center gap-1">
                   <DollarSign className="h-3 w-3" />Assets
                 </span>
-                <span className="font-semibold text-slate-800 mt-0.5 block">
+                <span className="font-semibold font-mono text-surface-200 mt-0.5 block">
                   {formatCurrency(inst.total_assets)}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 flex items-center gap-1">
+                <span className="text-surface-500 flex items-center gap-1">
                   <DollarSign className="h-3 w-3" />Deposits
                 </span>
-                <span className="font-semibold text-slate-800 mt-0.5 block">
+                <span className="font-semibold font-mono text-surface-200 mt-0.5 block">
                   {formatCurrency(inst.total_deposits)}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 flex items-center gap-1">
+                <span className="text-surface-500 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />ROA
                 </span>
                 <span
-                  className={`font-semibold mt-0.5 block ${
+                  className={`font-semibold font-mono mt-0.5 block ${
                     inst.roa != null
                       ? inst.roa >= 0
-                        ? 'text-green-700'
+                        ? 'text-emerald-600'
                         : 'text-red-600'
-                      : 'text-slate-400'
+                      : 'text-surface-600'
                   }`}
                 >
                   {formatPercent(inst.roa)}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 flex items-center gap-1">
+                <span className="text-surface-500 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />ROE
                 </span>
                 <span
-                  className={`font-semibold mt-0.5 block ${
+                  className={`font-semibold font-mono mt-0.5 block ${
                     inst.roi != null
                       ? inst.roi >= 0
-                        ? 'text-green-700'
+                        ? 'text-emerald-600'
                         : 'text-red-600'
-                      : 'text-slate-400'
+                      : 'text-surface-600'
                   }`}
                 >
                   {formatPercent(inst.roi)}
@@ -125,7 +125,7 @@ export function ExploreResultsCards({ institutions }: ExploreResultsCardsProps) 
             </div>
 
             {/* Add to set button */}
-            <div className="pt-2 border-t border-slate-100">
+            <div className="pt-2 border-t border-surface-700/30">
               <button
                 type="button"
                 onClick={() => {
@@ -137,8 +137,8 @@ export function ExploreResultsCards({ institutions }: ExploreResultsCardsProps) 
                 }}
                 className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   inWorkingSet
-                    ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    ? 'bg-primary-500/10 text-primary-400 border-primary-500/30 hover:bg-primary-500/20'
+                    : 'text-surface-400 border-surface-700 hover:text-surface-200 hover:bg-surface-800'
                 }`}
               >
                 {inWorkingSet ? (

@@ -27,6 +27,23 @@ const VALID_OPPORTUNITY_TYPES = [
   'outgrowing_program',
 ] as const;
 
+function parseNumber(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseIntParam(value: unknown, fallback: number, min = 1, max = Number.POSITIVE_INFINITY): number {
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
 type OpportunityType = (typeof VALID_OPPORTUNITY_TYPES)[number];
 
 function isValidOpportunityType(value: string): value is OpportunityType {
@@ -36,9 +53,9 @@ function isValidOpportunityType(value: string): value is OpportunityType {
 export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: VercelResponse) => {
   const supabase = getSupabase();
 
-  const minScore = req.query.min_score ? Number(req.query.min_score) : null;
+  const minScore = parseNumber(req.query.min_score);
   const typeParam = req.query.type ? String(req.query.type) : null;
-  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 25));
+  const limit = parseIntParam(req.query.limit, 25, 1, 200);
 
   if (typeParam !== null && !isValidOpportunityType(typeParam)) {
     return res.status(400).json({
@@ -123,7 +140,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
       .order('opportunity_score', { ascending: false, nullsFirst: false })
       .limit(limit);
 
-    const { data: bcData, count: bcCount, error: bcError } = await bcQuery;
+    const { data: bcData, error: bcError } = await bcQuery;
 
     if (bcError) {
       console.error('Opportunities fallback query error:', bcError);
@@ -141,7 +158,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
       opportunity_signals: unknown;
     }>;
 
-    total = bcCount ?? bcRows.length;
+    total = bcRows.length;
 
     if (bcRows.length === 0) {
       rows = [];
@@ -178,7 +195,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
         });
       }
 
-      rows = bcRows.map((bc) => {
+      const hydratedRows = bcRows.map((bc) => {
         const inst = instByCert.get(bc.cert_number);
         return {
           id: inst?.id ?? '',
@@ -197,6 +214,8 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
           opportunity_signals: bc.opportunity_signals,
         };
       });
+      rows = hydratedRows.filter((row) => row.id && row.name);
+      total = rows.length;
     }
   }
 

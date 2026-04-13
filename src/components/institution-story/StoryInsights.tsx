@@ -28,7 +28,7 @@ function InsightIcon({ sentiment }: { sentiment: InsightSentiment }) {
   if (sentiment === 'warning') {
     return <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />;
   }
-  return <Info className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />;
+  return <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />;
 }
 
 function parseBullets(summary: string): string[] {

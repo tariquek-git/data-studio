@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { apiHandler } from '../../lib/api-handler.js';
 import { getSourceSyncStatus, hasSourceSync, runSourceSync } from '../../lib/source-sync.js';
+import { checkAdminRequest } from '../../lib/admin-auth.js';
 
 function parseBoolean(value: unknown) {
   if (typeof value === 'boolean') return value;
@@ -26,6 +27,11 @@ export default apiHandler({ methods: ['GET', 'POST'] }, async (req: VercelReques
 
   if (req.method === 'GET') {
     return res.json({ source_key: sourceKey, sync });
+  }
+
+  const auth = checkAdminRequest(req);
+  if (!auth.allowed) {
+    return res.status(auth.statusCode).json({ message: auth.message });
   }
 
   const dryRun =

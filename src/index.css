@@ -1,29 +1,39 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
-  --color-primary-950: #172554;
+  /* ── Light-first palette (inverted scale: 900 = lightest bg, 100 = darkest text) ── */
 
-  --color-surface-50: #f8fafc;
-  --color-surface-100: #f1f5f9;
-  --color-surface-200: #e2e8f0;
-  --color-surface-300: #cbd5e1;
-  --color-surface-400: #94a3b8;
+  /* Primary: indigo-violet (inverted for light backgrounds) */
+  --color-primary-50: #1e1b4b;
+  --color-primary-100: #312e81;
+  --color-primary-200: #3730a3;
+  --color-primary-300: #4338ca;
+  --color-primary-400: #4f46e5;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #818cf8;
+  --color-primary-700: #a5b4fc;
+  --color-primary-800: #c7d2fe;
+  --color-primary-900: #e0e7ff;
+  --color-primary-950: #eef2ff;
+
+  /* Surface: light-first (900 = near-white bg, 100 = near-black text) */
+  --color-surface-50: #020617;
+  --color-surface-100: #0f172a;
+  --color-surface-200: #1e293b;
+  --color-surface-300: #334155;
+  --color-surface-400: #475569;
   --color-surface-500: #64748b;
-  --color-surface-600: #475569;
-  --color-surface-700: #334155;
-  --color-surface-800: #1e293b;
-  --color-surface-900: #0f172a;
-  --color-surface-950: #020617;
+  --color-surface-600: #94a3b8;
+  --color-surface-700: #e2e8f0;
+  --color-surface-800: #f1f5f9;
+  --color-surface-900: #f8fafc;
+  --color-surface-950: #ffffff;
+
+  /* Accent colors for data viz */
+  --color-accent-cyan: #06b6d4;
+  --color-accent-emerald: #059669;
+  --color-accent-amber: #d97706;
+  --color-accent-rose: #e11d48;
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -31,19 +41,41 @@
 
 @layer base {
   body {
-    @apply bg-surface-50 text-surface-900 antialiased;
+    @apply bg-white text-surface-100 antialiased;
     font-family: var(--font-sans);
   }
 }
 
-/* ── Command Bar animations (CSS only, no framer-motion) ── */
+/* ── Glass card utility ── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  border-radius: 1rem;
+}
+
+.glass-card-hover:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.08);
+}
+
+/* ── Glow effects ── */
+.glow-indigo {
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.1), 0 0 40px rgba(99, 102, 241, 0.03);
+}
+
+.glow-text-indigo {
+  text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+}
+
+/* ── Command Bar animations ── */
 @keyframes command-bar-backdrop-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 @keyframes command-bar-modal-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .command-bar-backdrop {
@@ -54,7 +86,7 @@
   align-items: flex-start;
   justify-content: center;
   padding-top: 10vh;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(4px);
   animation: command-bar-backdrop-in 150ms ease-out forwards;
 }
@@ -63,8 +95,9 @@
   width: 100%;
   max-width: 42rem;
   border-radius: 1rem;
-  background: white;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(226, 232, 240, 0.8);
   border: 1px solid rgba(226, 232, 240, 0.8);
   overflow: hidden;
   animation: command-bar-modal-in 200ms ease-out forwards;
@@ -86,4 +119,12 @@
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ── Subtle grid pattern for hero backgrounds ── */
+.bg-grid-pattern {
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
 }

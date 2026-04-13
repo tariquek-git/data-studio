@@ -39,24 +39,24 @@ function FilterSection({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-slate-100 last:border-b-0">
+    <div className="border-b border-surface-700/30 last:border-b-0">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:text-slate-700"
+        className="flex items-center justify-between w-full py-2.5 text-xs font-semibold text-surface-500 uppercase tracking-wider hover:text-surface-300 transition-colors"
       >
         <span className="flex items-center gap-2">
           {title}
           {badge != null && badge > 0 && (
-            <span className="inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold">
+            <span className="inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-primary-500/20 text-primary-400 text-[10px] font-bold">
               {badge}
             </span>
           )}
         </span>
         {open ? (
-          <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+          <ChevronDown className="h-3.5 w-3.5 text-surface-500" />
         ) : (
-          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+          <ChevronRight className="h-3.5 w-3.5 text-surface-500" />
         )}
       </button>
       {open && <div className="pb-3 space-y-1.5">{children}</div>}
@@ -74,14 +74,14 @@ function CheckItem({
   onChange: () => void;
 }) {
   return (
-    <label className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-slate-50 cursor-pointer">
+    <label className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-800/60 cursor-pointer transition-colors">
       <input
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+        className="h-3.5 w-3.5 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
       />
-      <span className="text-xs text-slate-700">{label}</span>
+      <span className="text-xs text-surface-300">{label}</span>
     </label>
   );
 }
@@ -169,9 +169,9 @@ export function ExploreFilterSidebar() {
     <div className="h-full flex flex-col">
       {/* Brim Mode header indicator */}
       {brimMode && (
-        <div className="px-4 py-2 bg-violet-50 border-b border-violet-100 flex items-center gap-2">
+        <div className="px-4 py-2 bg-violet-50 border-b border-violet-200 flex items-center gap-2">
           <Target className="h-3.5 w-3.5 text-violet-600 shrink-0" />
-          <span className="text-xs font-semibold text-violet-700 uppercase tracking-wider">Brim Intelligence</span>
+          <span className="text-xs font-semibold text-violet-600 uppercase tracking-wider">Brim Intelligence</span>
         </div>
       )}
 
@@ -195,8 +195,8 @@ export function ExploreFilterSidebar() {
             onClick={() => store.setFilter('country', opt.value)}
             className={`flex-1 px-2 py-1 rounded-full text-xs font-medium border transition-colors ${
               store.country === opt.value
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-700'
+                ? 'bg-primary-500/20 text-primary-300 border-primary-500/30'
+                : 'text-surface-400 border-surface-700 hover:border-primary-500/30 hover:text-primary-400'
             }`}
           >
             {opt.label}
@@ -208,15 +208,15 @@ export function ExploreFilterSidebar() {
       <div className="flex-1 overflow-y-auto px-4 space-y-0">
         {/* Brim Intelligence prospect filters — only shown in Brim Mode */}
         {brimMode && (
-          <div className="mb-2 border border-violet-200 rounded-lg bg-violet-50/40 px-3 py-2.5 space-y-3">
+          <div className="mb-2 border border-violet-200 rounded-lg bg-violet-50/50 px-3 py-2.5 space-y-3">
             <p className="text-[10px] font-semibold text-violet-600 uppercase tracking-wider">
               Prospect Filters
             </p>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs text-slate-600">Min Brim Score</label>
-                <span className="text-xs font-mono font-semibold text-violet-700">
+                <label className="text-xs text-surface-400">Min Brim Score</label>
+                <span className="text-xs font-mono font-semibold text-violet-600">
                   {store.minBrimScore ?? 0}
                 </span>
               </div>
@@ -229,12 +229,12 @@ export function ExploreFilterSidebar() {
                 onChange={(e) =>
                   store.setFilter('minBrimScore', Number(e.target.value) || null)
                 }
-                className="w-full accent-violet-600"
+                className="w-full accent-violet-500"
               />
             </div>
 
             <div>
-              <p className="text-xs text-slate-500 mb-1">Tier</p>
+              <p className="text-xs text-surface-500 mb-1">Tier</p>
               <div className="flex gap-1 flex-wrap">
                 {(['A', 'B', 'C', 'D'] as const).map((tier) => (
                   <button
@@ -243,8 +243,8 @@ export function ExploreFilterSidebar() {
                     onClick={() => toggleBrimTierFilter(tier)}
                     className={`px-2 py-0.5 rounded text-xs font-semibold border transition-colors ${
                       store.brimTiers.includes(tier)
-                        ? 'bg-violet-600 text-white border-violet-600'
-                        : 'bg-white text-slate-600 border-slate-300 hover:border-violet-400'
+                        ? 'bg-violet-100 text-violet-600 border-violet-300'
+                        : 'text-surface-400 border-surface-700 hover:border-violet-300'
                     }`}
                   >
                     {tier}
@@ -254,7 +254,7 @@ export function ExploreFilterSidebar() {
             </div>
 
             <div>
-              <p className="text-xs text-slate-500 mb-1">Core Processor</p>
+              <p className="text-xs text-surface-500 mb-1">Core Processor</p>
               <div className="space-y-0.5">
                 {CORE_PROCESSORS.map((proc) => (
                   <CheckItem
@@ -268,7 +268,7 @@ export function ExploreFilterSidebar() {
             </div>
 
             <div>
-              <p className="text-xs text-slate-500 mb-1">Agent Program</p>
+              <p className="text-xs text-surface-500 mb-1">Agent Program</p>
               <div className="space-y-0.5">
                 {AGENT_PROGRAMS.map((prog) => (
                   <CheckItem
@@ -432,7 +432,7 @@ export function ExploreFilterSidebar() {
             onChange={() => store.setFilter('hasCreditCards', !store.hasCreditCards)}
           />
           <div className="mt-2">
-            <p className="text-xs text-slate-500 mb-1.5">Brim tier</p>
+            <p className="text-xs text-surface-500 mb-1.5">Brim tier</p>
             <div className="flex gap-1.5 flex-wrap">
               {BRIM_TIERS.map((tier) => (
                 <button
@@ -441,8 +441,8 @@ export function ExploreFilterSidebar() {
                   onClick={() => store.setFilter('brimTier', store.brimTier === tier ? null : tier)}
                   className={`px-2 py-0.5 rounded text-xs font-medium border transition-colors ${
                     store.brimTier === tier
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400'
+                      ? 'bg-primary-500/20 text-primary-300 border-primary-500/30'
+                      : 'text-surface-400 border-surface-700 hover:border-primary-500/30'
                   }`}
                 >
                   {tier}
@@ -455,11 +455,11 @@ export function ExploreFilterSidebar() {
 
       {/* Clear all */}
       {activeFilterCount > 0 && (
-        <div className="px-4 pb-4 pt-3 border-t border-slate-200">
+        <div className="px-4 pb-4 pt-3 border-t border-surface-700/50">
           <button
             type="button"
             onClick={() => store.clearFilters()}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-600 hover:text-red-600 hover:border-red-300 transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-surface-700 text-xs text-surface-400 hover:text-red-500 hover:border-red-300 transition-colors"
           >
             <X className="h-3 w-3" />
             Clear All ({activeFilterCount})

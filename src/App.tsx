@@ -5,6 +5,7 @@ import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import { CommandBarProvider } from './components/command-bar/CommandBarProvider';
 import { CommandBar } from './components/command-bar/CommandBar';
+import { SectionErrorBoundary } from './components/ui';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
 const ExplorePage = lazy(() => import('./pages/ExplorePage'));
@@ -45,30 +46,32 @@ export default function App() {
           <div className="min-h-screen flex flex-col">
             <Header />
             <main className="flex-1">
-              <Suspense fallback={<Loading />}>
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/explore" element={<ExplorePage />} />
-                  {/* Legacy routes — redirect to unified Explore */}
-                  <Route path="/search" element={<Navigate to="/explore" replace />} />
-                  <Route path="/screener" element={<Navigate to="/explore" replace />} />
-                  <Route path="/screen" element={<Navigate to="/explore" replace />} />
-                  <Route path="/institution/:certNumber" element={<InstitutionStoryPage />} />
-                  <Route path="/analytics" element={<AnalyticsPage />} />
-                  <Route path="/market" element={<Navigate to="/analytics" replace />} />
-                  <Route path="/compare" element={<ComparePage />} />
-                  <Route path="/qa" element={<QAPage />} />
-                  <Route path="/sources" element={<DataSourcesPage />} />
-                  <Route path="/entities" element={<EntitiesPage />} />
-                  <Route path="/entities/:entityId" element={<EntityPage />} />
-                  <Route path="/watchlist" element={<WatchlistPage />} />
-                  <Route path="/failures" element={<FailuresPage />} />
-                  <Route path="/brim" element={<BrimPage />} />
-                  <Route path="/geo" element={<Navigate to="/explore?view=map" replace />} />
-                  <Route path="/graph" element={<RelationshipGraphPage />} />
-                  <Route path="/audit" element={<AuditDashboardPage />} />
-                </Routes>
-              </Suspense>
+              <SectionErrorBoundary section="Page">
+                <Suspense fallback={<Loading />}>
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/explore" element={<ExplorePage />} />
+                    {/* Legacy routes — redirect to unified Explore */}
+                    <Route path="/search" element={<Navigate to="/explore" replace />} />
+                    <Route path="/screener" element={<Navigate to="/explore" replace />} />
+                    <Route path="/screen" element={<Navigate to="/explore" replace />} />
+                    <Route path="/institution/:certNumber" element={<InstitutionStoryPage />} />
+                    <Route path="/analytics" element={<AnalyticsPage />} />
+                    <Route path="/market" element={<Navigate to="/analytics" replace />} />
+                    <Route path="/compare" element={<ComparePage />} />
+                    <Route path="/qa" element={<QAPage />} />
+                    <Route path="/sources" element={<DataSourcesPage />} />
+                    <Route path="/entities" element={<EntitiesPage />} />
+                    <Route path="/entities/:entityId" element={<EntityPage />} />
+                    <Route path="/watchlist" element={<WatchlistPage />} />
+                    <Route path="/failures" element={<FailuresPage />} />
+                    <Route path="/brim" element={<BrimPage />} />
+                    <Route path="/geo" element={<Navigate to="/explore?view=map" replace />} />
+                    <Route path="/graph" element={<RelationshipGraphPage />} />
+                    <Route path="/audit" element={<AuditDashboardPage />} />
+                  </Routes>
+                </Suspense>
+              </SectionErrorBoundary>
             </main>
             <Footer />
           </div>

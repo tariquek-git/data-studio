@@ -11,6 +11,10 @@ interface EntityInsightRailProps {
   sources: EntitySourceRecord[];
 }
 
+function isNavigableCounterpartyId(id: string) {
+  return !id.startsWith('derived:');
+}
+
 export function EntityInsightRail({
   entity,
   context,
@@ -28,19 +32,19 @@ export function EntityInsightRail({
 
   return (
     <div className="space-y-4 xl:sticky xl:top-24">
-      <Card className="border-slate-800 bg-[linear-gradient(180deg,rgba(12,18,32,0.96),rgba(2,6,23,0.98))] text-slate-100 shadow-2xl shadow-slate-950/30">
+      <Card className="border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-200/50/30">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-300/80">Why this matters</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-200">{aiSummary}</p>
+            <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-600/80">Why this matters</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-800">{aiSummary}</p>
           </div>
-          <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-cyan-200">
+          <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-cyan-600">
             <Radar className="h-5 w-5" />
           </div>
         </div>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900/80 text-slate-100">
+      <Card className="border-slate-200 bg-slate-50/80 text-slate-900">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Signal board</p>
           <Database className="h-4 w-4 text-slate-500" />
@@ -52,56 +56,70 @@ export function EntityInsightRail({
             { label: 'Historical observations', value: String(history.length) },
             { label: 'Source authority', value: entity.source_authority },
           ].map((item) => (
-            <div key={item.label} className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+            <div key={item.label} className="rounded-xl border border-slate-200 bg-white p-3">
               <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{item.label}</p>
-              <p className="mt-1 text-sm text-white">{item.value}</p>
+              <p className="mt-1 text-sm text-slate-900">{item.value}</p>
             </div>
           ))}
         </div>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900/80 text-slate-100">
+      <Card className="border-slate-200 bg-slate-50/80 text-slate-900">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Drill down</p>
           <Waypoints className="h-4 w-4 text-slate-500" />
         </div>
         <div className="mt-4 space-y-2">
           {relationships.slice(0, 4).map((relationship) => (
-            <Link
-              key={relationship.id}
-              to={`/entities/${relationship.counterparty.id}`}
-              className="block rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-3 text-sm transition-colors hover:border-cyan-500/50 hover:bg-slate-900"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-white">{relationship.counterparty.name}</span>
-                <Badge color="gray" className="bg-slate-900 text-slate-200 ring-slate-700">
-                  {relationship.relationship_label ?? relationship.relationship_type.replace(/_/g, ' ')}
-                </Badge>
+            isNavigableCounterpartyId(relationship.counterparty.id) ? (
+              <Link
+                key={relationship.id}
+                to={`/entities/${relationship.counterparty.id}`}
+                className="block rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm transition-colors hover:border-cyan-500/50 hover:bg-slate-50"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-slate-900">{relationship.counterparty.name}</span>
+                  <Badge color="gray" className="bg-slate-50 text-slate-800 ring-slate-200">
+                    {relationship.relationship_label ?? relationship.relationship_type.replace(/_/g, ' ')}
+                  </Badge>
+                </div>
+              </Link>
+            ) : (
+              <div
+                key={relationship.id}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-slate-900">{relationship.counterparty.name}</span>
+                  <Badge color="gray" className="bg-slate-50 text-slate-800 ring-slate-200">
+                    {relationship.relationship_label ?? relationship.relationship_type.replace(/_/g, ' ')}
+                  </Badge>
+                </div>
               </div>
-            </Link>
+            )
           ))}
           {relationships.length === 0 && (
-            <div className="rounded-xl border border-dashed border-slate-800 p-4 text-sm text-slate-400">
+            <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
               Relationship edges will appear here as the graph deepens.
             </div>
           )}
         </div>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900/80 text-slate-100">
+      <Card className="border-slate-200 bg-slate-50/80 text-slate-900">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Open questions</p>
-          <AlertTriangle className="h-4 w-4 text-amber-300" />
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
         </div>
         <div className="mt-4 space-y-3">
           {openQuestions.length > 0 ? (
             openQuestions.map((question) => (
-              <div key={question} className="rounded-xl border border-amber-900/60 bg-amber-950/30 p-3 text-sm leading-relaxed text-amber-100">
+              <div key={question} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-relaxed text-amber-800">
                 {question}
               </div>
             ))
           ) : (
-            <div className="rounded-xl border border-emerald-900/60 bg-emerald-950/30 p-3 text-sm leading-relaxed text-emerald-100">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-800">
               Coverage is strong enough to support quick diligence and peer navigation.
             </div>
           )}

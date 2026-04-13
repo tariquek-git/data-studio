@@ -75,17 +75,62 @@ interface GraphEdge {
 
 const VALID_ENTITY_TABLES = new Set<string>(['institutions', 'registry_entities', 'ecosystem_entities']);
 
+function parsePositiveInt(value: unknown, defaultValue: number, min = 1, max = Number.POSITIVE_INFINITY) {
+  if (typeof value !== 'string') return defaultValue;
+  const trimmed = value.trim();
+  if (!trimmed) return defaultValue;
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!Number.isFinite(parsed)) return defaultValue;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function parseNumber(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function isEntityTable(t: string): t is EntityTable {
   return VALID_ENTITY_TABLES.has(t);
+}
+
+type EntitySeedFilter = { table: EntityTable | null; id: string | null };
+
+function parseEntitySeed(raw: string | undefined): EntitySeedFilter | null {
+  const normalized = raw?.trim();
+  if (!normalized) return null;
+
+  const hasTablePrefix = normalized.includes(':');
+  if (!hasTablePrefix) {
+    return { table: null, id: normalized };
+  }
+
+  const [prefix, ...rest] = normalized.split(':');
+  const id = rest.join(':').trim();
+  if (!isEntityTable(prefix) || !id) {
+    return { table: null, id: normalized };
+  }
+
+  return { table: prefix, id };
 }
 
 export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: VercelResponse) => {
   const supabase = getSupabase();
 
   const relType = (req.query.type as string || '').trim() || null;
-  const minAssets = req.query.min_assets ? Number(req.query.min_assets) : null;
-  const limit = Math.min(500, Number(req.query.limit) || 200);
-  const depth = Math.min(3, Math.max(1, Number(req.query.depth) || 1));
+  const rawEntity =
+    typeof req.query.entity === 'string'
+      ? req.query.entity
+      : Array.isArray(req.query.entity)
+        ? req.query.entity[0]
+        : undefined;
+  const entityFilter = parseEntitySeed(rawEntity);
+  const minAssets = parseNumber(req.query.min_assets);
+  const limit = parsePositiveInt(req.query.limit, 200, 1, 500);
+  const depth = parsePositiveInt(req.query.depth, 1, 1, 3);
+
 
   // --- First hop: fetch all active relationships ---
   let relQuery = supabase
@@ -96,6 +141,15 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     .limit(limit);
 
   if (relType) relQuery = relQuery.eq('relationship_type', relType);
+  if (entityFilter) {
+    if (entityFilter.table) {
+      relQuery = relQuery.or(
+        `and(from_entity_table.eq.${entityFilter.table},from_entity_id.eq.${entityFilter.id}),and(to_entity_table.eq.${entityFilter.table},to_entity_id.eq.${entityFilter.id})`
+      );
+    } else if (entityFilter.id) {
+      relQuery = relQuery.or(`from_entity_id.eq.${entityFilter.id},to_entity_id.eq.${entityFilter.id}`);
+    }
+  }
 
   const { data: firstHopRels, error: relErr } = await relQuery;
   if (relErr) throw relErr;

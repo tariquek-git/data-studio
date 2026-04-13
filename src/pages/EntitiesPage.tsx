@@ -181,14 +181,14 @@ function SummaryTile({
   icon: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 shadow-xl shadow-slate-950/20">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/50">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">{label}</p>
-          <p className="mt-2 text-xl font-semibold text-white">{value}</p>
+          <p className="mt-2 text-xl font-semibold text-slate-900">{value}</p>
           <p className="mt-1 text-xs text-slate-400">{detail}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-2 text-cyan-200">{icon}</div>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 text-cyan-600">{icon}</div>
       </div>
     </div>
   );
@@ -198,7 +198,7 @@ function ResultSkeleton() {
   return (
     <div className="space-y-3">
       {Array.from({ length: 6 }).map((_, index) => (
-        <Skeleton key={index} className="h-28 bg-slate-900/70" />
+        <Skeleton key={index} className="h-28 bg-slate-50/70" />
       ))}
     </div>
   );
@@ -220,24 +220,24 @@ function IntelligenceRow({
       className={`group w-full rounded-2xl border px-4 py-4 text-left transition-all ${
         focused
           ? 'border-cyan-400/60 bg-cyan-500/10 shadow-2xl shadow-cyan-950/20'
-          : 'border-slate-800 bg-slate-950/70 hover:border-slate-700 hover:bg-slate-900/90'
+          : 'border-slate-200 bg-white hover:border-slate-200 hover:bg-slate-50/90'
       }`}
     >
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,0.9fr)_190px]">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-base font-semibold text-white">{entity.name}</h3>
-            <Badge color={profileTone(entity.profile_kind)} className="bg-slate-900 text-slate-100 ring-slate-700">
+            <h3 className="truncate text-base font-semibold text-slate-900">{entity.name}</h3>
+            <Badge color={profileTone(entity.profile_kind)} className="bg-slate-50 text-slate-900 ring-slate-200">
               {entity.profile_kind.replace(/_/g, ' ')}
             </Badge>
-            <Badge color={sourceBadgeColor(entity.source_kind)} className="bg-slate-900 text-slate-100 ring-slate-700">
+            <Badge color={sourceBadgeColor(entity.source_kind)} className="bg-slate-50 text-slate-900 ring-slate-200">
               {entity.source_authority}
             </Badge>
-            <Badge color="gray" className="bg-slate-900 text-slate-300 ring-slate-700">
+            <Badge color="gray" className="bg-slate-50 text-slate-700 ring-slate-200">
               {entity.status.replace(/_/g, ' ')}
             </Badge>
           </div>
-          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-300">{entity.context_summary}</p>
+          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-700">{entity.context_summary}</p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
             <span>{entity.country_label}</span>
             <span>{[entity.city, entity.state].filter(Boolean).join(', ') || 'Location pending'}</span>
@@ -247,17 +247,17 @@ function IntelligenceRow({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-          <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
             <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Business model</p>
-            <p className="mt-1 text-sm text-white">
+            <p className="mt-1 text-sm text-slate-900">
               {entity.business_roles.length > 0
                 ? entity.business_roles.slice(0, 2).map((role) => role.replace(/_/g, ' ')).join(', ')
                 : entity.entity_type.replace(/_/g, ' ')}
             </p>
           </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
             <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Confidence</p>
-            <p className="mt-1 text-sm text-white">
+            <p className="mt-1 text-sm text-slate-900">
               {entity.confidence_score != null ? `${Math.round(entity.confidence_score * 100)}%` : 'n/a'}
             </p>
           </div>
@@ -266,21 +266,21 @@ function IntelligenceRow({
         <div className="space-y-3">
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Assets</p>
-            <p className="mt-1 text-sm font-semibold text-white">{formatCurrency(entity.metrics.total_assets)}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">{formatCurrency(entity.metrics.total_assets)}</p>
           </div>
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Deposits</p>
-            <p className="mt-1 text-sm font-semibold text-white">{formatCurrency(entity.metrics.total_deposits)}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">{formatCurrency(entity.metrics.total_deposits)}</p>
           </div>
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Freshness</p>
-              <p className="mt-1 text-xs text-slate-300">{entity.data_as_of ?? entity.last_synced_at ?? 'Unknown'}</p>
+              <p className="mt-1 text-xs text-slate-700">{entity.data_as_of ?? entity.last_synced_at ?? 'Unknown'}</p>
             </div>
             <Link
               to={`/entities/${entity.id}`}
               onClick={(event) => event.stopPropagation()}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-cyan-200 transition-colors hover:border-cyan-500/50 hover:text-cyan-100"
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-cyan-600 transition-colors hover:border-cyan-500/50 hover:text-cyan-500"
             >
               Open
               <ArrowRight className="h-3.5 w-3.5" />
@@ -314,32 +314,32 @@ function PreviewPanel({
 
   return (
     <div className="space-y-4 xl:sticky xl:top-24">
-      <Card className="border-slate-800 bg-[linear-gradient(180deg,rgba(12,18,32,0.96),rgba(2,6,23,0.98))] text-slate-100 shadow-2xl shadow-slate-950/30">
+      <Card className="border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-200/50">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-300/80">Context preview</p>
-            <h2 className="mt-2 text-lg font-semibold text-white">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-600/80">Context preview</p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-900">
               {entity?.name ?? 'Select an entity'}
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">
+            <p className="mt-2 text-sm leading-relaxed text-slate-700">
               {entity?.context_summary ?? 'Pick a row to see regulatory, financial, and relationship context before drilling in.'}
             </p>
           </div>
-          <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-cyan-200">
+          <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-cyan-600">
             <Sparkles className="h-5 w-5" />
           </div>
         </div>
 
         {entity && (
           <div className="mt-4 flex flex-wrap gap-2">
-            <Badge color={profileTone(entity.profile_kind)} className="bg-slate-900 text-slate-100 ring-slate-700">
+            <Badge color={profileTone(entity.profile_kind)} className="bg-slate-50 text-slate-900 ring-slate-200">
               {entity.profile_kind.replace(/_/g, ' ')}
             </Badge>
-            <Badge color="gray" className="bg-slate-900 text-slate-300 ring-slate-700">
+            <Badge color="gray" className="bg-slate-50 text-slate-700 ring-slate-200">
               {entity.regulator ?? entity.source_authority}
             </Badge>
             {entity.charter_family && (
-              <Badge color="gray" className="bg-slate-900 text-slate-300 ring-slate-700">
+              <Badge color="gray" className="bg-slate-50 text-slate-700 ring-slate-200">
                 {entity.charter_family.replace(/_/g, ' ')}
               </Badge>
             )}
@@ -347,12 +347,12 @@ function PreviewPanel({
         )}
       </Card>
 
-      <Card className="border-slate-800 bg-slate-950/80 text-slate-100">
+      <Card className="border-slate-200 bg-slate-50/80 text-slate-900">
         {loading ? (
           <div className="space-y-3">
-            <Skeleton className="h-20 bg-slate-900/70" />
-            <Skeleton className="h-20 bg-slate-900/70" />
-            <Skeleton className="h-20 bg-slate-900/70" />
+            <Skeleton className="h-20 bg-slate-50/70" />
+            <Skeleton className="h-20 bg-slate-50/70" />
+            <Skeleton className="h-20 bg-slate-50/70" />
           </div>
         ) : entity ? (
           <div className="space-y-4">
@@ -363,9 +363,9 @@ function PreviewPanel({
                 { label: 'History', value: history.length.toLocaleString() },
                 { label: 'ROA', value: formatPercent(entity.metrics.roa) },
               ].map((metric) => (
-                <div key={metric.label} className="rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+                <div key={metric.label} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{metric.label}</p>
-                  <p className="mt-1 text-sm font-semibold text-white">{metric.value}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{metric.value}</p>
                 </div>
               ))}
             </div>
@@ -378,14 +378,14 @@ function PreviewPanel({
               ]
                 .filter(Boolean)
                 .map((section) => (
-                  <div key={section!.key} className="rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+                  <div key={section!.key} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{section!.title}</p>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-200">{section!.summary}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-800">{section!.summary}</p>
                     <div className="mt-3 space-y-2">
                       {section!.items.slice(0, 3).map((item) => (
                         <div key={`${section!.key}-${item.label}`} className="flex items-start justify-between gap-3 text-sm">
                           <span className="text-slate-400">{item.label}</span>
-                          <span className="text-right text-white">{item.value}</span>
+                          <span className="text-right text-slate-900">{item.value}</span>
                         </div>
                       ))}
                     </div>
@@ -393,21 +393,21 @@ function PreviewPanel({
                 ))}
             </div>
 
-            <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
               <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Why it matters</p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-200">{ai?.summary ?? entity.context_summary}</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-800">{ai?.summary ?? entity.context_summary}</p>
             </div>
 
             <Link
               to={`/entities/${entity.id}`}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-medium text-cyan-100 transition-colors hover:bg-cyan-500/15"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-medium text-cyan-700 transition-colors hover:bg-cyan-100"
             >
               Open full entity terminal
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-slate-800 p-6 text-sm text-slate-400">
+          <div className="rounded-xl border border-dashed border-slate-200 p-6 text-sm text-slate-400">
             Select an entity to preview its regulatory environment, business model, market posture, and evidence trail.
           </div>
         )}
@@ -538,17 +538,17 @@ export default function EntitiesPage() {
   );
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-950 text-slate-100">
-      <div className="relative overflow-hidden border-b border-slate-800">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(8,145,178,0.2),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.12),_transparent_24%),linear-gradient(180deg,_rgba(2,6,23,0.98),_rgba(15,23,42,1))]" />
+    <div className="min-h-[calc(100vh-4rem)] bg-white text-slate-900">
+      <div className="relative overflow-hidden border-b border-slate-200">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(8,145,178,0.08),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.06),_transparent_24%)]" />
         <div className="relative mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-4xl space-y-3">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-300/80">North American banking intelligence terminal</p>
-              <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-5xl">
+              <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-600/80">North American banking intelligence terminal</p>
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
                 Search in context, not just by name.
               </h1>
-              <p className="max-w-3xl text-sm leading-relaxed text-slate-300 sm:text-base">
+              <p className="max-w-3xl text-sm leading-relaxed text-slate-700 sm:text-base">
                 Navigate banks, credit unions, PSPs, and MSBs with regulatory posture, business model, source authority, and relationship context already in view.
               </p>
             </div>
@@ -582,37 +582,37 @@ export default function EntitiesPage() {
           </div>
 
           <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)]">
-            <Card className="border-slate-800 bg-slate-900/75 text-slate-100 shadow-2xl shadow-slate-950/30">
+            <Card className="border-slate-200 bg-slate-50/75 text-slate-900 shadow-2xl shadow-slate-950/30">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-300/80">Market backdrop</p>
-                  <h2 className="mt-2 text-lg font-semibold text-white">Bank of Canada macro pulse</h2>
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-600/80">Market backdrop</p>
+                  <h2 className="mt-2 text-lg font-semibold text-slate-900">Bank of Canada macro pulse</h2>
                   <p className="mt-1 text-sm text-slate-400">
                     Cross-border money movement context for Canada-facing entities, PSPs, and sponsor-bank research.
                   </p>
                 </div>
-                <Globe2 className="h-5 w-5 text-cyan-300" />
+                <Globe2 className="h-5 w-5 text-cyan-600" />
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {macroQuery.isLoading && macroSignals.length === 0 ? (
                   Array.from({ length: 4 }).map((_, index) => (
-                    <Skeleton key={index} className="h-28 bg-slate-900/70" />
+                    <Skeleton key={index} className="h-28 bg-slate-50/70" />
                   ))
                 ) : macroSignals.length > 0 ? (
                   macroSignals.map((signal) => (
-                    <div key={signal.series_key} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                    <div key={signal.series_key} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">{signal.display_name}</p>
-                          <p className="mt-2 text-lg font-semibold text-white">{formatSeriesValue(signal.value, signal.unit)}</p>
+                          <p className="mt-2 text-lg font-semibold text-slate-900">{formatSeriesValue(signal.value, signal.unit)}</p>
                           <p className="mt-1 text-xs text-slate-400">{signal.period}</p>
                         </div>
                         <div className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${
                           signal.delta == null
-                            ? 'bg-slate-900 text-slate-300'
+                            ? 'bg-slate-50 text-slate-700'
                             : signal.delta > 0
-                              ? 'bg-emerald-950 text-emerald-200'
-                              : 'bg-amber-950 text-amber-200'
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-amber-50 text-amber-700'
                         }`}>
                           {signal.delta == null ? null : signal.delta > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                           {formatSeriesDelta(signal.delta, signal.unit)}
@@ -621,37 +621,37 @@ export default function EntitiesPage() {
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-800 p-5 text-sm leading-relaxed text-slate-400 sm:col-span-2">
+                  <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-sm leading-relaxed text-slate-400 sm:col-span-2">
                     No Bank of Canada series are loaded yet. Once <code>macro_series</code> is populated, this panel becomes the live macro lens for Canada-facing profiles.
                   </div>
                 )}
               </div>
             </Card>
 
-            <Card className="border-slate-800 bg-slate-900/75 text-slate-100 shadow-2xl shadow-slate-950/30">
+            <Card className="border-slate-200 bg-slate-50/75 text-slate-900 shadow-2xl shadow-slate-950/30">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-emerald-300/80">Data posture</p>
-                  <h2 className="mt-2 text-lg font-semibold text-white">Warehouse and source readiness</h2>
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-emerald-600/80">Data posture</p>
+                  <h2 className="mt-2 text-lg font-semibold text-slate-900">Warehouse and source readiness</h2>
                   <p className="mt-1 text-sm text-slate-400">
                     What is loaded, what can sync right now, and where the coverage edge is strongest.
                   </p>
                 </div>
-                <Workflow className="h-5 w-5 text-emerald-300" />
+                <Workflow className="h-5 w-5 text-emerald-600" />
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
                   <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Warehouse</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{readinessQuery.data?.warehouse.status ?? 'loading'}</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">{readinessQuery.data?.warehouse.status ?? 'loading'}</p>
                   <p className="mt-1 text-xs text-slate-400">
                     {readinessQuery.data
                       ? `${readinessQuery.data.warehouse.ready_tables ?? 0}/${readinessQuery.data.warehouse.total_tables ?? 0} tables visible`
                       : 'Checking entity warehouse'}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
                   <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Runnable syncs</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{readinessQuery.data?.sources.sync_ready ?? '—'}</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">{readinessQuery.data?.sources.sync_ready ?? '—'}</p>
                   <p className="mt-1 text-xs text-slate-400">
                     {readinessQuery.data
                       ? `${readinessQuery.data.sources.sync_blocked} blocked by files or credentials`
@@ -662,32 +662,32 @@ export default function EntitiesPage() {
               <div className="mt-4 space-y-3">
                 {activeSources.length > 0 ? (
                   activeSources.map((source) => (
-                    <div key={source.source_key} className="rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-3">
+                    <div key={source.source_key} className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-3">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-sm font-medium text-white">{source.display_name}</p>
+                          <p className="text-sm font-medium text-slate-900">{source.display_name}</p>
                           <p className="text-xs text-slate-500">{source.category_label} · {source.coverage_label}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-cyan-200">{source.record_count?.toLocaleString() ?? '—'}</p>
+                          <p className="text-sm font-semibold text-cyan-600">{source.record_count?.toLocaleString() ?? '—'}</p>
                           <p className="text-xs text-slate-500">{source.data_as_of ?? 'Freshness pending'}</p>
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-xl border border-dashed border-slate-800 p-4 text-sm text-slate-400">
+                  <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-400">
                     Active source coverage will appear here once the source catalog loads.
                   </div>
                 )}
               </div>
-              <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-3">
-                <div className="text-sm text-slate-300">
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-3">
+                <div className="text-sm text-slate-700">
                   Source catalog and sync surfaces are now part of the search workflow.
                 </div>
                 <Link
                   to="/sources"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-cyan-200 transition-colors hover:text-cyan-100"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-cyan-600 transition-colors hover:text-cyan-500"
                 >
                   Open sources
                   <ArrowRight className="h-4 w-4" />
@@ -724,7 +724,7 @@ export default function EntitiesPage() {
           />
 
           <div className="space-y-5">
-            <Card className="border-slate-800 bg-slate-900/80 text-slate-100 shadow-2xl shadow-slate-950/30">
+            <Card className="border-slate-200 bg-slate-50/80 text-slate-900 shadow-2xl shadow-slate-950/30">
               <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_210px_auto]">
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -735,26 +735,26 @@ export default function EntitiesPage() {
                       if (event.key === 'Enter') updateParam({ q: query });
                     }}
                     placeholder="Search by name, regulator, geography, or context summary"
-                    className="pl-9 !border-slate-800 !bg-slate-950 !text-slate-100 placeholder:!text-slate-500"
+                    className="pl-9 !border-slate-200 !bg-white !text-slate-900 placeholder:!text-slate-500"
                   />
                 </div>
                 <Select
                   value={country}
                   onChange={(event) => updateParam({ country: event.target.value })}
                   options={COUNTRY_OPTIONS}
-                  className="!border-slate-800 !bg-slate-950 !text-slate-100"
+                  className="!border-slate-200 !bg-white !text-slate-900"
                 />
                 <Select
                   value={profileKind}
                   onChange={(event) => updateParam({ profile_kind: event.target.value })}
                   options={PROFILE_KIND_OPTIONS}
-                  className="!border-slate-800 !bg-slate-950 !text-slate-100"
+                  className="!border-slate-200 !bg-white !text-slate-900"
                 />
                 <div className="flex gap-2">
                   <Button
                     variant="secondary"
                     size="sm"
-                    className="!border-slate-800 !bg-slate-950 !text-slate-100 hover:!bg-slate-900"
+                    className="!border-slate-200 !bg-white !text-slate-900 hover:!bg-slate-50"
                     onClick={() => updateParam({ q: query })}
                   >
                     Search
@@ -762,7 +762,7 @@ export default function EntitiesPage() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    className="!border-slate-800 !bg-slate-950 !text-slate-100 hover:!bg-slate-900"
+                    className="!border-slate-200 !bg-white !text-slate-900 hover:!bg-slate-50"
                     onClick={() => updateParam({ view: view === 'cards' ? 'terminal' : 'cards' })}
                   >
                     {view === 'cards' ? 'Terminal' : 'Cards'}
@@ -772,16 +772,16 @@ export default function EntitiesPage() {
             </Card>
 
             {error && (
-              <div className="rounded-2xl border border-rose-900/70 bg-rose-950/50 p-4 text-sm text-rose-200">
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
                 Failed to load entity search.
               </div>
             )}
 
-            <Card className="border-slate-800 bg-slate-900/70 text-slate-100">
+            <Card className="border-slate-200 bg-slate-50/70 text-slate-900">
               <div className="mb-4 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Live screening board</p>
-                  <p className="mt-1 text-sm text-slate-300">
+                  <p className="mt-1 text-sm text-slate-700">
                     Rank entities by size, scan context, then preview before drilling in.
                   </p>
                 </div>
@@ -795,20 +795,20 @@ export default function EntitiesPage() {
               ) : view === 'cards' ? (
                 <div className="grid gap-4 lg:grid-cols-2">
                   {entities.map((entity) => (
-                    <div key={entity.id} className="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+                    <div key={entity.id} className="rounded-2xl border border-slate-200 bg-white p-5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-semibold text-white">{entity.name}</h3>
-                        <Badge color={profileTone(entity.profile_kind)} className="bg-slate-900 text-slate-100 ring-slate-700">
+                        <h3 className="text-base font-semibold text-slate-900">{entity.name}</h3>
+                        <Badge color={profileTone(entity.profile_kind)} className="bg-slate-50 text-slate-900 ring-slate-200">
                           {entity.profile_kind.replace(/_/g, ' ')}
                         </Badge>
                       </div>
-                      <p className="mt-2 text-sm text-slate-300">{entity.context_summary}</p>
+                      <p className="mt-2 text-sm text-slate-700">{entity.context_summary}</p>
                       <div className="mt-4 flex items-center justify-between gap-3">
                         <div className="text-xs text-slate-500">
                           <p>{entity.regulator ?? entity.source_authority}</p>
                           <p>{formatCurrency(entity.metrics.total_assets)}</p>
                         </div>
-                        <Link to={`/entities/${entity.id}`} className="text-sm font-medium text-cyan-200 hover:text-cyan-100">
+                        <Link to={`/entities/${entity.id}`} className="text-sm font-medium text-cyan-600 hover:text-cyan-500">
                           Open profile
                         </Link>
                       </div>
@@ -829,22 +829,22 @@ export default function EntitiesPage() {
               )}
 
               {!isLoading && entities.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-950/70 p-8 text-center text-slate-400">
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-400">
                   No entities found for the current search.
                 </div>
               )}
             </Card>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3">
-                <p className="text-sm text-slate-300">
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                <p className="text-sm text-slate-700">
                   Page {data?.page ?? 1} of {totalPages} · {data?.total ?? 0} results
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="secondary"
                     size="sm"
-                    className="!border-slate-800 !bg-slate-950 !text-slate-100"
+                    className="!border-slate-200 !bg-white !text-slate-900"
                     disabled={page <= 1}
                     onClick={() => updateParam({ page: page - 1 })}
                   >
@@ -854,7 +854,7 @@ export default function EntitiesPage() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    className="!border-slate-800 !bg-slate-950 !text-slate-100"
+                    className="!border-slate-200 !bg-white !text-slate-900"
                     disabled={page >= totalPages}
                     onClick={() => updateParam({ page: page + 1 })}
                   >

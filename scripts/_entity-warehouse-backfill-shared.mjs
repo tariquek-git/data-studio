@@ -3,6 +3,15 @@ import { stableUuid } from './_sync-utils.mjs';
 const BACKFILL_NOTE = 'Backfilled from legacy warehouse activation';
 const REGISTRY_SOURCES = new Set(['rpaa', 'ciro', 'fintrac', 'fincen']);
 const DEFAULT_BRANCH_REPORTING_YEAR = 2024;
+const SOURCE_URL_BY_SOURCE = {
+  fdic: 'https://banks.data.fdic.gov/api/institutions',
+  ncua: 'https://www.ncua.gov/analysis/credit-union-corporate-call-report-data',
+  osfi: 'https://www.osfi-bsif.gc.ca/en/supervision/who-we-regulate',
+  rpaa: 'https://www.bankofcanada.ca/core-functions/funds-management/retail-payments-supervision/',
+  ciro: 'https://www.ciro.ca/investors/check-your-advisor-dealer',
+  fintrac: 'https://www10.fintrac-canafe.gc.ca/msb-esm/public/msb-list/',
+  fincen: 'https://www.fincen.gov/msb-registrant-search',
+};
 
 const REGISTRY_META = {
   rpaa: {
@@ -61,6 +70,10 @@ function factId(entityTable, entityId, factType, factKey, factValueText, observe
   );
 }
 
+function sourceUrlForSource(sourceKey) {
+  return SOURCE_URL_BY_SOURCE[sourceKey] ?? null;
+}
+
 function institutionExternalIds(row) {
   const raw = row.raw_data ?? {};
   let primaryAssigned = false;
@@ -77,7 +90,7 @@ function institutionExternalIds(row) {
       id_type: idType,
       id_value: text,
       is_primary: makePrimary,
-      source_url: null,
+      source_url: sourceUrlForSource(row.source),
       notes: BACKFILL_NOTE,
     });
   };
@@ -119,7 +132,7 @@ function institutionTags(row) {
       tag_key: 'charter_family',
       tag_value: row.charter_type,
       source_kind: 'curated',
-      source_url: null,
+      source_url: sourceUrlForSource(row.source),
       confidence_score: 0.7,
       effective_start: null,
       effective_end: null,
@@ -142,7 +155,7 @@ function institutionTags(row) {
       tag_key: 'business_role',
       tag_value: role,
       source_kind: 'curated',
-      source_url: null,
+      source_url: sourceUrlForSource(row.source),
       confidence_score: 0.6,
       effective_start: null,
       effective_end: null,
@@ -206,7 +219,7 @@ function registryExternalIds(registryRow, legacyRow) {
       id_type: 'registration_number',
       id_value: registryRow.registration_number,
       is_primary: !preferredIsDistinct,
-      source_url: null,
+      source_url: sourceUrlForSource(legacyRow.source),
       notes: BACKFILL_NOTE,
     },
     {
@@ -215,7 +228,7 @@ function registryExternalIds(registryRow, legacyRow) {
       id_type: 'legacy_cert_number',
       id_value: String(legacyRow.cert_number),
       is_primary: false,
-      source_url: null,
+      source_url: sourceUrlForSource(legacyRow.source),
       notes: BACKFILL_NOTE,
     },
   ];
@@ -227,7 +240,7 @@ function registryExternalIds(registryRow, legacyRow) {
       id_type: meta.id_type,
       id_value: preferredSourceId,
       is_primary: true,
-      source_url: null,
+      source_url: sourceUrlForSource(legacyRow.source),
       notes: BACKFILL_NOTE,
     });
   }
@@ -250,7 +263,7 @@ function registryTags(registryRow, legacyRow) {
       tag_key: 'business_role',
       tag_value: meta?.business_role ?? registryRow.entity_subtype,
       source_kind: 'curated',
-      source_url: null,
+      source_url: sourceUrlForSource(legacyRow.source),
       confidence_score: 0.8,
       effective_start: null,
       effective_end: null,
@@ -263,7 +276,7 @@ function registryTags(registryRow, legacyRow) {
       tag_key: 'charter_family',
       tag_value: registryRow.entity_subtype,
       source_kind: 'curated',
-      source_url: null,
+      source_url: sourceUrlForSource(legacyRow.source),
       confidence_score: 0.7,
       effective_start: null,
       effective_end: null,
@@ -299,7 +312,7 @@ function registryFacts(registryRow, legacyRow) {
       },
       fact_unit: null,
       source_kind: 'curated',
-      source_url: null,
+      source_url: sourceUrlForSource(legacyRow.source),
       observed_at: legacyRow.last_synced_at,
       confidence_score: 0.7,
       notes: BACKFILL_NOTE,
@@ -324,7 +337,7 @@ function aggregateBranches(branchRows, institutionsByCert, reportingYear) {
       main_office_count: 0,
       total_branch_deposits: 0,
       source_kind: 'official',
-      source_url: null,
+      source_url: sourceUrlForSource('fdic'),
       raw_data: {
         legacy_cert_number: branch.cert_number,
       },
@@ -401,7 +414,7 @@ export function buildBackfillPayloads({ institutions, financialHistory, branches
         roi: row.roi,
         credit_card_loans: row.credit_card_loans,
         source_kind: 'official',
-        source_url: null,
+        source_url: sourceUrlForSource(institution.source),
         raw_data: {
           ...(row.raw_data ?? {}),
           legacy_cert_number: row.cert_number,

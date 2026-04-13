@@ -19,35 +19,36 @@ export function ExploreViewSwitcher({ total, isFetching }: ExploreViewSwitcherPr
   const { viewMode, setViewMode } = useExploreStore();
 
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex items-center gap-4">
       {/* Tab bar */}
-      <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+      <div className="flex items-center rounded-lg overflow-hidden border border-surface-700/50 bg-surface-800/50">
         {TABS.map(({ mode, label, Icon }) => (
           <button
             key={mode}
             type="button"
             onClick={() => setViewMode(mode)}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors ${
               viewMode === mode
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                ? 'bg-primary-500/20 text-primary-300'
+                : 'text-surface-500 hover:text-surface-200 hover:bg-surface-700/50'
             }`}
             aria-pressed={viewMode === mode}
+            title={label}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">{label}</span>
           </button>
         ))}
       </div>
 
       {/* Result count */}
-      <div className="flex items-center gap-2 text-sm text-slate-500">
+      <div className="flex items-center gap-2 text-xs text-surface-500">
         {isFetching && (
-          <span className="inline-block w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <span className="inline-block w-3 h-3 border border-primary-400 border-t-transparent rounded-full animate-spin" />
         )}
         <span>
-          <span className="font-semibold text-slate-800">{formatNumber(total)}</span>{' '}
-          institution{total !== 1 ? 's' : ''}
+          <span className="font-semibold font-mono text-surface-200">{formatNumber(total)}</span>{' '}
+          results
         </span>
       </div>
     </div>

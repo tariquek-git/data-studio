@@ -36,10 +36,19 @@ import {
   tableExists,
   updateDataSourceSnapshot,
 } from './_sync-utils.mjs';
+import { createHash } from 'node:crypto';
 
 const SOURCE_KEY = 'ffiec_nic';
 const DATA_DOWNLOAD_URL = 'https://www.ffiec.gov/npw/FinancialReport/DataDownload';
 const DATA_DICTIONARY_URL = 'https://www.ffiec.gov/npw/StaticData/DataDownload/NPW%20Data%20Dictionary.pdf';
+
+function stableId(seedParts: Array<string | number | boolean | null | undefined>) {
+  const seed = seedParts
+    .map((value) => (value == null ? '' : String(value)))
+    .join('|');
+  const hash = createHash('sha1').update(seed).digest('hex');
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+}
 
 const env = loadEnvLocal();
 const activeFile = getEnvValue(env, 'FFIEC_NIC_ACTIVE_FILE');
@@ -270,6 +279,15 @@ async function main() {
         if (!parent || !offspring) continue;
 
         relationships.push({
+          id: stableId([
+            parent.entity_table,
+            parent.entity_id,
+            offspring.entity_table,
+            offspring.entity_id,
+            row.CTRL_IND ?? '0',
+            row.D_DT_START ?? row.DT_START ?? '',
+            row.D_DT_END ?? row.DT_END ?? '',
+          ]),
           from_entity_table: parent.entity_table,
           from_entity_id: parent.entity_id,
           to_entity_table: offspring.entity_table,
@@ -294,7 +312,9 @@ async function main() {
         .eq('relationship_type', 'nic_ownership');
 
       for (const batch of chunkArray(relationships, 300)) {
-        const { error } = await supabase.from('entity_relationships').insert(batch);
+        const { error } = await supabase
+          .from('entity_relationships')
+          .upsert(batch, { onConflict: 'id' });
         if (error) throw new Error(`Unable to insert FFIEC NIC relationships: ${error.message}`);
       }
     } else if (!hasRelationshipsTable) {
@@ -317,6 +337,14 @@ async function main() {
         if (!eventDate) continue;
 
         charterEvents.push({
+          id: stableId([
+            target.entity_table,
+            target.entity_id,
+            row.TRNSFM_CD ?? '',
+            predecessorId,
+            successorId,
+            eventDate,
+          ]),
           entity_table: target.entity_table,
           entity_id: target.entity_id,
           event_type: 'transformation',
@@ -339,7 +367,9 @@ async function main() {
         .eq('event_type', 'transformation');
 
       for (const batch of chunkArray(charterEvents, 300)) {
-        const { error } = await supabase.from('charter_events').insert(batch);
+        const { error } = await supabase
+          .from('charter_events')
+          .upsert(batch, { onConflict: 'id' });
         if (error) throw new Error(`Unable to insert FFIEC NIC transformation events: ${error.message}`);
       }
     } else if (!hasCharterEventsTable) {

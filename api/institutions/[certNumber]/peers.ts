@@ -2,6 +2,14 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { apiHandler } from '../../../lib/api-handler.js';
 import { getSupabase } from '../../../lib/supabase.js';
 
+function parseCertNumber(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number.parseInt(trimmed, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 function getAssetBucket(assets: number | null): [number, number] {
   if (!assets) return [0, 100_000_000];
   if (assets < 100_000_000) return [0, 100_000_000];
@@ -35,9 +43,9 @@ function percentile(values: number[], target: number): number {
   return Math.round((below / values.length) * 100);
 }
 
-export default apiHandler({ methods: ['GET'] }, async (req, res) => {
-  const certNumber = Number(req.query.certNumber);
-  if (!certNumber) return res.status(400).json({ error: 'Invalid cert number' });
+export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: VercelResponse) => {
+  const certNumber = parseCertNumber(req.query.certNumber);
+  if (certNumber == null) return res.status(400).json({ error: 'Invalid cert number' });
 
   const supabase = getSupabase();
 

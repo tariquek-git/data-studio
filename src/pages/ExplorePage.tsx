@@ -9,7 +9,7 @@ import { ExploreResultsTable } from '@/components/explore/ExploreResultsTable';
 import { ExploreResultsCards } from '@/components/explore/ExploreResultsCards';
 import { ExploreAnalyticsPanel } from '@/components/explore/ExploreAnalyticsPanel';
 import { ExploreWorkingSet } from '@/components/explore/ExploreWorkingSet';
-import { Skeleton } from '@/components/ui';
+import { Skeleton, SectionErrorBoundary } from '@/components/ui';
 
 // Lazy-load heavy views
 const ExploreResultsMap = lazy(() =>
@@ -43,28 +43,26 @@ export default function ExplorePage() {
   return (
     <>
       {/* Full-height layout container */}
-      <div className={`flex h-[calc(100vh-64px)] overflow-hidden${brimMode ? ' border-t-2 border-violet-500' : ''}`}>
+      <div className={`flex h-[calc(100vh-56px)] overflow-hidden${brimMode ? ' border-t-2 border-violet-300' : ''}`}>
         {/* ── Left: Filter Sidebar (desktop) ── */}
-        <aside className="hidden lg:flex w-72 shrink-0 flex-col bg-white border-r border-slate-200 overflow-hidden">
+        <aside className="hidden lg:flex w-72 shrink-0 flex-col bg-surface-900 border-r border-surface-700/50 overflow-hidden">
           <ExploreFilterSidebar />
         </aside>
 
         {/* ── Mobile slide-over sidebar ── */}
         {mobileSidebarOpen && (
           <div className="fixed inset-0 z-50 flex lg:hidden">
-            {/* Backdrop */}
             <div
-              className="fixed inset-0 bg-black/40"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => setMobileSidebarOpen(false)}
             />
-            {/* Panel */}
-            <div className="relative z-10 w-80 max-w-full bg-white shadow-xl flex flex-col">
-              <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-slate-200">
-                <h2 className="text-sm font-semibold text-slate-900">Filters</h2>
+            <div className="relative z-10 w-80 max-w-full bg-surface-900 shadow-xl shadow-black/40 flex flex-col">
+              <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-surface-700/50">
+                <h2 className="text-sm font-semibold text-surface-100">Filters</h2>
                 <button
                   type="button"
                   onClick={() => setMobileSidebarOpen(false)}
-                  className="p-1 rounded text-slate-400 hover:text-slate-700"
+                  className="p-1 rounded text-surface-400 hover:text-surface-200"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -77,14 +75,14 @@ export default function ExplorePage() {
         )}
 
         {/* ── Center: Results area ── */}
-        <main className="flex-1 min-w-0 flex flex-col overflow-hidden bg-slate-50">
+        <main className="flex-1 min-w-0 flex flex-col overflow-hidden bg-surface-950">
           {/* Top bar */}
-          <div className="shrink-0 bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center gap-3">
+          <div className="shrink-0 bg-surface-900/80 backdrop-blur border-b border-surface-700/50 px-4 sm:px-6 py-2.5 flex items-center gap-3">
             {/* Mobile filter toggle */}
             <button
               type="button"
               onClick={() => setMobileSidebarOpen(true)}
-              className="lg:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-600 hover:bg-slate-50"
+              className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-surface-700 text-sm text-surface-400 hover:text-surface-200 hover:bg-surface-800"
             >
               <SlidersHorizontal className="h-4 w-4" />
               Filters
@@ -98,8 +96,8 @@ export default function ExplorePage() {
               onClick={toggleBrimMode}
               className={`ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                 brimMode
-                  ? 'bg-violet-600 text-white border-violet-600 shadow-sm shadow-violet-200'
-                  : 'bg-white text-slate-500 border-slate-300 hover:border-violet-400 hover:text-violet-600'
+                  ? 'bg-violet-100 text-violet-700 border-violet-300 shadow-sm shadow-violet-200'
+                  : 'text-surface-500 border-surface-700 hover:border-violet-300 hover:text-violet-600 hover:bg-violet-50'
               }`}
               title={brimMode ? 'Exit Brim Mode' : 'Enter Brim Mode — find card issuing prospects'}
             >
@@ -121,13 +119,17 @@ export default function ExplorePage() {
             ) : store.viewMode === 'cards' ? (
               <ExploreResultsCards institutions={data} />
             ) : store.viewMode === 'map' ? (
-              <Suspense fallback={<ResultsLoadingState />}>
-                <ExploreResultsMap institutions={data} isLoading={isFetching} />
-              </Suspense>
+              <SectionErrorBoundary section="Map">
+                <Suspense fallback={<ResultsLoadingState />}>
+                  <ExploreResultsMap institutions={data} isLoading={isFetching} />
+                </Suspense>
+              </SectionErrorBoundary>
             ) : (
-              <Suspense fallback={<ResultsLoadingState />}>
-                <ExploreResultsChart institutions={data} aggregations={aggregations} />
-              </Suspense>
+              <SectionErrorBoundary section="Chart">
+                <Suspense fallback={<ResultsLoadingState />}>
+                  <ExploreResultsChart institutions={data} aggregations={aggregations} />
+                </Suspense>
+              </SectionErrorBoundary>
             )}
           </div>
         </main>

@@ -716,7 +716,9 @@ export async function searchEntities(options: SearchOptions) {
     } else if (options.country === 'CA') {
       query = query.in('source', ['osfi', 'rpaa', 'ciro', 'fintrac', 'bcfsa', 'fsra', 'cudgc', 'dgcm', 'cudgc_sk', 'nbcudic', 'nscudic', 'ccua', 'fintech_ca']);
     }
-    return query.range(from, to);
+    // fetchAllPages relies on deterministic ordering; without it PostgREST can
+    // return overlapping/missing rows across range windows.
+    return query.order('id', { ascending: true }).range(from, to);
   }
 
   function buildRegistryQuery(from: number, to: number) {
@@ -731,7 +733,7 @@ export async function searchEntities(options: SearchOptions) {
     if (options.country) {
       query = query.eq('country', options.country);
     }
-    return query.range(from, to);
+    return query.order('id', { ascending: true }).range(from, to);
   }
 
   const [allInstitutionRows, registryRows] = await Promise.all([

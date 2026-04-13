@@ -123,7 +123,7 @@ export function RatesStrip() {
         <div className="ml-auto flex items-center gap-1 text-xs text-blue-500">
           <span>Updated hourly</span>
           {data.as_of && (
-            <span className="hidden sm:inline text-blue-400">· {data.as_of}</span>
+            <span className="hidden sm:inline text-blue-600">· {data.as_of}</span>
           )}
         </div>
       </div>

@@ -9,10 +9,10 @@ interface MetricCard {
 }
 
 const toneClasses: Record<NonNullable<MetricCard['tone']>, string> = {
-  default: 'bg-slate-800/80 text-slate-100 ring-slate-700/70',
-  positive: 'bg-emerald-950/70 text-emerald-200 ring-emerald-800/70',
-  caution: 'bg-amber-950/70 text-amber-200 ring-amber-800/70',
-  critical: 'bg-rose-950/70 text-rose-200 ring-rose-800/70',
+  default: 'bg-slate-100/80 text-slate-900 ring-slate-200/70',
+  positive: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  caution: 'bg-amber-50 text-amber-700 ring-amber-200',
+  critical: 'bg-rose-50 text-rose-700 ring-rose-200',
 };
 
 export interface EntityMetricStripProps {
@@ -33,11 +33,11 @@ export function EntityMetricStrip({ cards, rightSlot }: EntityMetricStripProps) 
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">{card.label}</p>
-                <p className="mt-2 text-lg font-semibold text-white">{card.value}</p>
-                {card.detail && <p className="mt-1 text-xs text-slate-400">{card.detail}</p>}
+                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">{card.label}</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900">{card.value}</p>
+                {card.detail && <p className="mt-1 text-xs text-slate-600">{card.detail}</p>}
               </div>
-              <Badge color="gray" className="bg-slate-950 text-slate-300 ring-slate-700/70">
+              <Badge color="gray" className="bg-white text-slate-700 ring-slate-200/70">
                 live
               </Badge>
             </div>

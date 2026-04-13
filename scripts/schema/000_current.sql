@@ -490,15 +490,34 @@ ALTER TABLE registry_entities
 ALTER TABLE registry_entities
   ADD COLUMN IF NOT EXISTS data_provenance JSONB;
 
--- Validate data_provenance structure: must have a "sources" array if set.
--- Each source must have source_key (text) and fetched_at (text/timestamp).
--- Lightweight constraint — full schema validation happens in application code.
+-- Validate data_provenance structure against the application contract.
+-- Each source entry must be an object with source_key, source_url, fetched_at,
+-- and confidence (0-100). The top-level object must also include
+-- last_verified_at. Application code still performs richer runtime validation.
 CREATE OR REPLACE FUNCTION validate_data_provenance(prov JSONB)
 RETURNS BOOLEAN LANGUAGE plpgsql IMMUTABLE AS $$
 BEGIN
   IF prov IS NULL THEN RETURN TRUE; END IF;
+  IF jsonb_typeof(prov) != 'object' THEN RETURN FALSE; END IF;
   IF prov->>'sources' IS NULL THEN RETURN FALSE; END IF;
   IF jsonb_typeof(prov->'sources') != 'array' THEN RETURN FALSE; END IF;
+  IF jsonb_typeof(prov->'last_verified_at') != 'string' OR btrim(prov->>'last_verified_at') = '' THEN RETURN FALSE; END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM jsonb_array_elements(prov->'sources') AS src
+    WHERE jsonb_typeof(src) != 'object'
+      OR jsonb_typeof(src->'source_key') != 'string'
+      OR btrim(src->>'source_key') = ''
+      OR jsonb_typeof(src->'source_url') != 'string'
+      OR btrim(src->>'source_url') = ''
+      OR jsonb_typeof(src->'fetched_at') != 'string'
+      OR btrim(src->>'fetched_at') = ''
+      OR jsonb_typeof(src->'confidence') != 'number'
+      OR (src->>'confidence')::numeric < 0
+      OR (src->>'confidence')::numeric > 100
+  ) THEN
+    RETURN FALSE;
+  END IF;
   RETURN TRUE;
 END;
 $$;

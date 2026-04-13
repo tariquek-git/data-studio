@@ -62,8 +62,8 @@ function FacetChip({
       onClick={onClick}
       className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${
         active
-          ? 'border-cyan-400/60 bg-cyan-500/10 text-cyan-100'
-          : 'border-slate-800 bg-slate-950/70 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
+          ? 'border-cyan-300 bg-cyan-50 text-cyan-700'
+          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
       }`}
     >
       <div className="flex items-center justify-between gap-3">
@@ -86,13 +86,13 @@ function FacetSection({
   children: ReactNode;
 }) {
   return (
-    <Card className="border-slate-800 bg-slate-900/80 text-slate-100 shadow-xl shadow-slate-950/20">
+    <Card className="border-slate-200 bg-slate-50/80 text-slate-900 shadow-xl shadow-slate-200/50/20">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">{title}</p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-400">{subtitle}</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">{subtitle}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-950 p-2 text-slate-400">{icon}</div>
+        <div className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500">{icon}</div>
       </div>
       <div className="space-y-2">{children}</div>
     </Card>
@@ -117,16 +117,16 @@ export function EntityFacetRail({ total, aggregations, filters, onUpdate }: Enti
 
   return (
     <div className="space-y-4 xl:sticky xl:top-24">
-      <Card className="border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.92),rgba(2,6,23,0.96))] text-slate-100 shadow-2xl shadow-slate-950/40">
+      <Card className="border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-200/50/40">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.26em] text-cyan-300/80">Signal scope</p>
-            <p className="mt-2 text-3xl font-semibold text-white">{total.toLocaleString()}</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">
+            <p className="text-[10px] uppercase tracking-[0.26em] text-cyan-600/80">Signal scope</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-900">{total.toLocaleString()}</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-700">
               Context-first entity coverage across banks and registries.
             </p>
           </div>
-          <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-3 text-cyan-200">
+          <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-3 text-cyan-600">
             <TowerControl className="h-5 w-5" />
           </div>
         </div>
@@ -134,12 +134,12 @@ export function EntityFacetRail({ total, aggregations, filters, onUpdate }: Enti
         <div className="mt-4 flex flex-wrap gap-2">
           {activeFilters.length > 0 ? (
             activeFilters.map((filter) => (
-              <Badge key={filter} color="gray" className="bg-slate-900 text-slate-200 ring-slate-700">
+              <Badge key={filter} color="gray" className="bg-slate-50 text-slate-800 ring-slate-200">
                 {filter}
               </Badge>
             ))
           ) : (
-            <Badge color="gray" className="bg-slate-900 text-slate-300 ring-slate-700">
+            <Badge color="gray" className="bg-slate-50 text-slate-700 ring-slate-200">
               all signals
             </Badge>
           )}
@@ -148,7 +148,7 @@ export function EntityFacetRail({ total, aggregations, filters, onUpdate }: Enti
         <Button
           variant="secondary"
           size="sm"
-          className="mt-4 !w-full !justify-center !border-slate-800 !bg-slate-950 !text-slate-100 hover:!bg-slate-900"
+          className="mt-4 !w-full !justify-center !border-slate-200 !bg-white !text-slate-900 hover:!bg-slate-50"
           onClick={() => onUpdate({
             country: undefined,
             profile_kind: undefined,
@@ -174,10 +174,10 @@ export function EntityFacetRail({ total, aggregations, filters, onUpdate }: Enti
             key={preset.label}
             type="button"
             onClick={() => onUpdate({ ...preset.params, page: 1 })}
-            className="w-full rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-3 text-left transition-colors hover:border-cyan-500/50 hover:bg-slate-900"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-left transition-colors hover:border-cyan-500/50 hover:bg-slate-50"
           >
-            <p className="text-sm font-medium text-white">{preset.label}</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-400">{preset.description}</p>
+            <p className="text-sm font-medium text-slate-900">{preset.label}</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">{preset.description}</p>
           </button>
         ))}
       </FacetSection>

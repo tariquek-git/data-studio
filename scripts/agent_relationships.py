@@ -27,17 +27,17 @@ HEADERS_W = {**HEADERS_R, 'Prefer': 'return=minimal'}
 # ── Regulator seed data ────────────────────────────────────────────────────────
 # These are upserted into ecosystem_entities before regulated_by links are built.
 REGULATOR_ENTITIES = [
-    {'slug': 'fdic',        'name': 'FDIC',           'entity_type': 'regulator', 'country': 'US'},
-    {'slug': 'occ',         'name': 'OCC',            'entity_type': 'regulator', 'country': 'US'},
-    {'slug': 'federal-reserve', 'name': 'Federal Reserve', 'entity_type': 'regulator', 'country': 'US'},
-    {'slug': 'ncua',        'name': 'NCUA',           'entity_type': 'regulator', 'country': 'US'},
-    {'slug': 'fincen',      'name': 'FinCEN',         'entity_type': 'regulator', 'country': 'US'},
-    {'slug': 'osfi',        'name': 'OSFI',           'entity_type': 'regulator', 'country': 'CA'},
-    {'slug': 'bcfsa',       'name': 'BCFSA',          'entity_type': 'regulator', 'country': 'CA'},
-    {'slug': 'fsra',        'name': 'FSRA',           'entity_type': 'regulator', 'country': 'CA'},
-    {'slug': 'bank-of-canada', 'name': 'Bank of Canada', 'entity_type': 'regulator', 'country': 'CA'},
-    {'slug': 'fintrac',     'name': 'FINTRAC',        'entity_type': 'regulator', 'country': 'CA'},
-    {'slug': 'ciro',        'name': 'CIRO',           'entity_type': 'regulator', 'country': 'CA'},
+    {'source_key': 'fdic',        'name': 'FDIC',           'entity_type': 'regulator', 'country': 'US'},
+    {'source_key': 'occ',         'name': 'OCC',            'entity_type': 'regulator', 'country': 'US'},
+    {'source_key': 'federal-reserve', 'name': 'Federal Reserve', 'entity_type': 'regulator', 'country': 'US'},
+    {'source_key': 'ncua',        'name': 'NCUA',           'entity_type': 'regulator', 'country': 'US'},
+    {'source_key': 'fincen',      'name': 'FinCEN',         'entity_type': 'regulator', 'country': 'US'},
+    {'source_key': 'osfi',        'name': 'OSFI',           'entity_type': 'regulator', 'country': 'CA'},
+    {'source_key': 'bcfsa',       'name': 'BCFSA',          'entity_type': 'regulator', 'country': 'CA'},
+    {'source_key': 'fsra',        'name': 'FSRA',           'entity_type': 'regulator', 'country': 'CA'},
+    {'source_key': 'bank-of-canada', 'name': 'Bank of Canada', 'entity_type': 'regulator', 'country': 'CA'},
+    {'source_key': 'fintrac',     'name': 'FINTRAC',        'entity_type': 'regulator', 'country': 'CA'},
+    {'source_key': 'ciro',        'name': 'CIRO',           'entity_type': 'regulator', 'country': 'CA'},
 ]
 
 # Maps the regulator string stored on institutions.regulator → ecosystem_entities.slug
@@ -250,7 +250,9 @@ def main():
 
     sibling_rels = []
     for hcid, members in hcid_groups.items():
-        if len(members) < 2:
+        if len(members) < 2 or len(members) > 20:
+            if len(members) > 20:
+                print(f'  Skipping holding_company_id={hcid} with {len(members)} members (too large, likely bogus)')
             continue
         # Create one sibling_of edge per ordered pair (A→B and B→A for undirected graph)
         for a, b in combinations(members, 2):
@@ -288,25 +290,25 @@ def main():
     for reg in REGULATOR_ENTITIES:
         regulator_rows.append({
             'id': str(uuid.uuid4()),
-            'slug': reg['slug'],
+            'source_key': reg['source_key'],
             'name': reg['name'],
             'entity_type': reg['entity_type'],
             'country': reg['country'],
+            'source_authority': 'official',
             'active': True,
-            'source_kind': 'official',
             'created_at': now,
             'updated_at': now,
         })
 
     if not DRY_RUN:
-        upsert_batch('ecosystem_entities', regulator_rows, on_conflict='slug')
+        upsert_batch('ecosystem_entities', regulator_rows, on_conflict='source_key')
         print(f'  Upserted {len(regulator_rows)} regulator nodes into ecosystem_entities')
     else:
         print(f'  [DRY RUN] Would upsert {len(regulator_rows)} regulator nodes')
 
     # 4b. Fetch ecosystem_entities so we have their real UUIDs
-    eco_entities = fetch_all('ecosystem_entities', {'select': 'id,slug,entity_type'})
-    eco_by_slug = {e['slug']: e for e in eco_entities}
+    eco_entities = fetch_all('ecosystem_entities', {'select': 'id,source_key,entity_type'})
+    eco_by_slug = {e['source_key']: e for e in eco_entities}
 
     # 4c. Build regulated_by edges
     reg_rels = []
@@ -328,7 +330,7 @@ def main():
             'institutions', inst['id'],
             'ecosystem_entities', eco['id'],
             'regulated_by',
-            f'{inst["name"]} regulated by {eco_by_slug[slug]["slug"].upper()}',
+            f'{inst["name"]} regulated by {eco_by_slug[slug]["source_key"].upper()}',
             source_kind='official', confidence=0.9,
         ))
 

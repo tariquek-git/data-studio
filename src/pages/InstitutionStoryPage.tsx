@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
-import { Skeleton } from '@/components/ui';
+import { Skeleton, SectionErrorBoundary } from '@/components/ui';
 import { useInstitutionStory } from '@/hooks/useInstitutionStory';
 import { StoryNavRail } from '@/components/institution-story/StoryNavRail';
 import { StoryHero } from '@/components/institution-story/StoryHero';
@@ -95,33 +95,45 @@ export default function InstitutionStoryPage() {
 
         {/* Metric cards grid */}
         {!isRegistryOnly && (
-          <StoryMetricCards institution={institution} history={history} />
+          <SectionErrorBoundary section="Metrics">
+            <StoryMetricCards institution={institution} history={history} />
+          </SectionErrorBoundary>
         )}
 
         {/* Financial trajectory chart */}
         {!isRegistryOnly && history.length > 0 && (
-          <StoryFinancialTrajectory history={history} />
+          <SectionErrorBoundary section="Financial Trajectory">
+            <StoryFinancialTrajectory history={history} />
+          </SectionErrorBoundary>
         )}
 
         {/* Relationship network */}
-        <StoryNetwork entityId={institution.id} />
+        <SectionErrorBoundary section="Relationship Network">
+          <StoryNetwork entityId={institution.id} />
+        </SectionErrorBoundary>
 
         {/* AI insights */}
-        <StoryInsights
-          data={aiInsights}
-          isLoading={aiLoading}
-          isError={aiError}
-        />
+        <SectionErrorBoundary section="AI Insights">
+          <StoryInsights
+            data={aiInsights}
+            isLoading={aiLoading}
+            isError={aiError}
+          />
+        </SectionErrorBoundary>
 
         {/* Similar institutions carousel */}
-        <StorySimilar
-          similar={similar}
-          embeddingAvailable={embeddingAvailable}
-          isLoading={similarLoading}
-        />
+        <SectionErrorBoundary section="Similar Institutions">
+          <StorySimilar
+            similar={similar}
+            embeddingAvailable={embeddingAvailable}
+            isLoading={similarLoading}
+          />
+        </SectionErrorBoundary>
 
         {/* Deep dive accordion */}
-        <StoryDeepDive institution={institution} />
+        <SectionErrorBoundary section="Deep Dive">
+          <StoryDeepDive institution={institution} />
+        </SectionErrorBoundary>
 
         {/* Footer spacer */}
         <div className="h-24" />

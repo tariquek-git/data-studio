@@ -4,7 +4,7 @@ import {
   XCircle, Clock, TrendingUp, FileText, Link2, ChevronDown, ChevronRight,
   Activity, Layers, Eye, Zap,
 } from 'lucide-react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 
 /* ─── Types ─── */
 
@@ -41,11 +41,113 @@ interface SourceHealth {
   data_url: string | null;
   daysSinceSync: number | null;
   freshness: 'fresh' | 'stale' | 'very_stale' | 'never_synced';
+  record_count?: number | null;
+  avg_confidence?: number | null;
+  low_confidence_records?: number | null;
+  missing_provenance_records?: number | null;
+  recommendation?: string | null;
+  issues?: string[];
+  reasoned?: boolean;
 }
 
 interface HistogramBucket {
   bucket: string;
   count: number;
+}
+
+interface AdminSourceConfidence {
+  total_records: number;
+  scored_records: number;
+  missing_score_records: number;
+  with_provenance_records: number;
+  missing_provenance_records: number;
+  high_confidence_records: number;
+  medium_confidence_records: number;
+  low_confidence_records: number;
+  unverified_records: number;
+  avg_score: number | null;
+}
+
+interface AdminSourceSyncRun {
+  source: string;
+  status: string | null;
+  records_processed: number | null;
+  started_at: string | null;
+  completed_at: string | null;
+  error: string | null;
+  created_at: string | null;
+}
+
+interface AdminSourceHealthRecord {
+  source_key: string;
+  display_name: string;
+  description: string | null;
+  country: string;
+  category_label: string;
+  status: string;
+  loaded: boolean;
+  coverage_type: string;
+  coverage_label: string;
+  record_count: number | null;
+  institution_count: number | null;
+  update_frequency: string | null;
+  data_as_of: string | null;
+  last_synced_at: string | null;
+  regulator_url: string | null;
+  data_url: string | null;
+  latest_job_status: string | null;
+  sync_supported: boolean;
+  sync_ready: boolean | null;
+  sync_endpoint: string | null;
+  sync: {
+    supported: boolean;
+    ready: boolean;
+    endpoint: string | null;
+    execution_kind: string;
+    script_path: string | null;
+    supports_dry_run: boolean;
+    requirements: Array<{
+      code: string;
+      label: string;
+      ready: boolean;
+      optional: boolean;
+    }>;
+    notes: string[];
+  } | null;
+  sync_last_run: AdminSourceSyncRun | null;
+  confidence: AdminSourceConfidence;
+  issues: string[];
+  blockers: string[];
+  recommendation: string;
+}
+
+interface AdminHealthSummary {
+  total_sources: number;
+  active_sources: number;
+  pending_sources: number;
+  unavailable_sources: number;
+  loaded_sources: number;
+  ready_sync_sources: number;
+  blocked_sync_sources: number;
+  sources_with_low_confidence: number;
+  sources_with_missing_provenance: number;
+  registry_records_total: number;
+  registry_records_with_score: number;
+  registry_records_with_provenance: number;
+  overall_audibility_score: number;
+}
+
+interface AdminHealthResponse {
+  generated_at: string;
+  filters: {
+    q: string | null;
+    status: string | null;
+    source_key: string | null;
+    min_confidence: number | null;
+    issues_only: boolean;
+  };
+  summary: AdminHealthSummary;
+  sources: AdminSourceHealthRecord[];
 }
 
 interface LineageTable {
@@ -108,6 +210,44 @@ function ago(dateStr: string | null): string {
   const days = Math.floor(hrs / 24);
   if (days < 30) return `${days}d ago`;
   return `${Math.floor(days / 30)}mo ago`;
+}
+
+function freshnessFromLastSync(lastSyncedAt: string | null): SourceHealth['freshness'] {
+  if (!lastSyncedAt) return 'never_synced';
+
+  const ms = Date.now() - new Date(lastSyncedAt).getTime();
+  const daysSinceSync = Math.floor(ms / (1000 * 60 * 60 * 24));
+  if (daysSinceSync <= 7) return 'fresh';
+  if (daysSinceSync <= 30) return 'stale';
+  return 'very_stale';
+}
+
+function mapAdminSourcesToDisplay(sources: AdminSourceHealthRecord[]): SourceHealth[] {
+  return sources.map((source) => {
+    const daysSinceSync = source.last_synced_at ? Math.floor((Date.now() - new Date(source.last_synced_at).getTime()) / (1000 * 60 * 60 * 24)) : null;
+    return {
+      source_key: source.source_key,
+      display_name: source.display_name,
+      description: source.description,
+      country: source.country,
+      status: source.sync_ready === false ? 'unavailable' : source.status,
+      institution_count: source.institution_count,
+      last_synced_at: source.last_synced_at,
+      data_as_of: source.data_as_of,
+      update_frequency: source.update_frequency,
+      regulator_url: source.regulator_url,
+      data_url: source.data_url,
+      daysSinceSync,
+      freshness: freshnessFromLastSync(source.last_synced_at),
+      record_count: source.record_count,
+      avg_confidence: source.confidence.avg_score,
+      low_confidence_records: source.confidence.low_confidence_records,
+      missing_provenance_records: source.confidence.missing_provenance_records,
+      recommendation: source.recommendation,
+      issues: [...source.issues],
+      reasoned: true,
+    };
+  });
 }
 
 function freshnessColor(f: SourceHealth['freshness']): string {
@@ -310,9 +450,8 @@ function SourceHealthTable({ sources }: { sources: SourceHealth[] }) {
         </thead>
         <tbody>
           {sources.map(s => (
-            <>
+            <Fragment key={s.source_key}>
               <tr
-                key={s.source_key}
                 className="border-b border-surface-100 hover:bg-surface-50 cursor-pointer"
                 onClick={() => setExpanded(expanded === s.source_key ? null : s.source_key)}
               >
@@ -364,6 +503,48 @@ function SourceHealthTable({ sources }: { sources: SourceHealth[] }) {
                           <span className="text-surface-700">{new Date(s.data_as_of).toLocaleDateString()}</span>
                         </div>
                       )}
+                      {s.reasoned && (
+                        <>
+                          <div>
+                            <span className="text-surface-500">Avg confidence:</span>{' '}
+                            <span className="text-surface-700">
+                              {s.avg_confidence == null ? 'N/A' : `${s.avg_confidence}`}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-surface-500">Low confidence records:</span>{' '}
+                            <span className="text-surface-700">{s.low_confidence_records ?? 0}</span>
+                          </div>
+                          <div>
+                            <span className="text-surface-500">Missing provenance records:</span>{' '}
+                            <span className="text-surface-700">{s.missing_provenance_records ?? 0}</span>
+                          </div>
+                        </>
+                      )}
+                      {s.record_count != null && (
+                        <div>
+                          <span className="text-surface-500">Registry rows:</span>{' '}
+                          <span className="text-surface-700">{s.record_count.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {s.issues && s.issues.length > 0 && (
+                        <div className="col-span-2">
+                          <span className="text-surface-500">Reasoning / issues:</span>{' '}
+                          <ul className="mt-1 space-y-1 list-disc list-inside">
+                            {s.issues.map((issue) => (
+                              <li key={issue} className="text-surface-700">
+                                {issue}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {s.recommendation && (
+                        <div className="col-span-2">
+                          <span className="text-surface-500">Recommendation:</span>{' '}
+                          <span className="text-surface-700">{s.recommendation}</span>
+                        </div>
+                      )}
                       {s.daysSinceSync !== null && (
                         <div>
                           <span className="text-surface-500">Days since sync:</span>{' '}
@@ -392,7 +573,7 @@ function SourceHealthTable({ sources }: { sources: SourceHealth[] }) {
                   </td>
                 </tr>
               )}
-            </>
+            </Fragment>
           ))}
         </tbody>
       </table>
@@ -483,6 +664,7 @@ type Tab = 'overview' | 'sources' | 'lineage' | 'sync';
 
 export default function AuditDashboardPage() {
   const [tab, setTab] = useState<Tab>('overview');
+  const adminToken = import.meta.env.VITE_ADMIN_API_TOKEN;
 
   const { data, isLoading, error } = useQuery<AuditOverview>({
     queryKey: ['audit-overview'],
@@ -492,6 +674,26 @@ export default function AuditDashboardPage() {
       return res.json();
     },
     staleTime: 60_000,
+  });
+
+  const {
+    data: adminData,
+    isLoading: isAdminLoading,
+    error: adminError,
+  } = useQuery<AdminHealthResponse>({
+    queryKey: ['admin-data-health'],
+    queryFn: async () => {
+      const headers: HeadersInit = {};
+      if (typeof adminToken === 'string' && adminToken) {
+        headers.Authorization = `Bearer ${adminToken}`;
+      }
+
+      const res = await fetch('/api/admin/data-health', { headers });
+      if (!res.ok) throw new Error('Failed to load admin data health source metrics');
+      return res.json() as Promise<AdminHealthResponse>;
+    },
+    staleTime: 60_000,
+    retry: false,
   });
 
   if (isLoading) {
@@ -527,6 +729,11 @@ export default function AuditDashboardPage() {
     );
   }
 
+  const sourceHealthRows = adminData?.sources && adminData.sources.length > 0
+    ? mapAdminSourcesToDisplay(adminData.sources)
+    : data.sourceHealth;
+  const hasAdminSourceHealth = Boolean(adminData?.sources && adminData.sources.length > 0);
+
   const tabs: Array<{ key: Tab; label: string; icon: typeof Database }> = [
     { key: 'overview', label: 'Overview', icon: Eye },
     { key: 'sources', label: 'Source Health', icon: Activity },
@@ -549,6 +756,9 @@ export default function AuditDashboardPage() {
         </div>
         <div className="text-xs text-surface-400">
           Generated {new Date(data.generatedAt).toLocaleString()}
+          {hasAdminSourceHealth && adminData && (
+            <span className="ml-2">· Admin score {adminData.summary.overall_audibility_score.toFixed(1)}</span>
+          )}
         </div>
       </div>
 
@@ -691,23 +901,33 @@ export default function AuditDashboardPage() {
       {tab === 'sources' && (
         <div className="space-y-6">
           {/* Alert banner for stale sources */}
-          {data.sourceHealth.some(s => s.freshness === 'very_stale') && (
+          {sourceHealthRows.some(s => s.freshness === 'very_stale') && (
             <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
               <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium text-amber-800">Stale data sources detected</p>
                 <p className="text-sm text-amber-700 mt-1">
-                  {data.sourceHealth.filter(s => s.freshness === 'very_stale').length} source(s) have not been synced in over 30 days.
+                  {sourceHealthRows.filter(s => s.freshness === 'very_stale').length} source(s) have not been synced in over 30 days.
                   Data from these sources may be outdated.
                 </p>
               </div>
             </div>
           )}
+          {adminError && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700">
+              Advanced source confidence and reasoning are unavailable in this view. Showing legacy source metrics.
+            </div>
+          )}
+          {isAdminLoading && !hasAdminSourceHealth && (
+            <div className="bg-surface-50 border border-surface-200 rounded-xl p-4 text-sm text-surface-500">
+              Loading source confidence metadata from /api/admin/data-health...
+            </div>
+          )}
           <div className="bg-white rounded-xl border border-surface-200 p-5">
             <h3 className="font-semibold text-surface-800 mb-4">
-              Data Source Registry ({data.sourceHealth.length} sources)
+              Data Source Registry ({sourceHealthRows.length} sources)
             </h3>
-            <SourceHealthTable sources={data.sourceHealth} />
+            <SourceHealthTable sources={sourceHealthRows} />
           </div>
         </div>
       )}

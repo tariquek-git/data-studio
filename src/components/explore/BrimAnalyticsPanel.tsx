@@ -11,16 +11,16 @@ const TIER_COLORS: Record<string, string> = {
   A: 'bg-emerald-500',
   B: 'bg-blue-500',
   C: 'bg-amber-500',
-  D: 'bg-slate-400',
-  F: 'bg-slate-200',
+  D: 'bg-surface-500',
+  F: 'bg-surface-600',
 };
 
 const TIER_TEXT: Record<string, string> = {
-  A: 'text-emerald-700',
-  B: 'text-blue-700',
-  C: 'text-amber-700',
-  D: 'text-slate-600',
-  F: 'text-slate-400',
+  A: 'text-emerald-600',
+  B: 'text-blue-600',
+  C: 'text-amber-600',
+  D: 'text-surface-400',
+  F: 'text-surface-500',
 };
 
 const MIGRATION_PROGRAMS = ['ELAN', 'TCM', 'ICBA', 'PSCU', 'FIS', 'TOTAL SYSTEM'];
@@ -33,7 +33,7 @@ export function BrimAnalyticsPanel({ institutions, total }: BrimAnalyticsPanelPr
     if (tier in tierCounts) tierCounts[tier]++;
   }
 
-  // Top migration targets (ELAN/PSCU/etc with highest brim_score)
+  // Top migration targets
   const migrationTargets = institutions
     .filter((inst) => {
       const ap = (inst.agent_bank_program ?? '').toUpperCase();
@@ -77,30 +77,30 @@ export function BrimAnalyticsPanel({ institutions, total }: BrimAnalyticsPanelPr
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 pt-4 pb-2 border-b border-violet-100">
+      <div className="flex items-center gap-2 px-4 pt-4 pb-2 border-b border-violet-200">
         <Target className="h-3.5 w-3.5 text-violet-600" />
-        <h2 className="text-xs font-semibold text-violet-700 uppercase tracking-wider">Brim Pipeline</h2>
-        <span className="ml-auto text-xs text-slate-400">{formatNumber(total)} total</span>
+        <h2 className="text-xs font-semibold text-violet-600 uppercase tracking-wider">Brim Pipeline</h2>
+        <span className="ml-auto text-xs font-mono text-surface-500">{formatNumber(total)} total</span>
       </div>
 
       {/* Opportunity Pipeline */}
       <div className="px-4 space-y-2">
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Opportunity Pipeline</h3>
+        <h3 className="text-xs font-semibold text-surface-500 uppercase tracking-wider">Opportunity Pipeline</h3>
         <PipelineRow label="Migration Targets" count={migrationCount} color="bg-amber-500" />
         <PipelineRow label="In-House Candidates" count={inHouseCount} color="bg-emerald-500" />
         <PipelineRow label="Sweet Spot" count={sweetSpotCount} color="bg-violet-500" />
       </div>
 
       {/* Tier Distribution */}
-      <div className="px-4 border-t border-slate-100 pt-3 space-y-2">
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tier Distribution</h3>
+      <div className="px-4 border-t border-surface-700/30 pt-3 space-y-2">
+        <h3 className="text-xs font-semibold text-surface-500 uppercase tracking-wider">Tier Distribution</h3>
         {(['A', 'B', 'C', 'D', 'F'] as const).map((tier) => (
           <div key={tier}>
             <div className="flex items-center justify-between text-xs mb-0.5">
               <span className={`font-semibold ${TIER_TEXT[tier]}`}>Tier {tier}</span>
-              <span className="font-medium text-slate-700">{formatNumber(tierCounts[tier] ?? 0)}</span>
+              <span className="font-medium font-mono text-surface-300">{formatNumber(tierCounts[tier] ?? 0)}</span>
             </div>
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-surface-700/50 rounded-full overflow-hidden">
               <div
                 className={`h-1.5 rounded-full ${TIER_COLORS[tier]}`}
                 style={{ width: `${((tierCounts[tier] ?? 0) / maxTierCount) * 100}%` }}
@@ -112,12 +112,12 @@ export function BrimAnalyticsPanel({ institutions, total }: BrimAnalyticsPanelPr
 
       {/* Top Migration Targets */}
       {migrationTargets.length > 0 && (
-        <div className="px-4 border-t border-slate-100 pt-3 space-y-1.5">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Top Migration Targets</h3>
+        <div className="px-4 border-t border-surface-700/30 pt-3 space-y-1.5">
+          <h3 className="text-xs font-semibold text-surface-500 uppercase tracking-wider">Top Migration Targets</h3>
           {migrationTargets.map((inst) => (
             <div key={inst.cert_number} className="flex items-center justify-between gap-1">
-              <span className="text-xs text-slate-700 truncate flex-1">{inst.name}</span>
-              <span className="text-xs font-bold text-amber-700 shrink-0">
+              <span className="text-xs text-surface-300 truncate flex-1">{inst.name}</span>
+              <span className="text-xs font-bold font-mono text-amber-600 shrink-0">
                 {inst.brim_score ?? '—'}
               </span>
             </div>
@@ -127,17 +127,17 @@ export function BrimAnalyticsPanel({ institutions, total }: BrimAnalyticsPanelPr
 
       {/* Core Processor Breakdown */}
       {topProcessors.length > 0 && (
-        <div className="px-4 border-t border-slate-100 pt-3 pb-4 space-y-2">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Core Processors</h3>
+        <div className="px-4 border-t border-surface-700/30 pt-3 pb-4 space-y-2">
+          <h3 className="text-xs font-semibold text-surface-500 uppercase tracking-wider">Core Processors</h3>
           {topProcessors.map(([proc, count]) => (
             <div key={proc}>
               <div className="flex items-center justify-between text-xs mb-0.5">
-                <span className="text-slate-600 truncate">{proc}</span>
-                <span className="font-medium text-slate-800">{formatNumber(count)}</span>
+                <span className="text-surface-400 truncate">{proc}</span>
+                <span className="font-medium font-mono text-surface-200">{formatNumber(count)}</span>
               </div>
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-surface-700/50 rounded-full overflow-hidden">
                 <div
-                  className="h-1.5 bg-violet-400 rounded-full"
+                  className="h-1.5 bg-violet-500/60 rounded-full"
                   style={{ width: `${(count / maxProcCount) * 100}%` }}
                 />
               </div>
@@ -162,9 +162,9 @@ function PipelineRow({
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full shrink-0 ${color}`} />
-        <span className="text-xs text-slate-600">{label}</span>
+        <span className="text-xs text-surface-400">{label}</span>
       </div>
-      <span className="text-xs font-semibold text-slate-800">{formatNumber(count)}</span>
+      <span className="text-xs font-semibold font-mono text-surface-200">{formatNumber(count)}</span>
     </div>
   );
 }

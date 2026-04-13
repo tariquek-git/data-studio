@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react';
+import { Component, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, type ReactNode, type ErrorInfo } from 'react';
 export { WatchlistButton } from './WatchlistButton';
 
 /* ─── Button ─── */
@@ -13,11 +13,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    'bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500 shadow-sm',
+    'bg-primary-500 text-white hover:bg-primary-400 focus-visible:ring-primary-500 shadow-sm shadow-primary-500/20',
   secondary:
-    'bg-white text-surface-700 border border-surface-300 hover:bg-surface-50 focus-visible:ring-primary-500 shadow-sm',
+    'bg-surface-800 text-surface-200 border border-surface-600 hover:bg-surface-700 hover:border-surface-500 focus-visible:ring-primary-500',
   ghost:
-    'text-surface-600 hover:text-surface-900 hover:bg-surface-100 focus-visible:ring-primary-500',
+    'text-surface-300 hover:text-surface-100 hover:bg-surface-800 focus-visible:ring-primary-500',
 };
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -34,7 +34,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ${buttonVariants[variant]} ${buttonSizes[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-900 disabled:opacity-50 disabled:pointer-events-none ${buttonVariants[variant]} ${buttonSizes[size]} ${className}`}
       {...props}
     />
   );
@@ -51,14 +51,14 @@ interface BadgeProps {
 }
 
 const badgeColors: Record<BadgeColor, string> = {
-  blue: 'bg-blue-50 text-blue-700 ring-blue-600/20',
-  green: 'bg-green-50 text-green-700 ring-green-600/20',
-  red: 'bg-red-50 text-red-700 ring-red-600/20',
-  yellow: 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
-  gray: 'bg-surface-100 text-surface-600 ring-surface-500/20',
-  purple: 'bg-purple-50 text-purple-700 ring-purple-600/20',
-  indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
-  orange: 'bg-orange-50 text-orange-700 ring-orange-600/20',
+  blue: 'bg-blue-50 text-blue-700 ring-blue-200',
+  green: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  red: 'bg-red-50 text-red-700 ring-red-200',
+  yellow: 'bg-amber-50 text-amber-700 ring-amber-200',
+  gray: 'bg-slate-100 text-slate-600 ring-slate-200',
+  purple: 'bg-purple-50 text-purple-700 ring-purple-200',
+  indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
+  orange: 'bg-orange-50 text-orange-700 ring-orange-200',
 };
 
 export function Badge({ children, color = 'gray', className = '' }: BadgeProps) {
@@ -82,7 +82,7 @@ interface CardProps {
 export function Card({ children, className = '', padding = true }: CardProps) {
   return (
     <div
-      className={`bg-white rounded-xl border border-surface-200 shadow-sm ${padding ? 'p-5' : ''} ${className}`}
+      className={`bg-surface-800/60 backdrop-blur rounded-xl border border-surface-700/50 ${padding ? 'p-5' : ''} ${className}`}
     >
       {children}
     </div>
@@ -98,22 +98,69 @@ interface SkeletonProps {
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
     <div
-      className={`animate-pulse rounded-md bg-surface-200 ${className}`}
+      className={`animate-pulse rounded-md bg-surface-700 ${className}`}
     />
   );
+}
+
+/* ─── SectionErrorBoundary ─── */
+
+interface SectionErrorBoundaryProps {
+  children: ReactNode;
+  section?: string;
+}
+
+interface SectionErrorBoundaryState {
+  hasError: boolean;
+  errorMessage: string | null;
+}
+
+export class SectionErrorBoundary extends Component<SectionErrorBoundaryProps, SectionErrorBoundaryState> {
+  constructor(props: SectionErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, errorMessage: null };
+  }
+
+  static getDerivedStateFromError(error: Error): SectionErrorBoundaryState {
+    return { hasError: true, errorMessage: error.message };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.error(`[SectionErrorBoundary${this.props.section ? `: ${this.props.section}` : ''}]`, error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-center">
+          <p className="text-sm font-medium text-red-600">
+            {this.props.section ? `${this.props.section} failed to load` : 'Something went wrong'}
+          </p>
+          <p className="mt-1 text-xs text-red-500/70">{this.state.errorMessage}</p>
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false, errorMessage: null })}
+            className="mt-3 text-xs font-medium text-red-600 hover:text-red-500 underline"
+          >
+            Try again
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 /* ─── Input ─── */
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  /** Wrapping class for the outer div if needed */
   wrapperClassName?: string;
 }
 
 export function Input({ className = '', wrapperClassName, ...props }: InputProps) {
   const input = (
     <input
-      className={`block w-full rounded-lg border border-surface-300 bg-white px-3.5 py-2 text-sm text-surface-900 placeholder:text-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none disabled:opacity-50 ${className}`}
+      className={`block w-full rounded-lg border border-surface-600 bg-surface-800 px-3.5 py-2 text-sm text-surface-100 placeholder:text-surface-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none disabled:opacity-50 ${className}`}
       {...props}
     />
   );
@@ -132,7 +179,7 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 export function Select({ options, className = '', ...props }: SelectProps) {
   return (
     <select
-      className={`block w-full rounded-lg border border-surface-300 bg-white px-3.5 py-2 text-sm text-surface-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none disabled:opacity-50 ${className}`}
+      className={`block w-full rounded-lg border border-surface-600 bg-surface-800 px-3.5 py-2 text-sm text-surface-100 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none disabled:opacity-50 ${className}`}
       {...props}
     >
       {options.map((opt) => (

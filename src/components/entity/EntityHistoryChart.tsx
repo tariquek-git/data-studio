@@ -45,13 +45,13 @@ export function EntityHistoryChart({ history }: EntityHistoryChartProps) {
       : null;
 
   return (
-    <Card className="border-slate-800 bg-slate-900/80 text-slate-100 shadow-2xl shadow-slate-950/30">
+    <Card className="border-slate-200 bg-slate-50/80 text-slate-900 shadow-2xl shadow-slate-200/50/30">
       <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-200">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-800">
             Financial Lens
           </h3>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-slate-500">
             Switch across key metrics to read momentum instead of a single balance-sheet line.
           </p>
         </div>
@@ -63,8 +63,8 @@ export function EntityHistoryChart({ history }: EntityHistoryChartProps) {
               onClick={() => setMetric(option.key)}
               className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                 option.key === metric
-                  ? 'border-cyan-400/60 bg-cyan-500/10 text-cyan-100'
-                  : 'border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
+                  ? 'border-cyan-300 bg-cyan-50 text-cyan-700'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
               }`}
             >
               {option.label}
@@ -125,22 +125,22 @@ export function EntityHistoryChart({ history }: EntityHistoryChartProps) {
             </div>
 
             <div className="space-y-3">
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+              <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Selected lens</p>
-                <p className="mt-2 text-lg font-semibold text-white">{metricMeta.label}</p>
-                <p className="mt-1 text-xs text-slate-400">Current series view for this profile.</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900">{metricMeta.label}</p>
+                <p className="mt-1 text-xs text-slate-500">Current series view for this profile.</p>
               </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+              <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Latest point</p>
-                <p className="mt-2 text-lg font-semibold text-white">{formatMetricValue(metric, latestValue)}</p>
-                <p className="mt-1 text-xs text-slate-400">{latest?.period ?? 'No history loaded'}</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900">{formatMetricValue(metric, latestValue)}</p>
+                <p className="mt-1 text-xs text-slate-500">{latest?.period ?? 'No history loaded'}</p>
               </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+              <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Quarterly change</p>
-                <p className="mt-2 text-lg font-semibold text-white">
+                <p className="mt-2 text-lg font-semibold text-slate-900">
                   {delta == null ? '—' : formatMetricValue(metric, delta)}
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-slate-500">
                   {previous?.period ? `Vs ${previous.period}` : 'Need at least two observations'}
                 </p>
               </div>
@@ -154,15 +154,15 @@ export function EntityHistoryChart({ history }: EntityHistoryChartProps) {
               { label: 'Loans', value: formatCurrency(latest?.total_loans ?? null) },
               { label: 'ROA / ROE', value: `${formatPercent(latest?.roa ?? null)} / ${formatPercent(latest?.roi ?? null)}` },
             ].map((summary) => (
-              <div key={summary.label} className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+              <div key={summary.label} className="rounded-xl border border-slate-200 bg-white/70 p-3">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{summary.label}</p>
-                <p className="mt-1 text-sm font-semibold text-white">{summary.value}</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">{summary.value}</p>
               </div>
             ))}
           </div>
         </>
       ) : (
-        <div className="rounded-xl border border-dashed border-slate-700 p-6 text-sm text-slate-400">
+        <div className="rounded-xl border border-dashed border-slate-200 p-6 text-sm text-slate-500">
           No historical series is available for this profile yet.
         </div>
       )}

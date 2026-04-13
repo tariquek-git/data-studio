@@ -2,6 +2,15 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { apiHandler } from '../../lib/api-handler.js';
 import { getSupabase } from '../../lib/supabase.js';
 
+function parseIntParam(value: unknown, fallback: number, min = 1, max = Number.POSITIVE_INFINITY): number {
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
 function isMissingTableError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const maybe = error as { code?: string; message?: string };
@@ -13,7 +22,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   const q = String(req.query.q ?? '').trim().toLowerCase();
   const relationshipType = String(req.query.relationship_type ?? '').trim();
   const activeOnly = req.query.active !== 'false';
-  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 25));
+  const limit = parseIntParam(req.query.limit, 25, 1, 100);
 
   const { data, error } = await supabase
     .from('entity_relationships')

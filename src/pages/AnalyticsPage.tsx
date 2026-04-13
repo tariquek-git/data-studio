@@ -199,7 +199,7 @@ function sumEntries(record: Record<string, number>) {
 }
 
 function terminalTone(index: number) {
-  return ['text-cyan-300', 'text-emerald-300', 'text-amber-300', 'text-sky-300', 'text-violet-300'][index % 5];
+  return ['text-cyan-600', 'text-emerald-600', 'text-amber-600', 'text-sky-600', 'text-violet-600'][index % 5];
 }
 
 function TerminalStatCard({
@@ -207,7 +207,7 @@ function TerminalStatCard({
   value,
   detail,
   icon: Icon,
-  tone = 'text-cyan-300',
+  tone = 'text-cyan-600',
 }: {
   label: string;
   value: string;
@@ -216,14 +216,14 @@ function TerminalStatCard({
   tone?: string;
 }) {
   return (
-    <Card className="!border-slate-700 !bg-slate-900/80 !text-slate-100 !shadow-2xl !shadow-cyan-950/15">
+    <Card className="!border-slate-200 !bg-slate-50/80 !text-slate-900 !shadow-2xl !shadow-slate-200/50">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">{label}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-white">{value}</p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
           <p className="mt-1 text-xs text-slate-400">{detail}</p>
         </div>
-        <div className={`rounded-2xl border border-slate-700 bg-slate-950/70 p-2.5 ${tone}`}>
+        <div className={`rounded-2xl border border-slate-200 bg-white p-2.5 ${tone}`}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
@@ -247,12 +247,12 @@ function SourceBar({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="font-medium text-slate-200">{label}</span>
+        <span className="font-medium text-slate-800">{label}</span>
         <span className="font-mono text-slate-400">
           {formatCompactShare(value)} · {pct.toFixed(1)}%
         </span>
       </div>
-      <div className="h-2.5 rounded-full bg-slate-800/80 overflow-hidden">
+      <div className="h-2.5 rounded-full bg-slate-100/80 overflow-hidden">
         <div
           className={`h-full rounded-full ${tone}`}
           style={{ width: `${Math.max(pct, value > 0 ? 2 : 0)}%` }}
@@ -264,9 +264,9 @@ function SourceBar({
 
 function ContextPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-700/80 bg-slate-900/80 px-3 py-2">
+    <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3 py-2">
       <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-slate-100">{value}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
     </div>
   );
 }
@@ -325,20 +325,20 @@ export default function AnalyticsPage() {
     .slice(0, 5);
   const warehouseCards = overview?.warehouse_summary
     ? [
-        { label: 'Registry', value: overview.warehouse_summary.registry_entities, tone: 'text-cyan-300' },
-        { label: 'Relationships', value: overview.warehouse_summary.entity_relationships, tone: 'text-violet-300' },
-        { label: 'Charter events', value: overview.warehouse_summary.charter_events, tone: 'text-amber-300' },
-        { label: 'Failures', value: overview.warehouse_summary.failure_events, tone: 'text-rose-300' },
-        { label: 'Macro series', value: overview.warehouse_summary.macro_series, tone: 'text-sky-300' },
+        { label: 'Registry', value: overview.warehouse_summary.registry_entities, tone: 'text-cyan-600' },
+        { label: 'Relationships', value: overview.warehouse_summary.entity_relationships, tone: 'text-violet-600' },
+        { label: 'Charter events', value: overview.warehouse_summary.charter_events, tone: 'text-amber-600' },
+        { label: 'Failures', value: overview.warehouse_summary.failure_events, tone: 'text-rose-600' },
+        { label: 'Macro series', value: overview.warehouse_summary.macro_series, tone: 'text-sky-600' },
       ]
     : [];
 
   const summaryStats = overview
     ? [
-        { label: 'Tracked Institutions', value: formatNumber(overview.total_institutions), icon: Building2, detail: 'US + Canada regulated coverage', tone: 'text-cyan-300' },
-        { label: 'Total Banking Assets', value: formatCurrency(overview.total_assets_sum), icon: DollarSign, detail: 'Aggregated across active institutions', tone: 'text-emerald-300' },
-        { label: 'Active Source Feeds', value: formatNumber(activeSourceFeeds || totalSourceFeeds), icon: TrendingUp, detail: `${pendingSourceFeeds} queued · ${unavailableSourceFeeds} unavailable`, tone: 'text-amber-300' },
-        { label: 'States / Provinces', value: formatNumber(overview.by_state.length), icon: Map, detail: `${totalCountries} countries represented`, tone: 'text-violet-300' },
+        { label: 'Tracked Institutions', value: formatNumber(overview.total_institutions), icon: Building2, detail: 'US + Canada regulated coverage', tone: 'text-cyan-600' },
+        { label: 'Total Banking Assets', value: formatCurrency(overview.total_assets_sum), icon: DollarSign, detail: 'Aggregated across active institutions', tone: 'text-emerald-600' },
+        { label: 'Active Source Feeds', value: formatNumber(activeSourceFeeds || totalSourceFeeds), icon: TrendingUp, detail: `${pendingSourceFeeds} queued · ${unavailableSourceFeeds} unavailable`, tone: 'text-amber-600' },
+        { label: 'States / Provinces', value: formatNumber(overview.by_state.length), icon: Map, detail: `${totalCountries} countries represented`, tone: 'text-violet-600' },
       ]
     : [];
 
@@ -349,8 +349,8 @@ export default function AnalyticsPage() {
       (overview.total_by_source?.rpaa ?? 0) > 0);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.16),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.12),_transparent_26%),linear-gradient(180deg,_rgba(2,6,23,0.98),_rgba(15,23,42,1))]" />
+    <div className="relative min-h-screen overflow-hidden bg-white text-slate-900">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.08),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_26%)]" />
       <div className="absolute inset-0 opacity-[0.08] bg-[linear-gradient(rgba(148,163,184,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.18)_1px,transparent_1px)] bg-[size:36px_36px]" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -358,22 +358,22 @@ export default function AnalyticsPage() {
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge color="gray" className="bg-slate-900/85 text-cyan-100 ring-cyan-900/50">
+              <Badge color="gray" className="bg-cyan-50 text-cyan-700 ring-cyan-200">
                 Bloomberg-style analytics terminal
               </Badge>
-              <Badge color="green" className="bg-emerald-950/70 text-emerald-200 ring-emerald-900/60">
+              <Badge color="green" className="bg-emerald-50 text-emerald-700 ring-emerald-200">
                 live source posture
               </Badge>
-              <Badge color="blue" className="bg-sky-950/70 text-sky-200 ring-sky-900/60">
+              <Badge color="blue" className="bg-sky-50 text-sky-700 ring-sky-200">
                 U.S. + Canada
               </Badge>
             </div>
 
             <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white">
+              <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900">
                 Industry Analytics
               </h1>
-              <p className="max-w-3xl text-sm sm:text-base text-slate-300 leading-relaxed">
+              <p className="max-w-3xl text-sm sm:text-base text-slate-700 leading-relaxed">
                 A command-center view of North American financial infrastructure, with source-backed coverage,
                 regulator context, market concentration, and the signals that matter for banking and fintech diligence.
               </p>
@@ -382,21 +382,21 @@ export default function AnalyticsPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Link
                 to="/entities"
-                className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-2 text-sm font-medium text-cyan-100 transition-colors hover:bg-cyan-500/20"
+                className="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3.5 py-2 text-sm font-medium text-cyan-700 transition-colors hover:bg-cyan-100"
               >
                 <Database className="h-4 w-4" />
                 Entity terminal
               </Link>
               <Link
                 to="/market"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-3.5 py-2 text-sm font-medium text-slate-100 transition-colors hover:border-slate-600 hover:bg-slate-900"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-2 text-sm font-medium text-slate-900 transition-colors hover:border-slate-300 hover:bg-slate-100"
               >
                 <ArrowUpRight className="h-4 w-4" />
                 Market map
               </Link>
               <Link
                 to="/sources"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-3.5 py-2 text-sm font-medium text-slate-100 transition-colors hover:border-slate-600 hover:bg-slate-900"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-2 text-sm font-medium text-slate-900 transition-colors hover:border-slate-300 hover:bg-slate-100"
               >
                 <Signal className="h-4 w-4" />
                 Source registry
@@ -404,14 +404,14 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <Card className="!border-slate-700 !bg-slate-900/80 !text-slate-100 !shadow-2xl !shadow-cyan-950/20">
+          <Card className="!border-slate-200 !bg-slate-50/80 !text-slate-900 !shadow-2xl !shadow-slate-200/50">
             <div className="space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.25em] text-slate-400">Coverage posture</p>
-                  <p className="mt-1 text-xl font-semibold text-white">Official feeds + curated signals</p>
+                  <p className="mt-1 text-xl font-semibold text-slate-900">Official feeds + curated signals</p>
                 </div>
-                <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-2 text-cyan-300">
+                <div className="rounded-2xl border border-slate-200 bg-white p-2 text-cyan-600">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
               </div>
@@ -423,20 +423,20 @@ export default function AnalyticsPage() {
                 <ContextPill label="Countries" value={`${formatNumber(totalCountries || 0)} in scope`} />
               </div>
 
-              <div className="rounded-2xl border border-slate-700 bg-slate-950/60 p-3">
+              <div className="rounded-2xl border border-slate-200 bg-white p-3">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Signal summary</p>
                 <div className="mt-3 grid grid-cols-3 gap-3">
                   <div>
                     <p className="text-sm text-slate-400">Institutions</p>
-                    <p className="text-lg font-semibold text-white">{formatNumber(overview?.total_institutions ?? null)}</p>
+                    <p className="text-lg font-semibold text-slate-900">{formatNumber(overview?.total_institutions ?? null)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-slate-400">Assets</p>
-                    <p className="text-lg font-semibold text-white">{formatCurrency(overview?.total_assets_sum ?? null)}</p>
+                    <p className="text-lg font-semibold text-slate-900">{formatCurrency(overview?.total_assets_sum ?? null)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-slate-400">States / provinces</p>
-                    <p className="text-lg font-semibold text-white">{formatNumber(overview?.by_state.length ?? null)}</p>
+                    <p className="text-lg font-semibold text-slate-900">{formatNumber(overview?.by_state.length ?? null)}</p>
                   </div>
                 </div>
               </div>
@@ -447,13 +447,13 @@ export default function AnalyticsPage() {
         <RatesStrip />
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
-          <Card className="!border-slate-700 !bg-slate-900/80 !text-slate-100">
+          <Card className="!border-slate-200 !bg-slate-50/80 !text-slate-900">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.25em] text-slate-400">Coverage mix</p>
-                <h2 className="mt-1 text-lg font-semibold text-white">Source concentration and geography</h2>
+                <h2 className="mt-1 text-lg font-semibold text-slate-900">Source concentration and geography</h2>
               </div>
-              <Badge color="gray" className="bg-slate-950 text-slate-300 ring-slate-700/80">
+              <Badge color="gray" className="bg-white text-slate-700 ring-slate-200/80">
                 official + curated
               </Badge>
             </div>
@@ -482,9 +482,9 @@ export default function AnalyticsPage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-slate-700/80 bg-slate-950/60 p-3">
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-3">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-400">
-                    <Globe2 className="h-4 w-4 text-cyan-300" />
+                    <Globe2 className="h-4 w-4 text-cyan-600" />
                     Geography mix
                   </div>
                   <div className="mt-3 space-y-2.5">
@@ -499,21 +499,21 @@ export default function AnalyticsPage() {
                     ))}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-slate-700/80 bg-slate-950/60 p-3">
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-3">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-400">
-                    <Landmark className="h-4 w-4 text-emerald-300" />
+                    <Landmark className="h-4 w-4 text-emerald-600" />
                     Watchpoints
                   </div>
-                  <div className="mt-3 space-y-3 text-sm text-slate-300">
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
+                  <div className="mt-3 space-y-3 text-sm text-slate-700">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2">
                       {activeSourceFeeds > 0
                         ? `${formatNumber(activeSourceFeeds)} active feeds are live; ${formatNumber(unavailableSourceFeeds)} are unavailable.`
                         : 'Active source status will appear once the overview query resolves.'}
                     </div>
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2">
                       The dashboard is optimized for drill-up/drill-down research across regulated entities.
                     </div>
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2">
                       Use the entity terminal to compare institution context, history, source posture, and relationship depth.
                     </div>
                   </div>
@@ -522,56 +522,56 @@ export default function AnalyticsPage() {
             </div>
           </Card>
 
-          <Card className="!border-slate-700 !bg-slate-900/80 !text-slate-100">
+          <Card className="!border-slate-200 !bg-slate-50/80 !text-slate-900">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.25em] text-slate-400">Command deck</p>
-                <h2 className="mt-1 text-lg font-semibold text-white">Fast paths</h2>
+                <h2 className="mt-1 text-lg font-semibold text-slate-900">Fast paths</h2>
               </div>
-              <Sparkles className="h-5 w-5 text-amber-300" />
+              <Sparkles className="h-5 w-5 text-amber-600" />
             </div>
 
             <div className="mt-4 grid gap-3">
               <Link
                 to="/entities"
-                className="group rounded-2xl border border-slate-700 bg-slate-950/60 p-3 transition-colors hover:border-cyan-500/40 hover:bg-slate-900"
+                className="group rounded-2xl border border-slate-200 bg-white p-3 transition-colors hover:border-cyan-500/40 hover:bg-slate-50"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">Entity intelligence</p>
+                    <p className="text-sm font-semibold text-slate-900">Entity intelligence</p>
                     <p className="mt-1 text-xs text-slate-400">
                       Drill into banks, credit unions, and registries with contextual rails.
                     </p>
                   </div>
-                  <ArrowUpRight className="h-4 w-4 text-slate-400 transition-colors group-hover:text-cyan-300" />
+                  <ArrowUpRight className="h-4 w-4 text-slate-400 transition-colors group-hover:text-cyan-600" />
                 </div>
               </Link>
               <Link
                 to="/analytics"
-                className="group rounded-2xl border border-slate-700 bg-slate-950/60 p-3 transition-colors hover:border-emerald-500/40 hover:bg-slate-900"
+                className="group rounded-2xl border border-slate-200 bg-white p-3 transition-colors hover:border-emerald-500/40 hover:bg-slate-50"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">Market analytics</p>
+                    <p className="text-sm font-semibold text-slate-900">Market analytics</p>
                     <p className="mt-1 text-xs text-slate-400">
                       Explore concentration, correlations, state heatmaps, and distribution views.
                     </p>
                   </div>
-                  <ArrowUpRight className="h-4 w-4 text-slate-400 transition-colors group-hover:text-emerald-300" />
+                  <ArrowUpRight className="h-4 w-4 text-slate-400 transition-colors group-hover:text-emerald-600" />
                 </div>
               </Link>
               <Link
                 to="/sources"
-                className="group rounded-2xl border border-slate-700 bg-slate-950/60 p-3 transition-colors hover:border-violet-500/40 hover:bg-slate-900"
+                className="group rounded-2xl border border-slate-200 bg-white p-3 transition-colors hover:border-violet-500/40 hover:bg-slate-50"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">Source registry</p>
+                    <p className="text-sm font-semibold text-slate-900">Source registry</p>
                     <p className="mt-1 text-xs text-slate-400">
                       See official feeds, queued sources, and the current coverage posture.
                     </p>
                   </div>
-                  <ArrowUpRight className="h-4 w-4 text-slate-400 transition-colors group-hover:text-violet-300" />
+                  <ArrowUpRight className="h-4 w-4 text-slate-400 transition-colors group-hover:text-violet-600" />
                 </div>
               </Link>
             </div>
@@ -603,19 +603,19 @@ export default function AnalyticsPage() {
 
         {overview && (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)]">
-            <Card className="!border-slate-700 !bg-slate-900/80 !text-slate-100">
+            <Card className="!border-slate-200 !bg-slate-50/80 !text-slate-900">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.25em] text-slate-400">Freshness board</p>
-                  <h2 className="mt-1 text-lg font-semibold text-white">Top loaded sources</h2>
+                  <h2 className="mt-1 text-lg font-semibold text-slate-900">Top loaded sources</h2>
                 </div>
-                <Signal className="h-5 w-5 text-cyan-300" />
+                <Signal className="h-5 w-5 text-cyan-600" />
               </div>
               <div className="mt-4 space-y-3">
                 {topSourcePosture.length > 0 ? topSourcePosture.map((source) => (
-                  <div key={source.source_key} className="flex items-start justify-between gap-4 rounded-2xl border border-slate-700/80 bg-slate-950/60 px-4 py-3">
+                  <div key={source.source_key} className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white px-4 py-3">
                     <div>
-                      <p className="text-sm font-semibold text-white">{source.source_key.replace(/_/g, ' ')}</p>
+                      <p className="text-sm font-semibold text-slate-900">{source.source_key.replace(/_/g, ' ')}</p>
                       <p className="mt-1 text-xs text-slate-400">
                         {source.status.toUpperCase()}
                         {source.data_as_of ? ` · data as of ${source.data_as_of}` : ''}
@@ -633,17 +633,17 @@ export default function AnalyticsPage() {
               </div>
             </Card>
 
-            <Card className="!border-slate-700 !bg-slate-900/80 !text-slate-100">
+            <Card className="!border-slate-200 !bg-slate-50/80 !text-slate-900">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.25em] text-slate-400">Warehouse layers</p>
-                  <h2 className="mt-1 text-lg font-semibold text-white">Context model depth</h2>
+                  <h2 className="mt-1 text-lg font-semibold text-slate-900">Context model depth</h2>
                 </div>
-                <Database className="h-5 w-5 text-emerald-300" />
+                <Database className="h-5 w-5 text-emerald-600" />
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 {warehouseCards.map((card) => (
-                  <div key={card.label} className="rounded-2xl border border-slate-700/80 bg-slate-950/60 px-4 py-3">
+                  <div key={card.label} className="rounded-2xl border border-slate-200/80 bg-white px-4 py-3">
                     <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">{card.label}</p>
                     <p className={`mt-2 text-xl font-semibold ${card.tone}`}>{formatNumber(card.value ?? 0)}</p>
                   </div>
@@ -654,7 +654,7 @@ export default function AnalyticsPage() {
         )}
 
         {/* Tabs */}
-        <div className="overflow-x-auto rounded-2xl border border-slate-700 bg-slate-900/80 p-1 shadow-2xl shadow-slate-950/30">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50/80 p-1 shadow-2xl shadow-slate-200/50">
           <nav className="flex gap-1 min-w-max">
             {TABS.map(tab => (
               <button
@@ -662,8 +662,8 @@ export default function AnalyticsPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-950/20'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    ? 'bg-cyan-100 text-cyan-900 shadow-sm'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
                 {tab.icon}
@@ -805,8 +805,8 @@ export default function AnalyticsPage() {
       {/* Tab: Distributions */}
       {activeTab === 'distribution' && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-cyan-950/90 to-slate-900 border border-cyan-800/60 rounded-2xl p-4 shadow-lg shadow-cyan-950/10">
-            <p className="text-sm text-cyan-100">
+          <div className="bg-cyan-50 border border-cyan-200 rounded-2xl p-4">
+            <p className="text-sm text-cyan-800">
               <strong>How to read:</strong> These histograms show how {formatNumber(distData?.roa?.count ?? 0)} FDIC-insured banks
               cluster across key profitability metrics. The dashed lines mark the 25th percentile, median, and 75th percentile.
               A healthy community bank typically has ROA of 0.8–1.3% and ROE of 8–12%.
@@ -896,8 +896,8 @@ export default function AnalyticsPage() {
       {/* Tab: Concentration */}
       {activeTab === 'concentration' && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-amber-950/90 to-slate-900 border border-amber-800/60 rounded-2xl p-4 shadow-lg shadow-amber-950/10">
-            <p className="text-sm text-amber-100">
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <p className="text-sm text-amber-800">
               <strong>The Concentration Problem:</strong> The U.S. banking system is highly concentrated — a handful of "too big to fail"
               banks hold the majority of assets, while thousands of community banks compete for the remainder.
               This is the banking equivalent of wealth inequality.
@@ -918,8 +918,8 @@ export default function AnalyticsPage() {
       {/* Tab: Leaderboard */}
       {activeTab === 'leaderboard' && (
         <div className="space-y-4">
-          <div className="bg-slate-900/70 border border-slate-700 rounded-2xl p-4">
-            <p className="text-sm text-slate-300">
+          <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-4">
+            <p className="text-sm text-slate-700">
               Rankings filtered to banks with $500M+ in assets. Switch metrics and sort direction to explore best and worst performers.
             </p>
           </div>
@@ -933,8 +933,8 @@ export default function AnalyticsPage() {
       {/* Tab: Correlations */}
       {activeTab === 'correlations' && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-indigo-950/90 to-slate-900 border border-indigo-800/60 rounded-2xl p-4 shadow-lg shadow-indigo-950/10">
-            <p className="text-sm text-indigo-100">
+          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
+            <p className="text-sm text-indigo-800">
               Pearson correlation coefficients between key financial metrics across all FDIC-insured banks. Strong
               correlations reveal structural relationships in banking profitability.
             </p>
@@ -957,17 +957,17 @@ export default function AnalyticsPage() {
               </Card>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-slate-900/70 border border-slate-700 rounded-2xl p-4">
-                  <p className="text-sm font-semibold text-cyan-100 mb-1">ROA and ROE: highly correlated</p>
-                  <p className="text-sm text-slate-300">
+                <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-4">
+                  <p className="text-sm font-semibold text-cyan-700 mb-1">ROA and ROE: highly correlated</p>
+                  <p className="text-sm text-slate-700">
                     ROA and ROE typically show a strong positive correlation (r &asymp; 0.85), but large banks can sustain high
                     ROE with lower ROA by using leverage — equity multipliers above 10&times; allow mega-banks to amplify
                     returns on thin asset margins.
                   </p>
                 </div>
-                <div className="bg-slate-900/70 border border-slate-700 rounded-2xl p-4">
-                  <p className="text-sm font-semibold text-violet-100 mb-1">Size and profitability</p>
-                  <p className="text-sm text-slate-300">
+                <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-4">
+                  <p className="text-sm font-semibold text-violet-700 mb-1">Size and profitability</p>
+                  <p className="text-sm text-slate-700">
                     Log Assets vs ROA often shows a weak or near-zero correlation — being large does not guarantee
                     profitability. Many mega-banks have lower ROA than well-run community banks; scale confers cost advantages
                     but also regulatory burdens and lower-margin business mix.
@@ -982,8 +982,8 @@ export default function AnalyticsPage() {
       {/* Tab: State Grid */}
       {activeTab === 'state-grid' && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-emerald-950/90 to-slate-900 border border-emerald-800/60 rounded-2xl p-4 shadow-lg shadow-emerald-950/10">
-            <p className="text-sm text-emerald-100">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+            <p className="text-sm text-emerald-800">
               State-level averages across{' '}
               {stateData
                 ? formatNumber(stateData.states.reduce((s: number, r: any) => s + r.institution_count, 0))

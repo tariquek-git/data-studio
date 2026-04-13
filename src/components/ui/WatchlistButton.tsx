@@ -28,8 +28,8 @@ export function WatchlistButton({ certNumber, size = 'md' }: WatchlistButtonProp
       aria-label={watching ? 'Remove from watchlist' : 'Add to watchlist'}
       className={`inline-flex items-center justify-center transition-colors ${sizeClasses} ${
         watching
-          ? 'text-amber-400 hover:text-amber-500'
-          : 'text-surface-300 hover:text-amber-400'
+          ? 'text-amber-600 hover:text-amber-500'
+          : 'text-surface-300 hover:text-amber-600'
       }`}
     >
       <Star
