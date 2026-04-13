@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { Menu, X, Database, Search } from 'lucide-react';
+import { Menu, X, Fish, Search } from 'lucide-react';
 import { useWatchlist } from '@/hooks/useWatchlist';
 import { useCommandBar } from '@/components/command-bar/CommandBarProvider';
 
@@ -33,9 +33,14 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <Database className={`h-6 w-6 ${isTerminalRoute ? 'text-cyan-400' : 'text-primary-600'}`} />
-            <span className={`text-lg font-semibold ${isTerminalRoute ? 'text-white' : 'text-surface-900'}`}>
-              Data Studio
+            <Fish className={`h-6 w-6 ${isTerminalRoute ? 'text-cyan-400' : 'text-indigo-500'}`} />
+            <span className={`text-lg font-bold tracking-tight ${isTerminalRoute ? 'text-white' : 'text-surface-900'}`}>
+              Moby-Data
+            </span>
+            <span className={`hidden lg:inline text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+              isTerminalRoute ? 'bg-cyan-950 text-cyan-300' : 'bg-indigo-50 text-indigo-500'
+            }`}>
+              hunt the big catch
             </span>
           </Link>
 

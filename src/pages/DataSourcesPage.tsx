@@ -168,7 +168,7 @@ export default function DataSourcesPage() {
       <div>
         <h1 className="text-2xl font-bold text-surface-900">Data Sources</h1>
         <p className="mt-1 text-sm text-surface-500">
-          Data Studio tracks official North American regulatory, registry, market, filings, and
+          Moby-Data tracks official North American regulatory, registry, market, filings, and
           infrastructure sources here, with live ingestion status where available.
         </p>
       </div>
@@ -180,7 +180,7 @@ export default function DataSourcesPage() {
           <div className="text-sm text-primary-800 space-y-1">
             <p className="font-medium">Data provenance and audit philosophy</p>
             <p>
-              Data Studio is built on official public authorities first: FDIC, NCUA, FFIEC, OCC,
+              Moby-Data is built on official public authorities first: FDIC, NCUA, FFIEC, OCC,
               the Federal Reserve, OSFI, the Bank of Canada, CIRO, FINTRAC, FinCEN, CMHC, the SEC,
               CFPB, and related public registries. Each profile and dataset maps back to a stable{' '}
               <code className="bg-primary-100 px-1 rounded text-xs">source_key</code>, so the

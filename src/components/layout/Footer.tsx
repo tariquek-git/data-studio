@@ -12,7 +12,10 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Branding */}
           <div>
-            <p className={`text-sm font-medium ${isTerminalRoute ? 'text-white' : 'text-surface-900'}`}>Data Studio</p>
+            <p className={`text-sm font-bold ${isTerminalRoute ? 'text-white' : 'text-surface-900'}`}>Moby-Data</p>
+            <p className={`text-xs mt-1 italic ${isTerminalRoute ? 'text-slate-500' : 'text-surface-400'}`}>
+              "Thar she blows!" — Hunt whales. Spearfish prospects. Land the big catch.
+            </p>
           </div>
 
           {/* Research tools */}
@@ -57,7 +60,7 @@ export function Footer() {
 
         <div className={`mt-8 pt-6 border-t ${isTerminalRoute ? 'border-slate-800' : 'border-surface-100'}`}>
           <p className={`text-xs text-center ${isTerminalRoute ? 'text-slate-500' : 'text-surface-400'}`}>
-            &copy; {new Date().getFullYear()} Data Studio. All rights reserved.
+            &copy; {new Date().getFullYear()} Moby-Data. All rights reserved.
           </p>
         </div>
       </div>
