@@ -273,6 +273,20 @@ Other files likely to matter soon:
 ## Active Slice
 None — between slices.
 
+### Slice: graph-hop-table-filter (2026-04-12)
+**Status:** Ready for Codex review
+
+**Files changed:**
+- `api/relationships/graph.ts` — Multi-hop traversal now groups frontier by entity_table and builds compound `.or()` clauses: `and(from_entity_table.eq.X,from_entity_id.in.(a,b))` instead of raw `from_entity_id.in.(a,b)`. Prevents cross-table UUID collision in hop expansion.
+
+**Intent / expected behavior:**
+- Resolves Codex finding HIGH #2: hop discovery no longer matches relationships from the wrong entity table when UUIDs collide across tables
+- Each hop builds per-table filter groups from the composite-key frontier
+
+**Risk notes:**
+- PostgREST `and()` nested inside `.or()` is a supported syntax but less commonly used — verified it compiles
+- If a table has many IDs, the `.in()` list could get large; bounded by the `limit` param (max 500 rels per hop)
+
 ## Ready For Review
 
 ### Slice: search-and-screen-fixes (2026-04-12)

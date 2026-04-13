@@ -118,15 +118,32 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
 
     for (let hop = 1; hop < depth; hop++) {
       if (frontier.size === 0) break;
-      // Extract the raw IDs for the PostgREST .in() filter while keeping
-      // composite-key deduplication in the frontier set.
-      const frontierIds = [...new Set([...frontier].map(k => k.split(':').slice(1).join(':')))];
+
+      // Group frontier by entity_table so hop queries filter on BOTH table and ID,
+      // preventing cross-table UUID collision in traversal.
+      const byTable = new Map<string, string[]>();
+      for (const compositeKey of frontier) {
+        const colonIdx = compositeKey.indexOf(':');
+        const table = compositeKey.slice(0, colonIdx);
+        const id = compositeKey.slice(colonIdx + 1);
+        const existing = byTable.get(table);
+        if (existing) existing.push(id);
+        else byTable.set(table, [id]);
+      }
+
+      // Build OR clauses: and(from_entity_table.eq.X,from_entity_id.in.(a,b)),and(to_entity_table.eq.X,to_entity_id.in.(a,b))
+      const orClauses: string[] = [];
+      for (const [table, ids] of byTable) {
+        const idList = ids.join(',');
+        orClauses.push(`and(from_entity_table.eq.${table},from_entity_id.in.(${idList}))`);
+        orClauses.push(`and(to_entity_table.eq.${table},to_entity_id.in.(${idList}))`);
+      }
 
       const { data: hopRels, error: hopErr } = await supabase
         .from('entity_relationships')
         .select('id, from_entity_id, from_entity_table, to_entity_id, to_entity_table, relationship_type, relationship_label, confidence_score, active')
         .eq('active', true)
-        .or(`from_entity_id.in.(${frontierIds.join(',')}),to_entity_id.in.(${frontierIds.join(',')})`)
+        .or(orClauses.join(','))
         .order('id')
         .limit(limit);
 
