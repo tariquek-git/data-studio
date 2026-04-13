@@ -22,6 +22,7 @@ const EntityPage = lazy(() => import('./pages/EntityPage'));
 const BrimPage = lazy(() => import('./pages/BrimPage'));
 
 const RelationshipGraphPage = lazy(() => import('./pages/RelationshipGraphPage'));
+const AuditDashboardPage = lazy(() => import('./pages/AuditDashboardPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 5 * 60 * 1000, retry: 1 } },
@@ -65,6 +66,7 @@ export default function App() {
                   <Route path="/brim" element={<BrimPage />} />
                   <Route path="/geo" element={<Navigate to="/explore?view=map" replace />} />
                   <Route path="/graph" element={<RelationshipGraphPage />} />
+                  <Route path="/audit" element={<AuditDashboardPage />} />
                 </Routes>
               </Suspense>
             </main>

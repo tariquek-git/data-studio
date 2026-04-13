@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { to: '/graph', label: 'Graph' },
   { to: '/entities', label: 'Entities' },
   { to: '/sources', label: 'Sources' },
+  { to: '/audit', label: 'Audit' },
 ];
 
 export function Header() {
