@@ -58,7 +58,6 @@ interface AnalyticsOverview {
   }>;
   warehouse_summary?: {
     registry_entities: number | null;
-    ecosystem_entities: number | null;
     entity_relationships: number | null;
     charter_events: number | null;
     failure_events: number | null;
@@ -327,7 +326,6 @@ export default function AnalyticsPage() {
   const warehouseCards = overview?.warehouse_summary
     ? [
         { label: 'Registry', value: overview.warehouse_summary.registry_entities, tone: 'text-cyan-300' },
-        { label: 'Ecosystem', value: overview.warehouse_summary.ecosystem_entities, tone: 'text-emerald-300' },
         { label: 'Relationships', value: overview.warehouse_summary.entity_relationships, tone: 'text-violet-300' },
         { label: 'Charter events', value: overview.warehouse_summary.charter_events, tone: 'text-amber-300' },
         { label: 'Failures', value: overview.warehouse_summary.failure_events, tone: 'text-rose-300' },
@@ -513,7 +511,7 @@ export default function AnalyticsPage() {
                         : 'Active source status will appear once the overview query resolves.'}
                     </div>
                     <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
-                      The dashboard is optimized for drill-up/drill-down research across regulated entities and ecosystem players.
+                      The dashboard is optimized for drill-up/drill-down research across regulated entities.
                     </div>
                     <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
                       Use the entity terminal to compare institution context, history, source posture, and relationship depth.
@@ -542,7 +540,7 @@ export default function AnalyticsPage() {
                   <div>
                     <p className="text-sm font-semibold text-white">Entity intelligence</p>
                     <p className="mt-1 text-xs text-slate-400">
-                      Drill into banks, credit unions, registries, and ecosystem players with contextual rails.
+                      Drill into banks, credit unions, and registries with contextual rails.
                     </p>
                   </div>
                   <ArrowUpRight className="h-4 w-4 text-slate-400 transition-colors group-hover:text-cyan-300" />

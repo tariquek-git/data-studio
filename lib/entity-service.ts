@@ -61,30 +61,6 @@ type RegistryEntityRow = {
   country: string | null;
 };
 
-type EcosystemEntityRow = {
-  id: string;
-  source_key: string | null;
-  source_authority: string | null;
-  name: string;
-  legal_name: string | null;
-  entity_type: string;
-  business_model: string | null;
-  active: boolean | null;
-  status: string | null;
-  country: string | null;
-  city: string | null;
-  state: string | null;
-  website: string | null;
-  description: string | null;
-  parent_name: string | null;
-  confidence_score: number | null;
-  raw_data: Record<string, unknown> | null;
-  data_as_of: string | null;
-  last_synced_at: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-};
-
 type CapabilityRow = {
   cert_number: number;
   baas_platform: boolean | null;
@@ -320,21 +296,6 @@ function externalIdRowsFromRegistry(row: RegistryEntityRow) {
   return ids;
 }
 
-function externalIdRowsFromEcosystem(row: EcosystemEntityRow) {
-  const ids: EntityExternalId[] = [];
-  if (row.source_key) {
-    ids.push({
-      entity_table: 'ecosystem_entities',
-      entity_id: row.id,
-      id_type: 'source_key',
-      id_value: row.source_key,
-      is_primary: true,
-      source_url: null,
-    });
-  }
-  return ids;
-}
-
 function capabilityRoles(cap: CapabilityRow | null | undefined) {
   const roles: string[] = [];
   if (!cap) return roles;
@@ -372,10 +333,6 @@ function buildRegistryContextSummary(row: RegistryEntityRow) {
   return `${authority} ${subtype} profile with registration context, source provenance, and regulatory framing.`;
 }
 
-function buildEcosystemContextSummary(row: EcosystemEntityRow, roles: string[]) {
-  const roleText = roles.length > 0 ? roles.map((role) => role.replace(/_/g, ' ')).join(', ') : row.business_model ?? row.entity_type;
-  return `${roleText.replace(/_/g, ' ')} tracked through curated ecosystem research with relationship and evidence context.`;
-}
 
 async function loadCapabilityMap(certs: number[]) {
   if (certs.length === 0) return new Map<number, CapabilityRow>();
@@ -448,25 +405,6 @@ function deriveRegistryTags(row: RegistryEntityRow) {
   return tags;
 }
 
-function deriveEcosystemTags(row: EcosystemEntityRow) {
-  const tags: EntityTag[] = [];
-  if (row.business_model) {
-    tags.push({
-      entity_table: 'ecosystem_entities',
-      entity_id: row.id,
-      tag_key: 'business_role',
-      tag_value: row.business_model,
-      source_kind: 'curated',
-      source_url: null,
-      confidence_score: 0.5,
-      effective_start: null,
-      effective_end: null,
-      notes: 'Derived from ecosystem business model',
-    });
-  }
-  return tags;
-}
-
 async function loadTags(entityRefs: Array<{ entity_table: EntityStorageTable; entity_id: string }>) {
   if (entityRefs.length === 0) return new Map<string, EntityTag[]>();
   const supabase = getSupabase();
@@ -499,9 +437,6 @@ async function loadTags(entityRefs: Array<{ entity_table: EntityStorageTable; en
     .map((ref) => ref.entity_id);
   const missingRegistryIds = entityRefs
     .filter((ref) => ref.entity_table === 'registry_entities' && !tags.has(`${ref.entity_table}:${ref.entity_id}`))
-    .map((ref) => ref.entity_id);
-  const missingEcosystemIds = entityRefs
-    .filter((ref) => ref.entity_table === 'ecosystem_entities' && !tags.has(`${ref.entity_table}:${ref.entity_id}`))
     .map((ref) => ref.entity_id);
 
   if (missingInstitutionIds.length > 0) {
@@ -548,25 +483,6 @@ async function loadTags(entityRefs: Array<{ entity_table: EntityStorageTable; en
     }
   }
 
-  if (missingEcosystemIds.length > 0) {
-    const ecosystemRows: EcosystemEntityRow[] = [];
-
-    for (const idChunk of chunkValues(missingEcosystemIds, ENTITY_ID_CHUNK_SIZE)) {
-      const chunkRows = await safeRows<EcosystemEntityRow>(
-        supabase
-          .from('ecosystem_entities')
-          .select('id, source_key, source_authority, name, legal_name, entity_type, business_model, active, status, country, city, state, website, description, parent_name, confidence_score, raw_data, data_as_of, last_synced_at, created_at, updated_at')
-          .in('id', idChunk)
-      );
-      ecosystemRows.push(...chunkRows);
-    }
-
-    for (const row of ecosystemRows) {
-      const derived = deriveEcosystemTags(row);
-      if (derived.length > 0) tags.set(`ecosystem_entities:${row.id}`, derived);
-    }
-  }
-
   for (const ref of entityRefs) {
     const key = `${ref.entity_table}:${ref.entity_id}`;
     if (!tags.has(key)) tags.set(key, []);
@@ -601,8 +517,7 @@ async function loadExternalIds(entityTable: EntityStorageTable, entityId: string
     return legacy ? externalIdRowsFromRegistry(legacy) : [];
   }
 
-  const legacy = await loadEcosystemById(entityId);
-  return legacy ? externalIdRowsFromEcosystem(legacy) : [];
+  return [];
 }
 
 function mapInstitutionToSummary(
@@ -693,52 +608,11 @@ function mapRegistryToSummary(row: RegistryEntityRow, tags: EntityTag[]): Entity
   };
 }
 
-function mapEcosystemToSummary(row: EcosystemEntityRow, tags: EntityTag[]): EntitySummary {
-  const { country, countryLabel } = countryMeta(row.source_key ?? 'curated', row.country);
-  const roles = [row.business_model, ...tagRoles(tags, 'business_role')].filter(Boolean) as string[];
-  return {
-    id: row.id,
-    storage_table: 'ecosystem_entities',
-    profile_kind: 'ecosystem_entity',
-    source_key: row.source_key ?? 'curated',
-    source_authority: formatSourceAuthority(row.source_key ?? 'curated', row.source_authority),
-    source_kind: SOURCE_META[row.source_key ?? 'curated']?.sourceKind ?? 'curated',
-    name: row.name,
-    legal_name: row.legal_name,
-    description: row.description,
-    country,
-    country_label: countryLabel,
-    city: row.city,
-    state: row.state,
-    website: row.website,
-    regulator: null,
-    entity_type: row.entity_type,
-    charter_family: null,
-    business_roles: roles,
-    market_roles: tagRoles(tags, 'market_role'),
-    status: row.status ?? (row.active === false ? 'inactive' : 'active'),
-    active: row.active !== false,
-    confidence_score: row.confidence_score,
-    data_as_of: row.data_as_of,
-    last_synced_at: row.last_synced_at,
-    context_summary: buildEcosystemContextSummary(row, roles),
-    metrics: {
-      total_assets: null,
-      total_deposits: null,
-      total_loans: null,
-      net_income: null,
-      roa: null,
-      roi: null,
-    },
-    cert_number: null,
-  };
-}
-
-function applySearchFilters(entities: EntitySummary[], options: SearchOptions) {
+function applySearchFilters(entities: EntitySummary[], options: SearchOptions, skipTextFilter = false) {
   let filtered = entities;
   const q = options.q?.trim().toLowerCase();
 
-  if (q) {
+  if (q && !skipTextFilter) {
     filtered = filtered.filter((entity) =>
       [
         entity.name,
@@ -793,7 +667,6 @@ function aggregateEntities(entities: EntitySummary[]): EntitySearchAggregations 
       by_profile_kind: {
         regulated_institution: 0,
         registry_entity: 0,
-        ecosystem_entity: 0,
       },
       by_source_key: {},
       by_regulator: {},
@@ -806,34 +679,66 @@ function aggregateEntities(entities: EntitySummary[]): EntitySearchAggregations 
 
 export async function searchEntities(options: SearchOptions) {
   const supabase = getSupabase();
-  const [hasRegistryTable, hasEcosystemTable] = await Promise.all([
-    tableExists('registry_entities'),
-    tableExists('ecosystem_entities'),
-  ]);
+  const hasRegistryTable = await tableExists('registry_entities');
+  const hasMV = await tableExists('institution_summary_mv');
 
-  const [allInstitutionRows, registryRows, ecosystemRows] = await Promise.all([
-    fetchAllPages<InstitutionRow>((from, to) =>
-      supabase
-        .from('institutions')
-        .select('id, cert_number, source, name, legal_name, charter_type, active, city, state, website, regulator, holding_company, total_assets, total_deposits, total_loans, net_income, roa, roi, raw_data, data_as_of, last_synced_at, created_at, updated_at')
-        .range(from, to)
-    ),
+  // --- Server-side filtered queries (replaces fetchAllPages of ALL rows) ---
+  const q = options.q?.trim() ?? '';
+  const institutionSelect = 'id, cert_number, source, name, legal_name, charter_type, active, city, state, website, regulator, holding_company, total_assets, total_deposits, total_loans, net_income, roa, roi, raw_data, data_as_of, last_synced_at, created_at, updated_at';
+  const registrySelect = 'id, source_key, name, legal_name, entity_subtype, active, city, state, website, regulator, registration_number, status, description, raw_data, data_as_of, last_synced_at, created_at, updated_at, country';
+
+  // Strips characters that have special meaning in PostgREST filter strings
+  // to prevent malformed queries when interpolating user-supplied text.
+  function sanitizePostgrestText(text: string): string {
+    return text.replace(/[(),\\.*"'%]/g, '');
+  }
+
+  function buildInstitutionQuery(from: number, to: number) {
+    let query;
+    if (hasMV && q) {
+      // Use the MV's GIN-indexed search_vector for text search
+      query = supabase
+        .from('institution_summary_mv')
+        .select(institutionSelect)
+        .textSearch('search_vector', q, { type: 'websearch', config: 'english' });
+    } else {
+      query = supabase
+        .from(hasMV ? 'institution_summary_mv' : 'institutions')
+        .select(institutionSelect);
+      if (q) {
+        const safe = sanitizePostgrestText(q);
+        const term = `%${safe}%`;
+        query = query.or(`name.ilike.${term},city.ilike.${term},holding_company.ilike.${term}`);
+      }
+    }
+    if (options.country === 'US') {
+      query = query.not('source', 'in', '(osfi,rpaa,ciro,fintrac,bcfsa,fsra,cudgc,dgcm,cudgc_sk,nbcudic,nscudic,ccua,fintech_ca)');
+    } else if (options.country === 'CA') {
+      query = query.in('source', ['osfi', 'rpaa', 'ciro', 'fintrac', 'bcfsa', 'fsra', 'cudgc', 'dgcm', 'cudgc_sk', 'nbcudic', 'nscudic', 'ccua', 'fintech_ca']);
+    }
+    return query.range(from, to);
+  }
+
+  function buildRegistryQuery(from: number, to: number) {
+    let query = supabase
+      .from('registry_entities')
+      .select(registrySelect);
+    if (q) {
+      const safe = sanitizePostgrestText(q);
+      const term = `%${safe}%`;
+      query = query.or(`name.ilike.${term},legal_name.ilike.${term},city.ilike.${term},regulator.ilike.${term}`);
+    }
+    if (options.country) {
+      query = query.eq('country', options.country);
+    }
+    return query.range(from, to);
+  }
+
+  const [allInstitutionRows, registryRows] = await Promise.all([
+    fetchAllPages<InstitutionRow>(buildInstitutionQuery),
     hasRegistryTable
-      ? fetchAllPages<RegistryEntityRow>((from, to) =>
-          supabase
-            .from('registry_entities')
-            .select('id, source_key, name, legal_name, entity_subtype, active, city, state, website, regulator, registration_number, status, description, raw_data, data_as_of, last_synced_at, created_at, updated_at, country')
-            .range(from, to)
-        )
+      ? fetchAllPages<RegistryEntityRow>(buildRegistryQuery)
       : Promise.resolve([] as RegistryEntityRow[]),
-    hasEcosystemTable
-      ? fetchAllPages<EcosystemEntityRow>((from, to) =>
-          supabase
-            .from('ecosystem_entities')
-            .select('id, source_key, source_authority, name, legal_name, entity_type, business_model, active, status, country, city, state, website, description, parent_name, confidence_score, raw_data, data_as_of, last_synced_at, created_at, updated_at')
-            .range(from, to)
-        )
-      : Promise.resolve([] as EcosystemEntityRow[]),
   ]);
 
   const institutionRows =
@@ -844,7 +749,6 @@ export async function searchEntities(options: SearchOptions) {
   const entityRefs = [
     ...institutionRows.map((row) => ({ entity_table: 'institutions' as const, entity_id: row.id })),
     ...registryRows.map((row) => ({ entity_table: 'registry_entities' as const, entity_id: row.id })),
-    ...ecosystemRows.map((row) => ({ entity_table: 'ecosystem_entities' as const, entity_id: row.id })),
   ];
 
   const [tagsMap, capabilityMap] = await Promise.all([
@@ -861,10 +765,13 @@ export async function searchEntities(options: SearchOptions) {
       mapInstitutionToSummary(row, tagsMap.get(`institutions:${row.id}`) ?? [], row.cert_number ? capabilityMap.get(row.cert_number) : null)
     ),
     ...registryRows.map((row) => mapRegistryToSummary(row, tagsMap.get(`registry_entities:${row.id}`) ?? [])),
-    ...ecosystemRows.map((row) => mapEcosystemToSummary(row, tagsMap.get(`ecosystem_entities:${row.id}`) ?? [])),
   ];
 
-  const filtered = applySearchFilters(entities, options);
+  // When institution rows came from server-side full-text search (MV path),
+  // skip the client-side substring check on `q` to avoid filtering out valid
+  // Postgres websearch matches that don't contain the literal query string.
+  const usedServerTextSearch = hasMV && !!options.q?.trim();
+  const filtered = applySearchFilters(entities, options, usedServerTextSearch);
   const page = Math.max(1, options.page ?? 1);
   const perPage = Math.min(50, Math.max(1, options.perPage ?? 24));
   const start = (page - 1) * perPage;
@@ -899,26 +806,15 @@ async function loadRegistryById(entityId: string) {
   );
 }
 
-async function loadEcosystemById(entityId: string) {
-  return safeMaybeSingle<EcosystemEntityRow>(
-    getSupabase()
-      .from('ecosystem_entities')
-      .select('id, source_key, source_authority, name, legal_name, entity_type, business_model, active, status, country, city, state, website, description, parent_name, confidence_score, raw_data, data_as_of, last_synced_at, created_at, updated_at')
-      .eq('id', entityId)
-      .maybeSingle()
-  );
-}
-
 export async function getEntityById(entityId: string): Promise<EntityDetail | null> {
-  const [institutionRow, registryRow, ecosystemRow] = await Promise.all([
+  const [institutionRow, registryRow] = await Promise.all([
     loadInstitutionById(entityId),
     loadRegistryById(entityId),
-    loadEcosystemById(entityId),
   ]);
 
-  if (!institutionRow && !registryRow && !ecosystemRow) return null;
+  if (!institutionRow && !registryRow) return null;
 
-  const storageTable: EntityStorageTable = institutionRow ? 'institutions' : registryRow ? 'registry_entities' : 'ecosystem_entities';
+  const storageTable: EntityStorageTable = institutionRow ? 'institutions' : 'registry_entities';
   const externalIds = await loadExternalIds(storageTable, entityId);
   const tagsMap = await loadTags([{ entity_table: storageTable, entity_id: entityId }]);
   const tags = tagsMap.get(`${storageTable}:${entityId}`) ?? [];
@@ -945,30 +841,15 @@ export async function getEntityById(entityId: string): Promise<EntityDetail | nu
     };
   }
 
-  if (registryRow) {
-    const summary = mapRegistryToSummary(registryRow, tags);
-    return {
-      ...summary,
-      aliases: [],
-      parent_name: null,
-      holding_company: null,
-      raw_data: registryRow.raw_data,
-      created_at: registryRow.created_at,
-      updated_at: registryRow.updated_at,
-      external_ids: externalIds,
-      tags,
-    };
-  }
-
-  const summary = mapEcosystemToSummary(ecosystemRow!, tags);
+  const summary = mapRegistryToSummary(registryRow!, tags);
   return {
     ...summary,
     aliases: [],
-    parent_name: ecosystemRow!.parent_name,
+    parent_name: null,
     holding_company: null,
-    raw_data: ecosystemRow!.raw_data,
-    created_at: ecosystemRow!.created_at,
-    updated_at: ecosystemRow!.updated_at,
+    raw_data: registryRow!.raw_data,
+    created_at: registryRow!.created_at,
+    updated_at: registryRow!.updated_at,
     external_ids: externalIds,
     tags,
   };
@@ -1239,13 +1120,13 @@ export async function getEntityRelationships(entityId: string): Promise<EntityRe
         notes: capability.notes,
         counterparty: {
           id: `derived:${partner}`,
-          storage_table: 'ecosystem_entities',
-          profile_kind: 'ecosystem_entity',
+          storage_table: 'registry_entities',
+          profile_kind: 'registry_entity',
           name: partner,
           country: entity.country,
           country_label: entity.country_label,
           regulator: null,
-          entity_type: 'ecosystem_company',
+          entity_type: 'fintech_partner',
           charter_family: null,
           source_key: 'curated',
           source_authority: 'Curated Research',
@@ -1255,36 +1136,6 @@ export async function getEntityRelationships(entityId: string): Promise<EntityRe
   }
 
   const rows = [...outbound, ...inbound];
-  if (rows.length === 0 && capability?.baas_partners?.length) {
-    for (const partner of capability.baas_partners) {
-      derivedRelationships.push({
-        id: `derived-${entity.id}-${partner}`,
-        relationship_type: 'sponsor_bank_for',
-        relationship_label: 'Sponsor bank for',
-        direction: 'outbound',
-        active: true,
-        effective_start: null,
-        effective_end: null,
-        source_kind: 'curated',
-        source_url: null,
-        confidence_score: 0.6,
-        notes: capability.notes,
-        counterparty: {
-          id: `derived:${partner}`,
-          storage_table: 'ecosystem_entities',
-          profile_kind: 'ecosystem_entity',
-          name: partner,
-          country: entity.country,
-          country_label: entity.country_label,
-          regulator: null,
-          entity_type: 'ecosystem_company',
-          charter_family: null,
-          source_key: 'curated',
-          source_authority: 'Curated Research',
-        },
-      });
-    }
-  }
   const resolved = await resolveEntityRefs(
     rows.map((row) => ({
       table: row.direction === 'outbound' ? row.to_entity_table : row.from_entity_table,
@@ -1650,10 +1501,9 @@ export async function searchInstitutions(params: InstitutionSearchParams): Promi
     .from('institution_summary_mv')
     .select('*', { count: 'exact' });
 
-  // Full-text search via ilike fallback (MV has search_vector but Supabase JS doesn't expose tsquery)
+  // Full-text search using GIN-indexed search_vector on the MV
   if (params.q) {
-    const term = `%${params.q}%`;
-    query = query.or(`name.ilike.${term},city.ilike.${term},holding_company.ilike.${term}`);
+    query = query.textSearch('search_vector', params.q, { type: 'websearch', config: 'english' });
   }
 
   if (params.states?.length)       query = query.in('state', params.states);
@@ -1801,4 +1651,292 @@ export async function getQACheckInstitutions(
 
   if (error) throw new Error(error.message);
   return { mode: 'sample', institutions: (data ?? []) as InstitutionRow[] };
+}
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+/** Raw row shapes returned by analytics queries — used by route aggregation logic. */
+export type AnalyticsStateRow = { state: string | null; total_assets: number | null };
+export type AnalyticsCharterRow = { charter_type: string | null };
+export type AnalyticsRegulatorRow = { regulator: string | null };
+export type AnalyticsAssetRow = { total_assets: number | null };
+export type AnalyticsSourceRow = { source: string; country: string | null };
+export type AnalyticsDataSourceRow = {
+  source_key: string;
+  status: string;
+  institution_count?: number | null;
+  data_as_of?: string | null;
+  last_synced_at?: string | null;
+};
+export type AnalyticsFinancialRow = {
+  roa: number | null;
+  roi: number | null;
+  total_assets: number | null;
+  total_deposits: number | null;
+  total_loans: number | null;
+  equity_capital: number | null;
+  net_income: number | null;
+};
+
+export interface AnalyticsOverviewData {
+  totalActive: number;
+  byState: AnalyticsStateRow[];
+  byCharter: AnalyticsCharterRow[];
+  byRegulator: AnalyticsRegulatorRow[];
+  assets: AnalyticsAssetRow[];
+  bySource: AnalyticsSourceRow[];
+  dataSources: AnalyticsDataSourceRow[];
+  registryCount: number | null;
+  relationshipCount: number | null;
+  charterEventCount: number | null;
+  failureEventCount: number | null;
+  macroSeriesCount: number | null;
+}
+
+/** Fetches all data needed by GET /api/analytics/overview. */
+export async function getAnalyticsOverviewData(): Promise<AnalyticsOverviewData> {
+  const supabase = getSupabase();
+
+  const safeCount = async (table: string): Promise<number | null> => {
+    const { count, error } = await supabase.from(table).select('*', { count: 'exact', head: true });
+    if (error) {
+      if (
+        error.code === '42P01' ||
+        error.code === 'PGRST205' ||
+        /relation .* does not exist/i.test(error.message ?? '') ||
+        /schema cache/i.test(error.message ?? '')
+      ) return null;
+      throw error;
+    }
+    return count ?? 0;
+  };
+
+  const [
+    totalRes, stateRes, charterRes, regulatorRes,
+    assetRes, sourceRes, dataSourceRes,
+    registryCount, relationshipCount,
+    charterEventCount, failureEventCount, macroSeriesCount,
+  ] = await Promise.all([
+    supabase.from('institutions').select('*', { count: 'exact', head: true }).eq('active', true),
+    supabase.from('institutions').select('state, total_assets').eq('active', true).not('state', 'is', null),
+    supabase.from('institutions').select('charter_type').eq('active', true).not('charter_type', 'is', null),
+    supabase.from('institutions').select('regulator').eq('active', true).not('regulator', 'is', null),
+    supabase.from('institutions').select('total_assets').eq('active', true).not('total_assets', 'is', null),
+    supabase.from('institutions').select('source, country').eq('active', true),
+    supabase.from('data_sources').select('source_key, status, institution_count, data_as_of, last_synced_at').order('source_key', { ascending: true }),
+    safeCount('registry_entities'),
+    safeCount('entity_relationships'),
+    safeCount('charter_events'),
+    safeCount('failure_events'),
+    safeCount('macro_series'),
+  ]);
+
+  for (const r of [totalRes, stateRes, charterRes, regulatorRes, assetRes, sourceRes, dataSourceRes]) {
+    if (r.error) throw new Error(r.error.message);
+  }
+
+  return {
+    totalActive: totalRes.count ?? 0,
+    byState: (stateRes.data ?? []) as AnalyticsStateRow[],
+    byCharter: (charterRes.data ?? []) as AnalyticsCharterRow[],
+    byRegulator: (regulatorRes.data ?? []) as AnalyticsRegulatorRow[],
+    assets: (assetRes.data ?? []) as AnalyticsAssetRow[],
+    bySource: (sourceRes.data ?? []) as AnalyticsSourceRow[],
+    dataSources: (dataSourceRes.data ?? []) as AnalyticsDataSourceRow[],
+    registryCount, relationshipCount,
+    charterEventCount, failureEventCount, macroSeriesCount,
+  };
+}
+
+export interface AnalyticsLeaderboardParams {
+  metric: string;
+  ascending: boolean;
+  minAssets: number;
+  limit: number;
+}
+
+export interface AnalyticsLeaderboardData {
+  performers: Record<string, unknown>[];
+  concentrationRows: { name: string; cert_number: number; total_assets: number }[];
+}
+
+/** Fetches data for GET /api/analytics/leaderboard. */
+export async function getAnalyticsLeaderboardData(params: AnalyticsLeaderboardParams): Promise<AnalyticsLeaderboardData> {
+  const supabase = getSupabase();
+  const allowedMetrics = ['roa', 'roi', 'total_assets', 'total_deposits', 'net_income', 'num_branches', 'credit_card_loans'];
+  const safeMetric = allowedMetrics.includes(params.metric) ? params.metric : 'roa';
+
+  const [topRes, concentrationRes] = await Promise.all([
+    supabase
+      .from('institutions')
+      .select('cert_number, name, state, charter_type, total_assets, roa, roi, net_income, num_branches, credit_card_loans')
+      .eq('active', true)
+      .not(safeMetric, 'is', null)
+      .gte('total_assets', params.minAssets)
+      .order(safeMetric, { ascending: params.ascending, nullsFirst: false })
+      .limit(params.limit),
+    supabase
+      .from('institutions')
+      .select('name, cert_number, total_assets')
+      .eq('active', true)
+      .not('total_assets', 'is', null)
+      .order('total_assets', { ascending: false, nullsFirst: false })
+      .limit(50),
+  ]);
+
+  if (topRes.error) throw new Error(topRes.error.message);
+  if (concentrationRes.error) throw new Error(concentrationRes.error.message);
+
+  return {
+    performers: (topRes.data ?? []) as Record<string, unknown>[],
+    concentrationRows: (concentrationRes.data ?? []) as { name: string; cert_number: number; total_assets: number }[],
+  };
+}
+
+export type AnalyticsDistributionRow = {
+  roa: number | null;
+  roi: number | null;
+  total_assets: number | null;
+  total_deposits: number | null;
+  total_loans: number | null;
+  equity_capital: number | null;
+};
+
+/** Fetches data for GET /api/analytics/distribution. */
+export async function getAnalyticsDistributionData(): Promise<AnalyticsDistributionRow[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('institutions')
+    .select('roa, roi, total_assets, total_deposits, total_loans, equity_capital')
+    .eq('active', true)
+    .not('roa', 'is', null)
+    .not('roi', 'is', null)
+    .gte('roa', -3).lte('roa', 5)
+    .gte('roi', -30).lte('roi', 60);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as AnalyticsDistributionRow[];
+}
+
+export type AnalyticsStateMetricRow = {
+  state: string | null;
+  roa: number | null;
+  roi: number | null;
+  total_assets: number | null;
+  total_deposits: number | null;
+  equity_capital: number | null;
+  total_loans: number | null;
+};
+
+/** Fetches data for GET /api/analytics/state-metrics. */
+export async function getAnalyticsStateMetricsData(): Promise<AnalyticsStateMetricRow[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('institutions')
+    .select('state, roa, roi, total_assets, total_deposits, equity_capital, total_loans')
+    .eq('active', true)
+    .not('state', 'is', null);
+  if (error) throw error;
+  return (data ?? []) as AnalyticsStateMetricRow[];
+}
+
+export interface AnalyticsMarketMapParams {
+  charterType?: string;
+  state?: string;
+  sizeBucket?: string;
+}
+
+export type AnalyticsMarketMapRow = {
+  cert_number: number;
+  name: string | null;
+  state: string | null;
+  charter_type: string | null;
+  total_assets: number | null;
+  roa: number | null;
+  roi: number | null;
+  num_branches: number | null;
+  total_deposits: number | null;
+  net_income: number | null;
+};
+
+/** Fetches data for GET /api/analytics/market-map. */
+export async function getAnalyticsMarketMapData(params: AnalyticsMarketMapParams): Promise<AnalyticsMarketMapRow[]> {
+  const supabase = getSupabase();
+  const buckets: Record<string, [number, number | null]> = {
+    mega: [250_000_000_000, null],
+    large: [10_000_000_000, 250_000_000_000],
+    regional: [1_000_000_000, 10_000_000_000],
+    community: [100_000_000, 1_000_000_000],
+    small: [0, 100_000_000],
+  };
+
+  let query = supabase
+    .from('institutions')
+    .select('cert_number, name, state, charter_type, total_assets, roa, roi, num_branches, total_deposits, net_income')
+    .eq('active', true)
+    .not('roa', 'is', null).not('roi', 'is', null).not('total_assets', 'is', null)
+    .gt('total_assets', 0)
+    .gte('roa', -5).lte('roa', 10)
+    .gte('roi', -50).lte('roi', 80)
+    .limit(2000);
+
+  if (params.charterType) query = query.eq('charter_type', params.charterType);
+  if (params.state) query = query.eq('state', params.state);
+  if (params.sizeBucket && buckets[params.sizeBucket]) {
+    const [min, max] = buckets[params.sizeBucket];
+    query = query.gte('total_assets', min);
+    if (max !== null) query = query.lt('total_assets', max);
+  }
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as AnalyticsMarketMapRow[];
+}
+
+export type AnalyticsBenchmarkRow = {
+  roa: number | null;
+  roi: number | null;
+  total_assets: number | null;
+  total_loans: number | null;
+  total_deposits: number | null;
+  equity_capital: number | null;
+  net_income: number | null;
+};
+
+/** Fetches data for GET /api/analytics/benchmarks. */
+export async function getAnalyticsBenchmarksData(): Promise<AnalyticsBenchmarkRow[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('institutions')
+    .select('roa, roi, total_assets, total_loans, total_deposits, equity_capital, net_income')
+    .eq('active', true)
+    .eq('source', 'fdic')
+    .not('roa', 'is', null).not('roi', 'is', null)
+    .gt('total_assets', 0);
+  if (error) throw error;
+  return (data ?? []) as AnalyticsBenchmarkRow[];
+}
+
+export type AnalyticsCorrelationRow = {
+  roa: number | null;
+  roi: number | null;
+  total_assets: number | null;
+  total_deposits: number | null;
+  total_loans: number | null;
+  equity_capital: number | null;
+  net_income: number | null;
+  num_branches: number | null;
+};
+
+/** Fetches data for GET /api/analytics/correlation. */
+export async function getAnalyticsCorrelationData(): Promise<AnalyticsCorrelationRow[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('institutions')
+    .select('roa, roi, total_assets, total_deposits, total_loans, equity_capital, net_income, num_branches')
+    .eq('active', true)
+    .not('roa', 'is', null).not('roi', 'is', null)
+    .gt('total_assets', 0)
+    .limit(5000);
+  if (error) throw error;
+  return (data ?? []) as AnalyticsCorrelationRow[];
 }

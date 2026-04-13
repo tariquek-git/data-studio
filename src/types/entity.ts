@@ -1,9 +1,8 @@
-export type EntityStorageTable = 'institutions' | 'registry_entities' | 'ecosystem_entities';
+export type EntityStorageTable = 'institutions' | 'registry_entities';
 
 export type EntityProfileKind =
   | 'regulated_institution'
-  | 'registry_entity'
-  | 'ecosystem_entity';
+  | 'registry_entity';
 
 export type EntitySourceKind = 'official' | 'company' | 'curated';
 
@@ -175,4 +174,38 @@ export interface EntitySearchResponse {
   page: number;
   per_page: number;
   aggregations: EntitySearchAggregations;
+}
+
+// ---------------------------------------------------------------------------
+// Data provenance — "metadata about metadata"
+// ---------------------------------------------------------------------------
+
+/** A single provenance source entry — records who said what, when, and how confident. */
+export interface ProvenanceSource {
+  source_key: string;
+  source_url: string;
+  fetched_at: string;
+  sync_job_id?: string;
+  confidence: number;
+}
+
+/** A conflict record when two sources disagree on the same fact. */
+export interface ProvenanceConflict {
+  fact_key: string;
+  source_a: string;
+  value_a: string | number | boolean | null;
+  source_b: string;
+  value_b: string | number | boolean | null;
+}
+
+/**
+ * Structured provenance stored in registry_entities.data_provenance JSONB.
+ * Every entity tracks which sources contributed data, when it was last verified,
+ * and any unresolved conflicts between sources.
+ */
+export interface DataProvenance {
+  sources: ProvenanceSource[];
+  last_verified_at: string;
+  verified_by?: string;
+  conflicts?: ProvenanceConflict[];
 }

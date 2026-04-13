@@ -321,6 +321,13 @@ ALTER TABLE bank_capabilities ADD COLUMN IF NOT EXISTS brim_score_factors JSONB;
 ALTER TABLE bank_capabilities ADD COLUMN IF NOT EXISTS core_processor TEXT;
 ALTER TABLE bank_capabilities ADD COLUMN IF NOT EXISTS agent_bank_program TEXT;
 ALTER TABLE bank_capabilities ADD COLUMN IF NOT EXISTS card_portfolio_size BIGINT;
+ALTER TABLE bank_capabilities ADD COLUMN IF NOT EXISTS core_processor_confidence TEXT;
+ALTER TABLE bank_capabilities ADD COLUMN IF NOT EXISTS credit_card_issuer_processor TEXT;
+ALTER TABLE bank_capabilities ADD COLUMN IF NOT EXISTS debit_network TEXT;
+ALTER TABLE bank_capabilities ADD COLUMN IF NOT EXISTS opportunity_signals JSONB;
+ALTER TABLE bank_capabilities ADD COLUMN IF NOT EXISTS opportunity_score INTEGER;
+ALTER TABLE bank_capabilities ADD COLUMN IF NOT EXISTS opportunity_type TEXT;
+ALTER TABLE bank_capabilities ADD COLUMN IF NOT EXISTS opportunity_summary TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_capabilities_fed ON bank_capabilities(fed_master_account);
 CREATE INDEX IF NOT EXISTS idx_capabilities_visa ON bank_capabilities(visa_principal);
@@ -482,6 +489,23 @@ ALTER TABLE registry_entities
     CHECK (data_confidence_score IS NULL OR (data_confidence_score BETWEEN 0 AND 100));
 ALTER TABLE registry_entities
   ADD COLUMN IF NOT EXISTS data_provenance JSONB;
+
+-- Validate data_provenance structure: must have a "sources" array if set.
+-- Each source must have source_key (text) and fetched_at (text/timestamp).
+-- Lightweight constraint — full schema validation happens in application code.
+CREATE OR REPLACE FUNCTION validate_data_provenance(prov JSONB)
+RETURNS BOOLEAN LANGUAGE plpgsql IMMUTABLE AS $$
+BEGIN
+  IF prov IS NULL THEN RETURN TRUE; END IF;
+  IF prov->>'sources' IS NULL THEN RETURN FALSE; END IF;
+  IF jsonb_typeof(prov->'sources') != 'array' THEN RETURN FALSE; END IF;
+  RETURN TRUE;
+END;
+$$;
+
+ALTER TABLE registry_entities DROP CONSTRAINT IF EXISTS chk_registry_data_provenance;
+ALTER TABLE registry_entities ADD CONSTRAINT chk_registry_data_provenance
+  CHECK (validate_data_provenance(data_provenance));
 ALTER TABLE registry_entities
   ADD COLUMN IF NOT EXISTS verified_by TEXT;
 
@@ -638,6 +662,8 @@ CREATE POLICY "Service role write access on entity_tags"
   USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
 
+ALTER TABLE entity_tags ADD COLUMN IF NOT EXISTS sync_job_id UUID REFERENCES sync_jobs(id);
+
 DROP TRIGGER IF EXISTS entity_tags_updated_at ON entity_tags;
 CREATE TRIGGER entity_tags_updated_at
   BEFORE UPDATE ON entity_tags
@@ -679,6 +705,10 @@ CREATE POLICY "Service role write access on entity_facts"
   ON entity_facts FOR ALL
   USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
+
+-- Lineage: link each fact to the sync job that produced it
+ALTER TABLE entity_facts ADD COLUMN IF NOT EXISTS sync_job_id UUID REFERENCES sync_jobs(id);
+CREATE INDEX IF NOT EXISTS idx_entity_facts_sync_job ON entity_facts(sync_job_id) WHERE sync_job_id IS NOT NULL;
 
 DROP TRIGGER IF EXISTS entity_facts_updated_at ON entity_facts;
 CREATE TRIGGER entity_facts_updated_at
@@ -723,6 +753,8 @@ CREATE POLICY "Service role write access on entity_relationships"
   ON entity_relationships FOR ALL
   USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
+
+ALTER TABLE entity_relationships ADD COLUMN IF NOT EXISTS sync_job_id UUID REFERENCES sync_jobs(id);
 
 DROP TRIGGER IF EXISTS entity_relationships_updated_at ON entity_relationships;
 CREATE TRIGGER entity_relationships_updated_at
@@ -1005,6 +1037,10 @@ SELECT
   bc.credit_card_issuer_processor,
   bc.debit_network,
   bc.card_program_manager,
+  bc.opportunity_signals,
+  bc.opportunity_score,
+  bc.opportunity_type,
+  bc.opportunity_summary,
   -- Latest quarterly financials
   fhq.period       AS latest_quarter,
   fhq.total_assets AS q_total_assets,
@@ -1054,6 +1090,41 @@ CREATE INDEX institution_summary_mv_geo           ON institution_summary_mv (lat
 CREATE OR REPLACE FUNCTION refresh_institution_summary_mv()
 RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
   REFRESH MATERIALIZED VIEW CONCURRENTLY institution_summary_mv;
+$$;
+
+
+-- =============================================================================
+-- 14. PGVECTOR — SEMANTIC SIMILARITY SEARCH
+-- =============================================================================
+-- Enables cosine-distance nearest-neighbour queries over institution profiles.
+-- Embeddings are generated offline by scripts/generate-embeddings.mjs using
+-- OpenAI text-embedding-3-small (1536 dimensions) and stored here.
+
+CREATE EXTENSION IF NOT EXISTS vector;
+
+ALTER TABLE registry_entities ADD COLUMN IF NOT EXISTS embedding vector(1536);
+CREATE INDEX IF NOT EXISTS idx_registry_entities_embedding
+  ON registry_entities USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS embedding vector(1536);
+CREATE INDEX IF NOT EXISTS idx_institutions_embedding
+  ON institutions USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+-- RPC helper used by the similar-institutions API route.
+-- Returns up to match_count institutions nearest to query_embedding,
+-- excluding the institution with exclude_id.
+CREATE OR REPLACE FUNCTION find_similar_institutions(
+  query_embedding vector(1536),
+  exclude_id UUID,
+  match_count INT DEFAULT 10
+) RETURNS TABLE(id UUID, name TEXT, source TEXT, city TEXT, state TEXT, total_assets BIGINT, similarity FLOAT)
+LANGUAGE sql STABLE AS $$
+  SELECT i.id, i.name, i.source, i.city, i.state, i.total_assets,
+         1 - (i.embedding <=> query_embedding) AS similarity
+  FROM institutions i
+  WHERE i.id != exclude_id AND i.embedding IS NOT NULL
+  ORDER BY i.embedding <=> query_embedding
+  LIMIT match_count;
 $$;
 
 

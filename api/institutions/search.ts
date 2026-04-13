@@ -26,6 +26,8 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     req.query.has_credit_card_program === 'true';
   const minBrimScore = req.query.min_brim_score ? Number(req.query.min_brim_score) : null;
   const brimTier = (req.query.brim_tier as string || '').trim().toUpperCase() || null;
+  const excludeBdExclusions = req.query.exclude_bd_exclusions === 'true';
+  const migrationTargetsOnly = req.query.migration_targets_only === 'true';
   const sortBy = (req.query.sort_by as string) || 'total_assets';
   const sortDir = (req.query.sort_dir as string) === 'asc';
   const page = Math.max(1, Number(req.query.page) || 1);
@@ -65,6 +67,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   if (minRoi != null) query = query.gte('roi', minRoi);
   if (maxRoi != null) query = query.lte('roi', maxRoi);
   if (hasCreditCards) query = query.gt('credit_card_loans', 0);
+  if (excludeBdExclusions) query = query.is('bd_exclusion_reason', null);
 
   // Brim filters (applied post-query since bank_capabilities is a join)
   // minBrimScore and brimTier filtered in JS below after fetching
@@ -105,6 +108,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   // Apply brim filters in JS (bank_capabilities is a joined table, not filterable server-side easily)
   if (minBrimScore != null) pageInstitutions = pageInstitutions.filter((i: any) => (i.brim_score ?? 0) >= minBrimScore!);
   if (brimTier) pageInstitutions = pageInstitutions.filter((i: any) => i.brim_tier === brimTier);
+  if (migrationTargetsOnly) pageInstitutions = pageInstitutions.filter((i: any) => i.agent_bank_program != null && i.agent_bank_program !== '');
 
   // Compute aggregations from the returned page (lightweight — full aggs via RPC if needed)
   const totalAssetsSum = pageInstitutions.reduce((sum: number, i: any) => sum + (i.total_assets || 0), 0);

@@ -20,7 +20,6 @@ export const LEGACY_TABLES = ['institutions', 'financial_history', 'branches'] a
 
 export const WAREHOUSE_TABLES = [
   'registry_entities',
-  'ecosystem_entities',
   'entity_external_ids',
   'entity_tags',
   'entity_facts',

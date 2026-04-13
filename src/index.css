@@ -35,3 +35,55 @@
     font-family: var(--font-sans);
   }
 }
+
+/* ── Command Bar animations (CSS only, no framer-motion) ── */
+@keyframes command-bar-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes command-bar-modal-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.command-bar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  animation: command-bar-backdrop-in 150ms ease-out forwards;
+}
+
+.command-bar-modal {
+  width: 100%;
+  max-width: 42rem;
+  border-radius: 1rem;
+  background: white;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  overflow: hidden;
+  animation: command-bar-modal-in 200ms ease-out forwards;
+}
+
+.command-bar-ai-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.command-bar-ai-visible {
+  opacity: 1;
+  animation: command-bar-backdrop-in 300ms ease-out forwards;
+}
+
+/* Hide scrollbar for suggested query pills row */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

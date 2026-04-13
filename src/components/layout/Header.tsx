@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { Menu, X, Database, ExternalLink } from 'lucide-react';
+import { Menu, X, Database, Search } from 'lucide-react';
 import { useWatchlist } from '@/hooks/useWatchlist';
+import { useCommandBar } from '@/components/command-bar/CommandBarProvider';
 
 const NAV_LINKS = [
   { to: '/explore', label: 'Explore' },
@@ -18,6 +19,7 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const { watchlist } = useWatchlist();
+  const { open: openCommandBar } = useCommandBar();
   const isTerminalRoute = location.pathname.startsWith('/entities');
 
   return (
@@ -32,13 +34,6 @@ export function Header() {
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
             <Database className={`h-6 w-6 ${isTerminalRoute ? 'text-cyan-400' : 'text-primary-600'}`} />
             <span className={`text-lg font-semibold ${isTerminalRoute ? 'text-white' : 'text-surface-900'}`}>
-              Fintech Commons
-            </span>
-            <span className={`hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-              isTerminalRoute
-                ? 'bg-cyan-950/70 text-cyan-200'
-                : 'bg-primary-100 text-primary-700'
-            }`}>
               Data Studio
             </span>
           </Link>
@@ -81,20 +76,26 @@ export function Header() {
                 </span>
               )}
             </Link>
-            <a
-              href="https://fintechcommons.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`ml-2 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isTerminalRoute
-                  ? 'text-cyan-300 hover:text-cyan-200 hover:bg-slate-900'
-                  : 'text-primary-600 hover:text-primary-700 hover:bg-primary-50'
-              }`}
-            >
-              fintechcommons.com
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
           </nav>
+
+          {/* Command Bar trigger */}
+          <button
+            onClick={openCommandBar}
+            aria-label="Open search (Cmd+K)"
+            className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors border ${
+              isTerminalRoute
+                ? 'border-slate-700 text-slate-400 hover:text-white hover:bg-slate-900'
+                : 'border-surface-200 text-surface-500 hover:text-surface-700 hover:bg-surface-50'
+            }`}
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span>Search</span>
+            <kbd className={`ml-1 px-1.5 py-0.5 rounded text-xs font-mono ${
+              isTerminalRoute ? 'bg-slate-800 text-slate-400' : 'bg-surface-100 text-surface-500'
+            }`}>
+              ⌘K
+            </kbd>
+          </button>
 
           {/* Mobile menu button */}
           <button
@@ -155,19 +156,6 @@ export function Header() {
                 </span>
               )}
             </Link>
-            <a
-              href="https://fintechcommons.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium ${
-                isTerminalRoute
-                  ? 'text-cyan-300 hover:bg-slate-900'
-                  : 'text-primary-600 hover:bg-primary-50'
-              }`}
-            >
-              fintechcommons.com
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
           </nav>
         </div>
       )}

@@ -36,11 +36,6 @@ const PRESET_SCREENS = [
     description: 'FDIC, OCC, and depository institution screens with charter context.',
     params: { country: 'US', profile_kind: 'regulated_institution' },
   },
-  {
-    label: 'Embedded banking',
-    description: 'Program managers, middleware, and ecosystem entities around sponsor banks.',
-    params: { profile_kind: 'ecosystem_entity' },
-  },
 ];
 
 function topEntries(record: Record<string, number>, limit = 6) {
@@ -128,7 +123,7 @@ export function EntityFacetRail({ total, aggregations, filters, onUpdate }: Enti
             <p className="text-[10px] uppercase tracking-[0.26em] text-cyan-300/80">Signal scope</p>
             <p className="mt-2 text-3xl font-semibold text-white">{total.toLocaleString()}</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-300">
-              Context-first entity coverage across banks, registries, and ecosystem players.
+              Context-first entity coverage across banks and registries.
             </p>
           </div>
           <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-3 text-cyan-200">

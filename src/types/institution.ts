@@ -30,6 +30,13 @@ export interface Institution {
   // Credit card specific (key for sales targeting)
   credit_card_loans: number | null;
   credit_card_charge_offs: number | null;
+  // Brim intelligence fields
+  brim_score: number | null;
+  brim_tier: string | null;
+  core_processor: string | null;
+  agent_bank_program: string | null;
+  card_portfolio_size: number | null;
+  issues_credit_cards: boolean | null;
   // Metadata
   country: string | null;  // 'US' or 'CA' — null treated as 'US'
   data_as_of: string | null;

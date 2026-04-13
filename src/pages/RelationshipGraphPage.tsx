@@ -4,18 +4,22 @@ import { Link } from 'react-router';
 import { Network, RefreshCw } from 'lucide-react';
 import * as d3force from 'd3-force';
 import * as d3sel from 'd3-selection';
+import type { BaseType } from 'd3-selection';
 import * as d3zoom from 'd3-zoom';
 import * as d3drag from 'd3-drag';
 import { formatCurrency } from '@/lib/format';
 
+type EntityTable = 'institutions' | 'registry_entities' | 'ecosystem_entities';
+
 interface GraphNode {
   id: string;
-  cert_number: number;
+  entity_table: EntityTable;
+  cert_number: number | null;
   name: string;
-  city: string;
-  state: string;
-  source: string;
-  charter_type: string;
+  city: string | null;
+  state: string | null;
+  source: string | null;
+  charter_type: string | null;
   total_assets: number | null;
   roa: number | null;
   // d3 simulation adds these:
@@ -49,6 +53,9 @@ const EDGE_COLORS: Record<string, string> = {
 };
 
 function nodeColor(n: GraphNode): string {
+  if (n.entity_table === 'registry_entities') return '#10b981';
+  if (n.entity_table === 'ecosystem_entities') return '#f97316';
+  // institutions
   if (n.source === 'ncua' || n.charter_type === 'credit_union') return '#6366f1';
   if (n.source === 'osfi' || n.source === 'bcfsa') return '#0ea5e9';
   if (n.charter_type === 'savings' || n.charter_type === 'savings_association') return '#f59e0b';
@@ -64,11 +71,46 @@ function nodeRadius(assets: number | null): number {
   return 5;
 }
 
-async function fetchGraph(type: string, minAssets: number | null): Promise<GraphData> {
+/** Draw the appropriate shape for each node based on entity type. */
+function appendNodeShape<GElement extends BaseType, PElement extends BaseType>(
+  selection: d3sel.Selection<GElement, GraphNode, PElement, unknown>
+): void {
+  selection.each(function (this: BaseType, d: GraphNode) {
+    const g = d3sel.select(this);
+    const r = nodeRadius(d.total_assets);
+    const fill = nodeColor(d);
+
+    if (d.entity_table === 'registry_entities') {
+      // diamond (rotated square)
+      g.append('rect')
+        .attr('width', r * 2).attr('height', r * 2)
+        .attr('x', -r).attr('y', -r)
+        .attr('transform', 'rotate(45)')
+        .attr('fill', fill).attr('fill-opacity', 0.85)
+        .attr('stroke', '#fff').attr('stroke-width', 1.5);
+    } else if (d.entity_table === 'ecosystem_entities') {
+      // triangle (upward)
+      const tr = r + 2;
+      g.append('polygon')
+        .attr('points', `0,${-tr} ${-tr * 0.866},${tr * 0.5} ${tr * 0.866},${tr * 0.5}`)
+        .attr('fill', fill).attr('fill-opacity', 0.85)
+        .attr('stroke', '#fff').attr('stroke-width', 1.5);
+    } else {
+      // institutions → circle (default)
+      g.append('circle')
+        .attr('r', r)
+        .attr('fill', fill).attr('fill-opacity', 0.85)
+        .attr('stroke', '#fff').attr('stroke-width', 1.5);
+    }
+  });
+}
+
+async function fetchGraph(type: string, minAssets: number | null, depth: number): Promise<GraphData> {
   const params = new URLSearchParams();
   if (type) params.set('type', type);
   if (minAssets != null) params.set('min_assets', String(minAssets));
   params.set('limit', '300');
+  params.set('depth', String(depth));
   const res = await fetch(`/api/relationships/graph?${params}`);
   if (!res.ok) throw new Error('Failed to load graph');
   return res.json();
@@ -88,18 +130,31 @@ const MIN_ASSETS_OPTIONS = [
   { value: '50000000000', label: '$50B+' },
 ];
 
+const DEPTH_OPTIONS = [
+  { value: '1', label: 'Depth 1' },
+  { value: '2', label: 'Depth 2' },
+  { value: '3', label: 'Depth 3' },
+];
+
+const ENTITY_TABLE_LABELS: Record<EntityTable, string> = {
+  institutions: 'Institution',
+  registry_entities: 'Registry Entity',
+  ecosystem_entities: 'Ecosystem Entity',
+};
+
 export default function RelationshipGraphPage() {
   const svgRef = useRef<SVGSVGElement>(null);
   const [relType, setRelType] = useState('');
   const [minAssetsStr, setMinAssetsStr] = useState('1000000000');
+  const [depth, setDepth] = useState(1);
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const simRef = useRef<d3force.Simulation<GraphNode, GraphEdge> | null>(null);
 
   const minAssets = minAssetsStr ? Number(minAssetsStr) : null;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['graph', relType, minAssetsStr],
-    queryFn: () => fetchGraph(relType, minAssets),
+    queryKey: ['graph', relType, minAssetsStr, depth],
+    queryFn: () => fetchGraph(relType, minAssets, depth),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -132,7 +187,7 @@ export default function RelationshipGraphPage() {
     const simulation = d3force.forceSimulation<GraphNode>(nodes)
       .force('link', d3force.forceLink<GraphNode, GraphEdge>(edges)
         .id(d => d.id)
-        .distance(d => (d as any).type === 'subsidiary_of' ? 80 : 50)
+        .distance((d: GraphEdge) => (d.type === 'subsidiary_of' ? 80 : 50))
         .strength(0.4))
       .force('charge', d3force.forceManyBody().strength(-120))
       .force('center', d3force.forceCenter(0, 0))
@@ -145,13 +200,14 @@ export default function RelationshipGraphPage() {
       .selectAll('line')
       .data(edges)
       .join('line')
-      .attr('stroke', d => EDGE_COLORS[(d as any).type] ?? '#64748b')
+      .attr('stroke', (d: GraphEdge) => EDGE_COLORS[d.type] ?? '#64748b')
       .attr('stroke-opacity', 0.5)
-      .attr('stroke-width', d => (d as any).type === 'subsidiary_of' ? 2 : 1);
+      .attr('stroke-width', (d: GraphEdge) => (d.type === 'subsidiary_of' ? 2 : 1));
 
-    // Nodes
+    // Nodes — cast needed because D3's .join() returns Selection<Element | BaseType>
+    // but drag behavior requires Selection<Element>. This is a known D3 typing limitation.
     const nodeGroup = container.append('g')
-      .selectAll('g')
+      .selectAll<SVGGElement, GraphNode>('g')
       .data(nodes)
       .join('g')
       .attr('cursor', 'pointer')
@@ -171,15 +227,10 @@ export default function RelationshipGraphPage() {
             if (!event.active) simulation.alphaTarget(0);
             d.fx = null;
             d.fy = null;
-          }) as any
+          })
       );
 
-    nodeGroup.append('circle')
-      .attr('r', d => nodeRadius(d.total_assets))
-      .attr('fill', d => nodeColor(d))
-      .attr('fill-opacity', 0.85)
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 1.5);
+    appendNodeShape(nodeGroup);
 
     nodeGroup.append('text')
       .text(d => d.name.split(' ').slice(0, 2).join(' '))
@@ -231,6 +282,15 @@ export default function RelationshipGraphPage() {
           {MIN_ASSETS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
 
+        <select
+          value={String(depth)}
+          onChange={e => setDepth(Number(e.target.value))}
+          className="text-sm border border-surface-200 rounded-lg px-2.5 py-1.5 bg-white text-surface-700 focus:outline-none"
+          title="Traversal depth"
+        >
+          {DEPTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+
         {data && (
           <span className="text-xs text-surface-500 ml-1">
             <span className="font-semibold text-surface-800">{data.total_nodes}</span> nodes ·{' '}
@@ -247,7 +307,7 @@ export default function RelationshipGraphPage() {
         </button>
 
         {/* Legend */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
           {[
             { color: EDGE_COLORS.subsidiary_of, label: 'Subsidiary' },
             { color: EDGE_COLORS.sibling_of, label: 'Co-subsidiary' },
@@ -257,6 +317,19 @@ export default function RelationshipGraphPage() {
               <span className="text-xs text-surface-500">{label}</span>
             </div>
           ))}
+          {/* Node shape legend */}
+          <div className="flex items-center gap-1">
+            <svg width="12" height="12" viewBox="-6 -6 12 12"><circle r="5" fill="#2563eb" fillOpacity={0.85} /></svg>
+            <span className="text-xs text-surface-500">Institution</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <svg width="12" height="12" viewBox="-6 -6 12 12"><rect x="-4" y="-4" width="8" height="8" transform="rotate(45)" fill="#10b981" fillOpacity={0.85} /></svg>
+            <span className="text-xs text-surface-500">Registry</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <svg width="12" height="12" viewBox="-6 -6 12 12"><polygon points="0,-5 -4.3,2.5 4.3,2.5" fill="#f97316" fillOpacity={0.85} /></svg>
+            <span className="text-xs text-surface-500">Ecosystem</span>
+          </div>
         </div>
       </div>
 
@@ -299,17 +372,29 @@ export default function RelationshipGraphPage() {
             </div>
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between">
-                <span className="text-surface-500">Location</span>
-                <span className="font-medium">{selected.city}, {selected.state}</span>
+                <span className="text-surface-500">Type</span>
+                <span className="font-medium">{ENTITY_TABLE_LABELS[selected.entity_table]}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-surface-500">Source</span>
-                <span className="font-medium uppercase">{selected.source}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-surface-500">Charter</span>
-                <span className="font-medium">{selected.charter_type?.replace(/_/g, ' ') ?? '—'}</span>
-              </div>
+              {(selected.city || selected.state) && (
+                <div className="flex justify-between">
+                  <span className="text-surface-500">Location</span>
+                  <span className="font-medium">
+                    {[selected.city, selected.state].filter(Boolean).join(', ')}
+                  </span>
+                </div>
+              )}
+              {selected.source && (
+                <div className="flex justify-between">
+                  <span className="text-surface-500">Source</span>
+                  <span className="font-medium uppercase">{selected.source}</span>
+                </div>
+              )}
+              {selected.charter_type && (
+                <div className="flex justify-between">
+                  <span className="text-surface-500">Charter / Subtype</span>
+                  <span className="font-medium">{selected.charter_type.replace(/_/g, ' ')}</span>
+                </div>
+              )}
               {selected.total_assets != null && (
                 <div className="flex justify-between">
                   <span className="text-surface-500">Assets</span>
@@ -325,12 +410,14 @@ export default function RelationshipGraphPage() {
                 </div>
               )}
             </div>
-            <Link
-              to={`/institution/${selected.cert_number}`}
-              className="mt-4 block text-center text-xs bg-primary-600 text-white rounded-lg px-3 py-2 hover:bg-primary-700"
-            >
-              View full profile →
-            </Link>
+            {selected.entity_table === 'institutions' && selected.cert_number != null && (
+              <Link
+                to={`/institution/${selected.cert_number}`}
+                className="mt-4 block text-center text-xs bg-primary-600 text-white rounded-lg px-3 py-2 hover:bg-primary-700"
+              >
+                View full profile →
+              </Link>
+            )}
           </div>
         )}
       </div>

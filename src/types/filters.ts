@@ -35,7 +35,8 @@ export type SortField =
   | 'net_income'
   | 'credit_card_loans'
   | 'equity_capital'
-  | 'state';
+  | 'state'
+  | 'brim_score';
 
 export interface SearchResult {
   institutions: Institution[];

@@ -196,7 +196,7 @@ async function fetchSECData(institutionName: string, holdingCompanyName: string 
       const url = `https://efts.sec.gov/LATEST/search-index?q=${encoded}&forms=10-K&dateRange=custom&startdt=2023-01-01&enddt=2026-12-31`;
       const res = await fetch(url, {
         signal: AbortSignal.timeout(6000),
-        headers: { 'User-Agent': 'FintechCommons DataStudio contact@fintechcommons.com' },
+        headers: { 'User-Agent': 'DataStudio research-bot' },
       });
       if (!res.ok) continue;
 
@@ -219,7 +219,7 @@ async function fetchSECData(institutionName: string, holdingCompanyName: string 
       const paddedCik = cik.padStart(10, '0');
       const subRes = await fetch(`https://data.sec.gov/submissions/CIK${paddedCik}.json`, {
         signal: AbortSignal.timeout(5000),
-        headers: { 'User-Agent': 'FintechCommons DataStudio contact@fintechcommons.com' },
+        headers: { 'User-Agent': 'DataStudio research-bot' },
       });
 
       let ticker: string | null = null;
@@ -285,7 +285,7 @@ async function fetchWikipedia(institutionName: string): Promise<WikiData | null>
     const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encoded}`;
     const res = await fetch(url, {
       signal: AbortSignal.timeout(5000),
-      headers: { 'User-Agent': 'FintechCommons DataStudio contact@fintechcommons.com' },
+      headers: { 'User-Agent': 'DataStudio research-bot' },
     });
     if (!res.ok) return null;
 

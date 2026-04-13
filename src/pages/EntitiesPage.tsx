@@ -94,7 +94,6 @@ const PROFILE_KIND_OPTIONS: Array<{ value: 'all' | EntityProfileKind; label: str
   { value: 'all', label: 'All profiles' },
   { value: 'regulated_institution', label: 'Regulated institutions' },
   { value: 'registry_entity', label: 'Registry entities' },
-  { value: 'ecosystem_entity', label: 'Ecosystem entities' },
 ];
 
 const COUNTRY_OPTIONS: Array<{ value: CountryFilter; label: string }> = [
@@ -116,8 +115,6 @@ function profileTone(profileKind: EntityProfileKind) {
       return 'green';
     case 'registry_entity':
       return 'blue';
-    case 'ecosystem_entity':
-      return 'yellow';
   }
 }
 
@@ -552,7 +549,7 @@ export default function EntitiesPage() {
                 Search in context, not just by name.
               </h1>
               <p className="max-w-3xl text-sm leading-relaxed text-slate-300 sm:text-base">
-                Navigate banks, credit unions, PSPs, MSBs, and sponsor-bank ecosystem entities with regulatory posture, business model, source authority, and relationship context already in view.
+                Navigate banks, credit unions, PSPs, and MSBs with regulatory posture, business model, source authority, and relationship context already in view.
               </p>
             </div>
 
@@ -707,7 +704,7 @@ export default function EntitiesPage() {
             total={data?.total ?? 0}
             aggregations={data?.aggregations ?? {
               by_country: {},
-              by_profile_kind: { regulated_institution: 0, registry_entity: 0, ecosystem_entity: 0 },
+              by_profile_kind: { regulated_institution: 0, registry_entity: 0 },
               by_source_key: {},
               by_regulator: {},
               by_charter_family: {},

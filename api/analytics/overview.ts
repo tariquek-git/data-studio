@@ -1,111 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { apiHandler } from '../../lib/api-handler.js';
-import { getSupabase } from '../../lib/supabase.js';
+import { getAnalyticsOverviewData } from '../../lib/entity-service.js';
 
-export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: VercelResponse) => {
-  const supabase = getSupabase();
-
-  const safeCount = async (table: string) => {
-    const { count, error } = await supabase.from(table).select('*', { count: 'exact', head: true });
-    if (error) {
-      if (
-        error.code === '42P01' ||
-        error.code === 'PGRST205' ||
-        /relation .* does not exist/i.test(error.message ?? '') ||
-        /schema cache/i.test(error.message ?? '')
-      ) {
-        return null;
-      }
-      throw error;
-    }
-    return count ?? 0;
-  };
-
-  // Run all count queries in parallel
-  const [
-    totalRes,
-    stateDataRes,
-    charterDataRes,
-    regulatorDataRes,
-    assetDataRes,
-    sourceDataRes,
-    dataSourcesRes,
-    registryCount,
-    ecosystemCount,
-    relationshipCount,
-    charterEventCount,
-    failureEventCount,
-    macroSeriesCount,
-  ] = await Promise.all([
-    // Total active institutions
-    supabase
-      .from('institutions')
-      .select('*', { count: 'exact', head: true })
-      .eq('active', true),
-
-    // By-state data: fetch state + total_assets for all active institutions
-    supabase
-      .from('institutions')
-      .select('state, total_assets')
-      .eq('active', true)
-      .not('state', 'is', null),
-
-    // Charter type data
-    supabase
-      .from('institutions')
-      .select('charter_type')
-      .eq('active', true)
-      .not('charter_type', 'is', null),
-
-    // Regulator data
-    supabase
-      .from('institutions')
-      .select('regulator')
-      .eq('active', true)
-      .not('regulator', 'is', null),
-
-    // Asset totals — fetch total_assets for sum/avg
-    supabase
-      .from('institutions')
-      .select('total_assets')
-      .eq('active', true)
-      .not('total_assets', 'is', null),
-
-    // Source mix for all active institutions
-    supabase
-      .from('institutions')
-      .select('source, country')
-      .eq('active', true),
-
-    // Source registry summary if available
-    supabase
-      .from('data_sources')
-      .select('source_key, status, institution_count, data_as_of, last_synced_at')
-      .order('source_key', { ascending: true }),
-
-    safeCount('registry_entities'),
-    safeCount('ecosystem_entities'),
-    safeCount('entity_relationships'),
-    safeCount('charter_events'),
-    safeCount('failure_events'),
-    safeCount('macro_series'),
-  ]);
+export default apiHandler({ methods: ['GET'] }, async (_req: VercelRequest, res: VercelResponse) => {
+  const data = await getAnalyticsOverviewData();
 
   // Aggregate by state
   const byStateMap: Record<string, { count: number; total_assets: number }> = {};
   const byCountryMap: Record<string, number> = {};
-  if (stateDataRes.data) {
-    for (const row of stateDataRes.data) {
-      const st = row.state as string;
-      if (!byStateMap[st]) {
-        byStateMap[st] = { count: 0, total_assets: 0 };
-      }
-      byStateMap[st].count += 1;
-      byStateMap[st].total_assets += Number(row.total_assets) || 0;
-    }
+
+  for (const row of data.byState) {
+    const st = row.state as string;
+    if (!byStateMap[st]) byStateMap[st] = { count: 0, total_assets: 0 };
+    byStateMap[st].count += 1;
+    byStateMap[st].total_assets += Number(row.total_assets) || 0;
   }
 
-  // Sort by count descending, take top 50
   const byState = Object.entries(byStateMap)
     .sort((a, b) => b[1].count - a[1].count)
     .slice(0, 50)
@@ -113,48 +23,37 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
 
   // Aggregate by charter type
   const byCharterMap: Record<string, number> = {};
-  if (charterDataRes.data) {
-    for (const row of charterDataRes.data) {
-      const ct = row.charter_type as string;
-      byCharterMap[ct] = (byCharterMap[ct] || 0) + 1;
-    }
+  for (const row of data.byCharter) {
+    const ct = row.charter_type as string;
+    byCharterMap[ct] = (byCharterMap[ct] || 0) + 1;
   }
 
   // Aggregate by regulator
   const byRegulatorMap: Record<string, number> = {};
-  if (regulatorDataRes.data) {
-    for (const row of regulatorDataRes.data) {
-      const reg = row.regulator as string;
-      byRegulatorMap[reg] = (byRegulatorMap[reg] || 0) + 1;
-    }
+  for (const row of data.byRegulator) {
+    const reg = row.regulator as string;
+    byRegulatorMap[reg] = (byRegulatorMap[reg] || 0) + 1;
   }
 
   // Compute asset totals
   let totalAssetsSum = 0;
   let assetCount = 0;
-  if (assetDataRes.data) {
-    for (const row of assetDataRes.data) {
-      totalAssetsSum += Number(row.total_assets) || 0;
-      assetCount += 1;
-    }
+  for (const row of data.assets) {
+    totalAssetsSum += Number(row.total_assets) || 0;
+    assetCount += 1;
   }
 
+  // Source + country breakdown
   const bySourceMap: Record<string, number> = {};
-  if (sourceDataRes.data) {
-    for (const row of sourceDataRes.data) {
-      const source = row.source as string;
-      bySourceMap[source] = (bySourceMap[source] || 0) + 1;
-      const country = (row.country as string | null) ?? 'US';
-      byCountryMap[country] = (byCountryMap[country] || 0) + 1;
-    }
+  for (const row of data.bySource) {
+    const source = row.source as string;
+    bySourceMap[source] = (bySourceMap[source] || 0) + 1;
+    const country = (row.country as string | null) ?? 'US';
+    byCountryMap[country] = (byCountryMap[country] || 0) + 1;
   }
 
-  const sourceRegistrySummary = {
-    tracked: 0,
-    active: 0,
-    pending: 0,
-    unavailable: 0,
-  };
+  // Source registry summary
+  const sourceRegistrySummary = { tracked: 0, active: 0, pending: 0, unavailable: 0 };
   const sourcePosture: Array<{
     source_key: string;
     status: string;
@@ -162,25 +61,24 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     data_as_of: string | null;
     last_synced_at: string | null;
   }> = [];
-  if (dataSourcesRes.data) {
-    sourceRegistrySummary.tracked = dataSourcesRes.data.length;
-    for (const row of dataSourcesRes.data) {
-      const status = row.status as string;
-      if (status === 'active') sourceRegistrySummary.active += 1;
-      if (status === 'pending') sourceRegistrySummary.pending += 1;
-      if (status === 'unavailable') sourceRegistrySummary.unavailable += 1;
-      sourcePosture.push({
-        source_key: row.source_key as string,
-        status,
-        institution_count: 'institution_count' in row ? Number((row as { institution_count?: number | null }).institution_count ?? 0) : null,
-        data_as_of: 'data_as_of' in row ? ((row as { data_as_of?: string | null }).data_as_of ?? null) : null,
-        last_synced_at: 'last_synced_at' in row ? ((row as { last_synced_at?: string | null }).last_synced_at ?? null) : null,
-      });
-    }
+
+  sourceRegistrySummary.tracked = data.dataSources.length;
+  for (const row of data.dataSources) {
+    const status = row.status as string;
+    if (status === 'active') sourceRegistrySummary.active += 1;
+    if (status === 'pending') sourceRegistrySummary.pending += 1;
+    if (status === 'unavailable') sourceRegistrySummary.unavailable += 1;
+    sourcePosture.push({
+      source_key: row.source_key as string,
+      status,
+      institution_count: 'institution_count' in row ? Number((row as { institution_count?: number | null }).institution_count ?? 0) : null,
+      data_as_of: 'data_as_of' in row ? ((row as { data_as_of?: string | null }).data_as_of ?? null) : null,
+      last_synced_at: 'last_synced_at' in row ? ((row as { last_synced_at?: string | null }).last_synced_at ?? null) : null,
+    });
   }
 
   const overview = {
-    total_institutions: totalRes.count || 0,
+    total_institutions: data.totalActive,
     total_by_source: bySourceMap,
     total_by_country: byCountryMap,
     total_by_charter_type: byCharterMap,
@@ -191,12 +89,11 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     source_registry: sourceRegistrySummary,
     source_posture: sourcePosture,
     warehouse_summary: {
-      registry_entities: registryCount,
-      ecosystem_entities: ecosystemCount,
-      entity_relationships: relationshipCount,
-      charter_events: charterEventCount,
-      failure_events: failureEventCount,
-      macro_series: macroSeriesCount,
+      registry_entities: data.registryCount,
+      entity_relationships: data.relationshipCount,
+      charter_events: data.charterEventCount,
+      failure_events: data.failureEventCount,
+      macro_series: data.macroSeriesCount,
     },
   };
 

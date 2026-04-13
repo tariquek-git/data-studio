@@ -22,6 +22,7 @@ import { AISummary } from '@/components/institution/AISummary';
 import { AnomalyFlags } from '@/components/institution/AnomalyFlags';
 import { EnrichmentPanel } from '@/components/institution/EnrichmentPanel';
 import { RegistryProfile } from '@/components/institution/RegistryProfile';
+import { SimilarInstitutions } from '@/components/institution/SimilarInstitutions';
 import { Card, Skeleton } from '@/components/ui';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format';
 import type { Institution, FinancialHistory } from '@/types/institution';
@@ -222,6 +223,9 @@ export default function InstitutionPage() {
 
           {/* AI-powered analyst summary */}
           <AISummary certNumber={institution.cert_number} />
+
+          {/* Semantically similar institutions */}
+          <SimilarInstitutions entityId={institution.id} />
 
           {/* Operational metrics row */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
