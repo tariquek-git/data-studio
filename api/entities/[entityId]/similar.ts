@@ -4,6 +4,7 @@ import { getSupabase } from '../../../lib/supabase.js';
 
 interface SimilarInstitution {
   id: string;
+  cert_number: number | null;
   name: string;
   source: string;
   city: string | null;
@@ -14,6 +15,7 @@ interface SimilarInstitution {
 
 interface SimilarRpcRow {
   id: string;
+  cert_number: number | null;
   name: string;
   source: string;
   city: string | null;
@@ -84,6 +86,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
 
   const similar: SimilarInstitution[] = (rows as SimilarRpcRow[] ?? []).map((row) => ({
     id: row.id,
+    cert_number: row.cert_number,
     name: row.name,
     source: row.source,
     city: row.city,

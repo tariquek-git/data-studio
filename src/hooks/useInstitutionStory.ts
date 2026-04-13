@@ -11,6 +11,7 @@ export interface InstitutionStoryData {
 
 export interface SimilarInstitution {
   id: string;
+  cert_number: number | null;
   name: string;
   source: string;
   city: string | null;

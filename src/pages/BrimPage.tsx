@@ -214,7 +214,7 @@ export default function BrimPage() {
                     >
                       <div className="truncate">
                         <Link
-                          to={`/institutions/${inst.cert_number}`}
+                          to={`/institution/${inst.cert_number}`}
                           className="text-sm font-medium text-content-primary hover:text-violet-700 truncate"
                         >
                           {inst.name}

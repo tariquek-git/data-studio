@@ -1117,9 +1117,9 @@ CREATE OR REPLACE FUNCTION find_similar_institutions(
   query_embedding vector(1536),
   exclude_id UUID,
   match_count INT DEFAULT 10
-) RETURNS TABLE(id UUID, name TEXT, source TEXT, city TEXT, state TEXT, total_assets BIGINT, similarity FLOAT)
+) RETURNS TABLE(id UUID, cert_number INT, name TEXT, source TEXT, city TEXT, state TEXT, total_assets BIGINT, similarity FLOAT)
 LANGUAGE sql STABLE AS $$
-  SELECT i.id, i.name, i.source, i.city, i.state, i.total_assets,
+  SELECT i.id, i.cert_number, i.name, i.source, i.city, i.state, i.total_assets,
          1 - (i.embedding <=> query_embedding) AS similarity
   FROM institutions i
   WHERE i.id != exclude_id AND i.embedding IS NOT NULL

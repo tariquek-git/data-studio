@@ -40,6 +40,28 @@ Codex and Claude are collaborating as teammates.
   - commit messages
   - user-relayed questions and answers
 
+## Environment integrations
+- Vercel MCP is connected and usable for this repo.
+- Vercel team: `team_STzWxd5CFWZJluy9ayRxCorw`
+- Vercel project: `data-studio` (`prj_a7USMasR7BUIvyUY539OdzGRO1Gy`)
+- Latest known production deployment during this review: `dpl_GVXZixufyKHYER6crvrnMu3fS4cG`
+- Production domain includes `data-studio-mu.vercel.app`
+- No generic MCP resources/templates were exposed in this session.
+- No Supabase MCP server/resource was exposed in this session, so Supabase-aware checks may still rely on local schema/config/runtime behavior rather than a direct dashboard MCP.
+- Supabase anon-key read access is working for live verification against public PostgREST endpoints.
+- Local `.env.local` currently has `SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, but not `SUPABASE_SERVICE_ROLE_KEY`, so live DB verification should be treated as read-only unless credentials change.
+
+## Git context
+- Current branch: `main`
+- Remote: `origin` → `https://github.com/tariquek-git/data-studio.git`
+- The worktree is heavily dirty with both modified and newly added files.
+- Recent commits at time of review:
+  - `77c83b4` `Phase 2a: migrate api/qa/status + api/qa/check to entity-service`
+  - `c18a273` `Phase 1 closeout: schema drift fix, agent schema repairs, QA baseline`
+  - `bee0002` `Phase 1b: complete sync-script + agent retrofit, build passes`
+  - `b9b9a34` `Phase 1+3: institution_summary_mv, entity-service searchInstitutions, ExplorePage merge, Analytics Market Map tab`
+  - `d69b416` `Phase 1a: consolidate schema, archive SQL fragments, begin sync-script retrofit`
+
 ## Default operating flow
 1. Claude works in a coherent slice.
 2. Claude or the user updates the "Current Slice" and "Questions / Decisions" sections below.
@@ -47,6 +69,57 @@ Codex and Claude are collaborating as teammates.
 4. Codex records findings, risks, and verification status here or reports them directly to the user.
 5. Claude fixes, defers, or marks findings as intentional.
 6. Codex re-reviews after follow-up changes land.
+
+## Slice Protocol (To avoid stepping on each other)
+
+- Claude gets first-class implementation priority while it is actively coding.
+- Codex reviews only the currently declared slice unless there is a high-confidence regression risk.
+- Any additional edits should remain within the declared slice or a direct dependency to avoid context churn.
+- Claude should mark a slice as complete before requesting Codex review.
+
+### Copy/Paste for Claude
+
+```
+Please prioritize coding first; I’ll do review in locked slices.
+
+Review workflow (to avoid conflict while you’re actively coding):
+1) You own one slice at a time.
+2) Codex will only review that slice after you mark it “Slice complete”.
+3) Do not edit files outside the active slice unless it is a dependency fix.
+4) After each change batch, update CODEX_REVIEW_HANDOFF.md with:
+   - Active slice: <name>
+   - Files changed: <paths>
+   - Intent/expected behavior
+   - Risk notes / tradeoffs
+   - Status: "Ready for Codex review"
+
+Current rule of access:
+- You keep first-mover privileges on implementation.
+- Codex should stay on review only and step back until you finish the declared slice.
+
+Current highest-priority slices (in order):
+1) api/relationships/graph.ts + src/components/institution-story/StoryNetwork.tsx
+2) lib/entity-service.ts (resolveEntityRefs/getEntityById call paths)
+3) api/institutions/search.ts + api/institutions/screen.ts
+4) Similar-links & routes:
+   - src/components/institution/SimilarInstitutions.tsx
+   - src/components/institution-story/StorySimilar.tsx
+   - src/pages/BrimPage.tsx
+5) scripts sync hard-rule cleanup (upsert-only):
+   - scripts/sync-ffiec-nic.mjs
+   - scripts/sync-ffiec-cdr.mjs
+
+When a slice is complete, reply with:
+"Slice complete: <slice name>"
+"Changed: <file list>"
+"Known intentional behavior: <items>"
+```
+
+### Working Discipline for slices
+
+- Keep slices to 1–3 files where possible.
+- If a file changes while in review, pause and re-review that same slice on the latest version.
+- Use this file for state, and avoid broad review while a slice is in-flight.
 
 ## Review priorities
 Follow `CODEX.md` ordering unless the current slice makes another area more urgent:
@@ -88,6 +161,10 @@ Other files likely to matter soon:
    The similar-institutions API returns institution `id`, but both UI consumers link to `/institution/${id}` even though that route expects a cert number.
    Risk: clicking a similar institution card can navigate to a broken or incorrect institution page.
 
+4. `api/institutions/search.ts`
+   The route builds and filters `pageInstitutions` in memory, but the final response returns `institutions` instead of `pageInstitutions`.
+   Risk: Brim/migration-target filters and flattened joined fields do not actually match the response payload, and aggregations can disagree with returned rows.
+
 ### Medium
 3. `lib/entity-service.ts` — FIXED (2026-04-12)
    The fallback `.or(...)` search path interpolates raw user search text directly into PostgREST filter strings.
@@ -109,9 +186,20 @@ Other files likely to matter soon:
    The route is named generically under `/api/entities/:entityId/similar` and falls back to `registry_entities` embeddings, but the backing RPC only returns rows from `institutions`.
    Risk: registry entities can receive institution neighbors even if same-type similarity was expected, and the endpoint contract is broader than the implementation.
 
+8. `api/institutions/opportunities.ts`
+   The fallback enrichment path keeps `bank_capabilities` rows even when no active institution row is found, emitting placeholder rows with empty `id`/`name` while `total` still reflects the pre-enrichment count.
+   Risk: API consumers can receive unusable opportunity records and counts that do not match displayable results.
+
+9. `api/institutions/search.ts`
+   This route reintroduces multiple `any`-typed mappings and raw `.or(...)` query interpolation.
+   Risk: it violates the review brief’s hard rules and increases the chance of silent shape drift in a still-user-facing legacy endpoint.
+
 ## Verification Status
 - `CODEX.md` was read first and used as the review brief
 - `npm run build` passed during the latest Codex review pass
+- Vercel MCP confirmed the latest production deployment built successfully.
+- Vercel MCP also showed an earlier failed production deployment caused by unused variables in `src/components/institution/ExportButton.tsx`.
+- Live Supabase read-only checks succeeded against public PostgREST endpoints for `institution_summary_mv` and `registry_entities`.
 
 ## Questions For Claude
 1. Is `searchEntities()` supposed to support real Postgres websearch syntax, or should it behave like plain substring search?
@@ -182,14 +270,84 @@ Other files likely to matter soon:
 - `src/pages/RelationshipGraphPage.tsx`
 - `api/entities/[entityId]/similar.ts`
 
+## Active Slice
+None — between slices.
+
 ## Ready For Review
-- Add coherent slices here when they are ready for targeted review.
-- Suggested slice template:
-  - slice name
-  - files touched
-  - intended behavior changes
-  - known temporary breakage
-  - questions for Codex
+
+### End-to-End Review Queue (2026-04-13)
+
+**Current status:** broad review requested (Codex on implementation slice; Codex for review).  
+**Mode:** no implementation changes in this pass; only review and coordination updates.
+
+#### High
+1. `lib/entity-service.ts` — `resolveEntityRefs()` still calls `getEntityById(ref.id)` and ignores `ref.table` in the lookup.
+   - Impact: wrong-table resolution and missing entity hydration when identical UUIDs exist across entity tables.
+2. `api/relationships/graph.ts` — multi-hop `.or()` filter still expands only on raw `entity_id`.
+   - Impact: cross-table traversal contamination can connect unrelated nodes that share IDs.
+3. `api/institutions/search.ts` — response returns `institutions` instead of filtered `pageInstitutions`.
+   - Impact: counts and rows can disagree when brim/source filters are applied.
+
+#### Medium
+4. `api/institutions/screen.ts` — offset resets to `0` for post-filtered queries.
+   - Impact: page navigation drift (duplicate/missing rows once post-filters activate).
+5. `api/institutions/search.ts` — still uses raw PostgREST `.or(...)` interpolation and broad `any` usage.
+   - Impact: type erosion and query injection-risk behavior on legacy endpoint.
+6. `scripts/schema/000_current.sql` — `validate_data_provenance()` still accepts incomplete source entries.
+   - Impact: malformed provenance data can pass DB constraint despite contract mismatch in app/runtime.
+7. `scripts/sync-ffiec-nic.mjs` + `scripts/sync-ffiec-cdr.mjs` — `insert()` remains in paths that should be idempotent.
+   - Impact: duplicate relationship/charts on re-runs and drift in downstream QA metrics.
+
+#### Low / Follow-on
+8. `api/institutions/opportunities.ts` — fallback enrichment can emit placeholder rows with `id/name` empty while `total` reflects source counts.
+9. `api/admin/data-health.ts` + `lib/admin-data-health.ts` are present but not wired into `/audit`; front-end uses `/api/audit/overview`.
+
+### Copy/Paste for Claude
+
+```
+Please keep the slice protocol while we review:
+- You own one slice at a time and update CODEX_REVIEW_HANDOFF.md before/after each batch.
+- For each batch, set:
+  - Active slice name
+  - files changed
+  - intended behavior
+  - risk notes / intentional behavior
+  - status ("Ready for Codex review")
+
+Priority queue to pick up next:
+1) lib/entity-service.ts
+2) api/relationships/graph.ts
+3) api/institutions/search.ts and api/institutions/screen.ts
+4) scripts/schema/000_current.sql
+5) scripts/sync-ffiec-nic.mjs and scripts/sync-ffiec-cdr.mjs
+6) api/institutions/opportunities.ts
+7) admin visibility: api/admin/data-health.ts + lib/admin-data-health.ts and /audit frontend integration
+```
+
+### Slice: similar-links-and-routes (2026-04-12)
+**Status:** Ready for Codex review
+
+**Files changed:**
+- `scripts/schema/000_current.sql` — `find_similar_institutions` RPC now returns `cert_number INT` in addition to `id UUID`
+- `api/entities/[entityId]/similar.ts` — `SimilarRpcRow` and `SimilarInstitution` interfaces include `cert_number`; mapped through to response
+- `src/components/institution-story/StorySimilar.tsx` — Link targets changed from `/institution/${inst.id}` to `/institution/${inst.cert_number}` (with fallback to `/entities/${inst.id}` for non-institution entities)
+- `src/components/institution/SimilarInstitutions.tsx` — Same link fix as StorySimilar
+- `src/hooks/useInstitutionStory.ts` — `SimilarInstitution` type updated with `cert_number`
+- `src/pages/BrimPage.tsx` — Fixed route typo: `/institutions/${cert_number}` → `/institution/${cert_number}`
+
+**Intent / expected behavior:**
+- Resolves Codex review finding HIGH #3: similar institution cards now navigate to the correct institution page using `cert_number` instead of UUID `id`
+- Non-institution entities (registry_entities without cert_number) fall back to `/entities/${id}` route
+- BrimPage link typo fix ensures Brim BD table rows navigate correctly
+
+**Risk notes:**
+- RPC return type change required DROP + CREATE (applied to live DB via Supabase MCP)
+- If an institution somehow has `cert_number = null`, link falls back to entity page — safe degradation
+- No schema migration file created — the change is in `000_current.sql` (schema source of truth) and was applied directly
+
+**Known intentional behavior:**
+- Dual link strategy (`cert_number` → institution route, fallback → entity route) is intentional for cross-type similarity results
+- The RPC only queries `institutions` table so `cert_number` will always be present in practice
 
 ## Resolved
 
@@ -200,8 +358,7 @@ Other files likely to matter soon:
    unconditional loop that re-appended derived BaaS relationships when warehouse rows were absent.
 3. **[MEDIUM] Raw user text in PostgREST filter strings** — `sanitizePostgrestText()` helper added;
    applied to both `buildInstitutionQuery` and `buildRegistryQuery` fallback `.or()` calls.
-4. **[MEDIUM] Cross-table ID collision in graph traversal** — Frontier, nodeMap, and edge
-   source/target use composite `${entity_table}:${entity_id}` keys throughout.
+4. **[MEDIUM] Cross-table ID collision in graph traversal (PARTIAL)** — Node and edge keys are now composite (`${entity_table}:${entity_id}`) in several stages, but hop discovery still expands via raw `entity_id` filters only.
 5. **[MEDIUM] Unstable ordering in graph hop queries** — `.order('id')` added before `.limit()` on
    all relationship queries (first hop and each traversal hop).
 

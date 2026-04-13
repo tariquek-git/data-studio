@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/format';
 
 interface SimilarInstitution {
   id: string;
+  cert_number: number | null;
   name: string;
   source: string;
   city: string | null;
@@ -86,7 +87,7 @@ export function SimilarInstitutions({ entityId }: SimilarInstitutionsProps) {
           return (
             <li key={inst.id}>
               <Link
-                to={`/institution/${inst.id}`}
+                to={inst.cert_number ? `/institution/${inst.cert_number}` : `/entities/${inst.id}`}
                 className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 hover:bg-surface-50 transition-colors group"
               >
                 <div className="min-w-0">

@@ -47,7 +47,7 @@ export function StorySimilar({ similar, embeddingAvailable, isLoading }: StorySi
               return (
                 <Link
                   key={inst.id}
-                  to={`/institution/${inst.id}`}
+                  to={inst.cert_number ? `/institution/${inst.cert_number}` : `/entities/${inst.id}`}
                   className="snap-start flex-shrink-0 w-56 bg-white rounded-xl border border-slate-100 shadow-sm p-4 hover:border-blue-200 hover:shadow-md transition-all group"
                 >
                   <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 leading-tight mb-1 line-clamp-2">
