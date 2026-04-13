@@ -1,8 +1,28 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { Menu, X, Fish, Search } from 'lucide-react';
+import { Menu, X, Search } from 'lucide-react';
 import { useWatchlist } from '@/hooks/useWatchlist';
 import { useCommandBar } from '@/components/command-bar/CommandBarProvider';
+
+function WhaleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      {/* Spout */}
+      <path d="M12 3 C12 5, 10 5, 10 7" />
+      <path d="M14 2 C14 4, 12 5, 12 7" />
+      {/* Body */}
+      <ellipse cx="12" cy="14" rx="9" ry="6" fill="currentColor" opacity="0.15" />
+      <path d="M3 14 C3 10, 7 8, 13 8 C18 8, 21 10, 21 14 C21 18, 17 20, 12 20 C7 20, 3 18, 3 14Z" />
+      {/* Eye */}
+      <circle cx="17" cy="13" r="1" fill="currentColor" />
+      {/* Tail */}
+      <path d="M3 14 C1 11, 1 9, 3 8" />
+      <path d="M3 14 C1 17, 1 19, 3 20" />
+      {/* Mouth line */}
+      <path d="M19 15.5 C17 16, 14 16, 12 15.5" />
+    </svg>
+  );
+}
 
 const NAV_LINKS = [
   { to: '/explore', label: 'Explore' },
@@ -33,7 +53,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <Fish className={`h-6 w-6 ${isTerminalRoute ? 'text-cyan-400' : 'text-indigo-500'}`} />
+            <WhaleIcon className={`h-7 w-7 ${isTerminalRoute ? 'text-cyan-400' : 'text-indigo-500'}`} />
             <span className={`text-lg font-bold tracking-tight ${isTerminalRoute ? 'text-white' : 'text-surface-900'}`}>
               Moby-Data
             </span>

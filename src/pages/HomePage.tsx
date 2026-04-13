@@ -358,17 +358,15 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.1),transparent_50%)]" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-sm mb-6">
-            <Database className="h-4 w-4" />
-            Powered by FDIC, NCUA, OSFI, and Bank of Canada data
+            <Sparkles className="h-4 w-4" />
+            10,000+ institutions across FDIC, NCUA, OSFI &amp; Bank of Canada
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
-            Explore U.S. &amp; Canadian
-            <br className="hidden sm:block" />
-            Financial Institutions
+            Hunt the Big Catch
           </h1>
           <p className="mt-4 text-lg sm:text-xl text-primary-100 max-w-2xl mx-auto">
-            Search regulatory data from FDIC, NCUA, OSFI, and more. Analyze financials, discover
-            trends, and target opportunities.
+            Whale hunt prospects and spearfish targets across 10,000+ North American banks
+            and credit unions. Intelligence that lands the deal.
           </p>
 
           {/* Search bar */}
