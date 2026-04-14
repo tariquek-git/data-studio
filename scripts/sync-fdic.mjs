@@ -23,6 +23,10 @@ const FIELDS = [
   'EEFFR',                                // Pre-computed Efficiency Ratio
   'NPAM', 'NPLNLS', 'OREO', 'LNLSRES',   // Texas Ratio components
   'RBCT1',                                // Tier 1 capital (dollar amount)
+  'RBCT1CER',                             // Common equity tier 1 capital ratio (%)
+  'RBCT1J',                               // Tier 1 risk-based capital ratio (%)
+  'RBCRWAJ',                              // Total risk-based capital ratio (%)
+  'RBCT2',                                // Tier 2 risk-based capital ratio (%)
   'SC', 'LNRE', 'LNCI', 'LNCON', 'LNAG', 'NCLNLS',
 ].join(',');
 

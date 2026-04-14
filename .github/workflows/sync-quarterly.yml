@@ -1,0 +1,63 @@
+name: Quarterly data sync
+
+# Runs NCUA, RPAA, and OSFI sync scripts on a quarterly cadence.
+# These scripts can't run inside a Vercel serverless function (they shell out
+# to `unzip`, parse XLSX, and can take 30–60s), so we run them here instead.
+# FDIC has its own Vercel cron in vercel.json.
+#
+# Schedule: one week after the quarter ends, so upstream publications are live.
+# (NCUA posts Q4 in late January, OSFI refreshes within ~1 week of quarter end,
+# RPAA is live at all times but we batch it with the others.)
+#
+# Secrets required:
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+
+on:
+  schedule:
+    # At 09:00 UTC on the 8th of Jan / Apr / Jul / Oct
+    - cron: '0 9 8 1,4,7,10 *'
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Which source to sync (leave empty for all)
+        required: false
+        type: choice
+        options:
+          - all
+          - ncua
+          - rpaa
+          - osfi
+
+jobs:
+  sync:
+    name: Sync ${{ matrix.source }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        source: [ncua, rpaa, osfi]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Write .env.local from secrets
+        run: |
+          printf 'SUPABASE_URL=%s\n' "${{ secrets.SUPABASE_URL }}" >> .env.local
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env.local
+
+      - name: Skip unselected sources on manual dispatch
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.source != 'all' && github.event.inputs.source != matrix.source
+        run: |
+          echo "Skipping ${{ matrix.source }} (dispatch selected ${{ github.event.inputs.source }})"
+          echo "SKIP=1" >> $GITHUB_ENV
+
+      - name: Run sync-${{ matrix.source }}.mjs
+        if: env.SKIP != '1'
+        run: node scripts/sync-${{ matrix.source }}.mjs

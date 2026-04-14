@@ -25,6 +25,11 @@ const FIELDS = [
   'LNAG',     // Agricultural loans
   // Charge-offs
   'NCLNLS',   // Net charge-offs
+  // Regulatory capital ratios (for signal.regulatory_capital_stress)
+  'RBCT1CER', // Common equity tier 1 capital ratio (%)
+  'RBCT1J',   // Tier 1 risk-based capital ratio (%)
+  'RBCRWAJ',  // Total risk-based capital ratio (%)
+  'RBCT2',    // Tier 2 risk-based capital ratio (%)
 ].join(',');
 
 export default apiHandler({ methods: ['POST'] }, async (req: VercelRequest, res: VercelResponse) => {
