@@ -7,9 +7,9 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Branding */}
           <div>
-            <p className="text-sm font-bold text-surface-200">Moby</p>
+            <p className="text-sm font-bold text-surface-200">Nexus</p>
             <p className="text-xs mt-1 italic text-surface-600">
-              "Thar she blows!" — Hunt whales. Spearfish prospects. Land the big catch.
+              Where institutions connect. Mapping the financial universe, one node at a time.
             </p>
           </div>
 
@@ -41,7 +41,7 @@ export function Footer() {
 
         <div className="mt-8 pt-6 border-t border-surface-700/50">
           <p className="text-xs text-center text-surface-600">
-            &copy; {new Date().getFullYear()} Moby. All rights reserved.
+            &copy; {new Date().getFullYear()} Nexus. All rights reserved.
           </p>
         </div>
       </div>

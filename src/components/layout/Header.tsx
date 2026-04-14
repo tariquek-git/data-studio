@@ -4,64 +4,47 @@ import { Menu, X, Search, Bookmark, ChevronDown, Network, BarChart3, Compass, Da
 import { useWatchlist } from '@/hooks/useWatchlist';
 import { useCommandBar } from '@/components/command-bar/CommandBarProvider';
 
-function WhaleIcon({ className }: { className?: string }) {
+function NexusIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="whaleBody" x1="2" y1="10" x2="30" y2="26" gradientUnits="userSpaceOnUse">
+        <linearGradient id="nexusGrad" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#818cf8" />
+          <stop offset="50%" stopColor="#6366f1" />
           <stop offset="100%" stopColor="#4f46e5" />
         </linearGradient>
-        <linearGradient id="whaleBelly" x1="6" y1="18" x2="22" y2="26" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#a5b4fc" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#6366f1" stopOpacity="0.1" />
-        </linearGradient>
-        <linearGradient id="whaleFin" x1="18" y1="8" x2="26" y2="16" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#6366f1" />
-          <stop offset="100%" stopColor="#3730a3" />
-        </linearGradient>
-        <linearGradient id="whaleTail" x1="2" y1="12" x2="8" y2="24" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#6366f1" />
-          <stop offset="100%" stopColor="#3730a3" />
-        </linearGradient>
+        <radialGradient id="nexusGlow" cx="16" cy="16" r="12" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#818cf8" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+        </radialGradient>
       </defs>
-      {/* Tail flukes — forked, swept back */}
-      <path
-        d="M5 10 C3 7, 1 6, 2 9 L5 15 C5 15, 4 18, 2 20 C1 23, 3 23, 5 20 L7 16"
-        fill="url(#whaleTail)"
-      />
-      {/* Main body — sleek torpedo silhouette */}
-      <path
-        d="M7 15 C7 11, 11 8, 17 8 C22 8, 28 10, 29 14 C30 17, 27 21, 22 22 C18 23, 13 22, 10 20 C8 19, 7 17, 7 15 Z"
-        fill="url(#whaleBody)"
-      />
-      {/* Belly highlight */}
-      <path
-        d="M10 20 C12 22, 17 23, 21 21 C24 20, 26 18, 26 16 C25 19, 22 21, 18 21 C14 22, 11 21, 10 20 Z"
-        fill="url(#whaleBelly)"
-      />
-      {/* Dorsal fin — sharp, geometric */}
-      <path
-        d="M19 8 C20 5, 23 4, 25 6 C26 7, 25 9, 24 10 C22 10, 20 9, 19 8 Z"
-        fill="url(#whaleFin)"
-      />
-      {/* Pectoral fin — swept */}
-      <path
-        d="M14 17 C13 20, 11 22, 10 22 C10 21, 11 19, 13 17 Z"
-        fill="#4338ca"
-        opacity="0.7"
-      />
-      {/* Eye — bright specular dot */}
-      <circle cx="24" cy="13" r="1.2" fill="#e0e7ff" opacity="0.9" />
-      <circle cx="24.4" cy="12.6" r="0.4" fill="white" />
-      {/* Mouth line — confident, slight upward curve */}
-      <path
-        d="M27 15.5 C26 16, 24 16.5, 22 16"
-        stroke="#c7d2fe"
-        strokeWidth="0.7"
-        strokeLinecap="round"
-        opacity="0.6"
-      />
+      {/* Central glow */}
+      <circle cx="16" cy="16" r="12" fill="url(#nexusGlow)" />
+      {/* Connection lines — the mesh */}
+      <g stroke="url(#nexusGrad)" strokeWidth="1.2" strokeLinecap="round" opacity="0.65">
+        <line x1="16" y1="16" x2="6" y2="6" />
+        <line x1="16" y1="16" x2="26" y2="6" />
+        <line x1="16" y1="16" x2="4" y2="16" />
+        <line x1="16" y1="16" x2="28" y2="16" />
+        <line x1="16" y1="16" x2="6" y2="26" />
+        <line x1="16" y1="16" x2="26" y2="26" />
+        <line x1="6" y1="6" x2="26" y2="6" />
+        <line x1="26" y1="6" x2="28" y2="16" />
+        <line x1="28" y1="16" x2="26" y2="26" />
+        <line x1="26" y1="26" x2="6" y2="26" />
+        <line x1="6" y1="26" x2="4" y2="16" />
+        <line x1="4" y1="16" x2="6" y2="6" />
+      </g>
+      {/* Outer nodes — the constellation */}
+      <circle cx="6" cy="6" r="2" fill="#a5b4fc" />
+      <circle cx="26" cy="6" r="2" fill="#818cf8" />
+      <circle cx="28" cy="16" r="2.2" fill="#6366f1" />
+      <circle cx="26" cy="26" r="2" fill="#4f46e5" />
+      <circle cx="6" cy="26" r="2" fill="#818cf8" />
+      <circle cx="4" cy="16" r="2.2" fill="#a5b4fc" />
+      {/* Center node — the nexus */}
+      <circle cx="16" cy="16" r="3.5" fill="url(#nexusGrad)" />
+      <circle cx="16" cy="16" r="1.4" fill="#e0e7ff" />
     </svg>
   );
 }
@@ -111,9 +94,9 @@ export function Header() {
         <div className="flex items-center h-14 gap-1">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0 mr-6 hover:scale-105 transition-all duration-200">
-            <WhaleIcon className="h-7 w-7" />
+            <NexusIcon className="h-7 w-7" />
             <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-primary-300 to-primary-500 bg-clip-text text-transparent">
-              Moby
+              Nexus
             </span>
           </Link>
 

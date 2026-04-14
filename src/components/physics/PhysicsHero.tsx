@@ -324,15 +324,15 @@ export function PhysicsHero() {
       <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
         <div className="text-center pointer-events-auto max-w-2xl w-full px-6">
           <p className="text-xs uppercase tracking-[0.3em] text-surface-400 mb-4 font-medium">
-            Financial Intelligence Platform
+            The Financial Universe, Mapped
           </p>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-surface-100 mb-3 tracking-tight leading-tight">
-            Explore{' '}
+            Where{' '}
             <span className="gradient-text">10,000+</span>
-            {' '}Institutions
+            {' '}Institutions Connect
           </h1>
           <p className="text-base text-surface-400 mb-10 max-w-lg mx-auto leading-relaxed">
-            Banks, credit unions, and regulated entities across the U.S. and Canada
+            Explore the mesh of banks, credit unions, and regulators across North America
           </p>
 
           {/* Search bar */}

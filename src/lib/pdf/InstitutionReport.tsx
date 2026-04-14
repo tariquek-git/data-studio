@@ -383,7 +383,7 @@ function Footer({ institution }: { institution: Institution }) {
   return (
     <View style={s.footer} fixed>
       <Text style={s.footerText}>
-        Moby-Data · FDIC Cert #{institution.cert_number} · Generated{' '}
+        Nexus · FDIC Cert #{institution.cert_number} · Generated{' '}
         {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
       </Text>
       <Text style={s.footerText}>
@@ -706,9 +706,9 @@ export function InstitutionReport({ institution, history }: InstitutionReportPro
   return (
     <Document
       title={`${institution.name} — Institution Profile`}
-      author="Moby-Data"
+      author="Nexus"
       subject={`FDIC Institution Report — Cert #${institution.cert_number}`}
-      creator="Moby-Data"
+      creator="Nexus"
       producer="@react-pdf/renderer"
     >
       <Page1 institution={institution} />
