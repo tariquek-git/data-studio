@@ -260,16 +260,16 @@ export default function RelationshipGraphPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
       {/* Top bar */}
-      <div className="bg-white border-b border-surface-200 px-4 py-3 flex items-center gap-4 shrink-0 flex-wrap">
+      <div className="bg-white border-b border-surface-700 px-4 py-3 flex items-center gap-4 shrink-0 flex-wrap">
         <div className="flex items-center gap-2">
           <Network className="h-5 w-5 text-primary-600" />
-          <h1 className="text-base font-semibold text-surface-900">Relationship Graph</h1>
+          <h1 className="text-base font-semibold text-surface-100">Relationship Graph</h1>
         </div>
 
         <select
           value={relType}
           onChange={e => setRelType(e.target.value)}
-          className="text-sm border border-surface-200 rounded-lg px-2.5 py-1.5 bg-white text-surface-700 focus:outline-none"
+          className="text-sm border border-surface-700 rounded-lg px-2.5 py-1.5 bg-white text-surface-300 focus:outline-none"
         >
           {REL_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
@@ -277,7 +277,7 @@ export default function RelationshipGraphPage() {
         <select
           value={minAssetsStr}
           onChange={e => setMinAssetsStr(e.target.value)}
-          className="text-sm border border-surface-200 rounded-lg px-2.5 py-1.5 bg-white text-surface-700 focus:outline-none"
+          className="text-sm border border-surface-700 rounded-lg px-2.5 py-1.5 bg-white text-surface-300 focus:outline-none"
         >
           {MIN_ASSETS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
@@ -285,7 +285,7 @@ export default function RelationshipGraphPage() {
         <select
           value={String(depth)}
           onChange={e => setDepth(Number(e.target.value))}
-          className="text-sm border border-surface-200 rounded-lg px-2.5 py-1.5 bg-white text-surface-700 focus:outline-none"
+          className="text-sm border border-surface-700 rounded-lg px-2.5 py-1.5 bg-white text-surface-300 focus:outline-none"
           title="Traversal depth"
         >
           {DEPTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -293,14 +293,14 @@ export default function RelationshipGraphPage() {
 
         {data && (
           <span className="text-xs text-surface-500 ml-1">
-            <span className="font-semibold text-surface-800">{data.total_nodes}</span> nodes ·{' '}
-            <span className="font-semibold text-surface-800">{data.total_edges}</span> edges
+            <span className="font-semibold text-surface-200">{data.total_nodes}</span> nodes ·{' '}
+            <span className="font-semibold text-surface-200">{data.total_edges}</span> edges
           </span>
         )}
 
         <button
           onClick={() => { simRef.current?.alpha(0.5).restart(); }}
-          className="ml-auto p-1.5 rounded-lg border border-surface-200 text-surface-500 hover:bg-surface-50"
+          className="ml-auto p-1.5 rounded-lg border border-surface-700 text-surface-500 hover:bg-surface-900"
           title="Reheat simulation"
         >
           <RefreshCw className="h-3.5 w-3.5" />
@@ -335,7 +335,7 @@ export default function RelationshipGraphPage() {
 
       {/* Graph + sidebar */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 relative bg-surface-50">
+        <div className="flex-1 relative bg-surface-900">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-sm text-surface-500">Loading graph...</div>
@@ -348,26 +348,26 @@ export default function RelationshipGraphPage() {
           )}
           {!isLoading && data?.nodes.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-              <Network className="h-10 w-10 text-surface-300" />
+              <Network className="h-10 w-10 text-surface-600" />
               <p className="text-surface-500 text-sm">No relationships match these filters.</p>
             </div>
           )}
           <svg ref={svgRef} className="w-full h-full" />
 
           {/* Zoom hint */}
-          <div className="absolute bottom-3 left-3 text-xs text-surface-400 bg-white/80 rounded px-2 py-1">
+          <div className="absolute bottom-3 left-3 text-xs text-surface-500 bg-white/80 rounded px-2 py-1">
             Scroll to zoom · drag to pan · click node for details
           </div>
         </div>
 
         {/* Node detail panel */}
         {selected && (
-          <div className="w-64 border-l border-surface-200 bg-white p-4 shrink-0 overflow-y-auto">
+          <div className="w-64 border-l border-surface-700 bg-white p-4 shrink-0 overflow-y-auto">
             <div className="flex items-start justify-between mb-3">
-              <h3 className="text-sm font-semibold text-surface-900 leading-tight">{selected.name}</h3>
+              <h3 className="text-sm font-semibold text-surface-100 leading-tight">{selected.name}</h3>
               <button
                 onClick={() => setSelected(null)}
-                className="text-surface-400 hover:text-surface-600 text-lg leading-none ml-2"
+                className="text-surface-500 hover:text-surface-400 text-lg leading-none ml-2"
               >×</button>
             </div>
             <div className="space-y-1.5 text-xs">

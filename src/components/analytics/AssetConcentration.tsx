@@ -66,7 +66,7 @@ export function AssetConcentration({ data }: AssetConcentrationProps) {
           { label: 'Top 10 banks control', value: formatPercent(data.top10_pct, 1), sub: 'of total assets' },
           { label: 'Top 25 banks control', value: formatPercent(data.top25_pct, 1), sub: 'of total assets' },
         ].map(s => (
-          <div key={s.label} className="bg-surface-50 border border-surface-200 rounded-xl p-3 text-center">
+          <div key={s.label} className="bg-surface-900 border border-surface-700 rounded-xl p-3 text-center">
             <p className="text-2xl font-bold text-primary-700">{s.value}</p>
             <p className="text-xs text-surface-500 mt-0.5">{s.label}</p>
             <p className="text-xs text-surface-400">{s.sub}</p>
@@ -75,10 +75,10 @@ export function AssetConcentration({ data }: AssetConcentrationProps) {
       </div>
 
       {/* Ranked table */}
-      <div className="overflow-hidden rounded-xl border border-surface-200">
+      <div className="overflow-hidden rounded-xl border border-surface-700">
         <table className="min-w-full">
           <thead>
-            <tr className="bg-surface-50 border-b border-surface-200">
+            <tr className="bg-surface-900 border-b border-surface-700">
               <th className="px-4 py-2.5 text-left text-xs font-medium text-surface-500 uppercase">#</th>
               <th className="px-4 py-2.5 text-left text-xs font-medium text-surface-500 uppercase">Institution</th>
               <th className="px-4 py-2.5 text-right text-xs font-medium text-surface-500 uppercase">Total Assets</th>
@@ -86,9 +86,9 @@ export function AssetConcentration({ data }: AssetConcentrationProps) {
               <th className="px-4 py-2.5 text-right text-xs font-medium text-surface-500 uppercase hidden sm:table-cell">Cumulative</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-surface-100">
+          <tbody className="divide-y divide-surface-800">
             {data.top_institutions.map((inst, i) => (
-              <tr key={inst.cert_number} className="hover:bg-surface-50 transition-colors">
+              <tr key={inst.cert_number} className="hover:bg-surface-900 transition-colors">
                 <td className="px-4 py-2.5">
                   <div
                     className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold"
@@ -105,12 +105,12 @@ export function AssetConcentration({ data }: AssetConcentrationProps) {
                     {inst.name}
                   </Link>
                 </td>
-                <td className="px-4 py-2.5 text-right text-sm font-mono text-surface-900">
+                <td className="px-4 py-2.5 text-right text-sm font-mono text-surface-100">
                   {formatCurrency(inst.total_assets)}
                 </td>
                 <td className="px-4 py-2.5 text-right text-sm font-mono">
                   <span className="font-semibold text-primary-700">{formatPercent(inst.pct_of_total, 1)}</span>
-                  <div className="mt-0.5 h-1 bg-surface-100 rounded-full w-full">
+                  <div className="mt-0.5 h-1 bg-surface-800 rounded-full w-full">
                     <div
                       className="h-1 rounded-full"
                       style={{ width: `${Math.min(100, inst.pct_of_total * 5)}%`, backgroundColor: ROW_COLORS[i] }}

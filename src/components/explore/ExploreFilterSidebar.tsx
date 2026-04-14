@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, X, Target } from 'lucide-react';
+import { ChevronDown, ChevronRight, X, Target, Zap } from 'lucide-react';
 import { Input } from '@/components/ui';
-import { useExploreStore } from '@/stores/exploreStore';
+import { useExploreStore, type ExploreFilters } from '@/stores/exploreStore';
 import { US_STATES, CA_PROVINCES } from '@/types/filters';
 
 const SOURCES = [
@@ -22,6 +22,36 @@ const CHARTER_TYPES = [
 ] as const;
 
 const BRIM_TIERS = ['A', 'B', 'C', 'D', 'F'] as const;
+
+const CRA_RATINGS = [
+  { value: 1, label: 'Outstanding' },
+  { value: 2, label: 'Satisfactory' },
+  { value: 3, label: 'Needs to Improve' },
+  { value: 4, label: 'Substantial Non-Compliance' },
+] as const;
+
+const PRESET_SCREENS: { label: string; filters: Partial<ExploreFilters> }[] = [
+  {
+    label: 'Community Bank Partners',
+    filters: { assetMin: 100000, assetMax: 10000000, sources: ['fdic'], charterTypes: ['commercial'], hasCreditCards: false },
+  },
+  {
+    label: 'CC Issuer Targets',
+    filters: { hasCreditCards: true, assetMin: 500000 },
+  },
+  {
+    label: 'Canadian PSPs',
+    filters: { sources: ['rpaa'], country: 'CA' },
+  },
+  {
+    label: 'Top Performers',
+    filters: { roaMin: 1.5, assetMin: 1000000 },
+  },
+  {
+    label: 'Growth Banks',
+    filters: { assetMin: 500000, assetMax: 50000000, roaMin: 0.8 },
+  },
+];
 
 const CORE_PROCESSORS = ['Fiserv', 'Jack Henry', 'FIS', 'NCR', 'Other'] as const;
 const AGENT_PROGRAMS = ['ELAN', 'PSCU', 'ICBA', 'TCM', 'None', 'Other'] as const;
@@ -145,6 +175,13 @@ export function ExploreFilterSidebar() {
     store.setFilter('agentPrograms', next);
   }
 
+  function toggleCraRating(value: number) {
+    const next = store.craRating.includes(value)
+      ? store.craRating.filter((r) => r !== value)
+      : [...store.craRating, value];
+    store.setFilter('craRating', next);
+  }
+
   const activeFilterCount =
     store.sources.length +
     store.states.length +
@@ -155,6 +192,12 @@ export function ExploreFilterSidebar() {
     (store.depositMax != null ? 1 : 0) +
     (store.roaMin != null ? 1 : 0) +
     (store.roaMax != null ? 1 : 0) +
+    (store.roeMin != null ? 1 : 0) +
+    (store.roeMax != null ? 1 : 0) +
+    (store.equityRatioMin != null ? 1 : 0) +
+    (store.ldrMin != null ? 1 : 0) +
+    (store.ldrMax != null ? 1 : 0) +
+    store.craRating.length +
     (store.hasCreditCards ? 1 : 0) +
     (store.brimTier != null ? 1 : 0) +
     (store.country != null ? 1 : 0) +
@@ -206,6 +249,29 @@ export function ExploreFilterSidebar() {
 
       {/* Filters */}
       <div className="flex-1 overflow-y-auto px-4 space-y-0">
+        {/* Preset Screens */}
+        {!brimMode && (
+          <div className="pb-3 border-b border-surface-700/30">
+            <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider py-2">Quick Screens</p>
+            <div className="flex flex-wrap gap-1.5">
+              {PRESET_SCREENS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => {
+                    store.clearFilters();
+                    store.setFilters(preset.filters);
+                  }}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border border-surface-700 text-surface-400 hover:border-cyan-300 hover:text-cyan-600 transition-colors"
+                >
+                  <Zap className="h-3 w-3" />
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Brim Intelligence prospect filters — only shown in Brim Mode */}
         {brimMode && (
           <div className="mb-2 border border-violet-200 rounded-lg bg-violet-50/50 px-3 py-2.5 space-y-3">
@@ -423,6 +489,89 @@ export function ExploreFilterSidebar() {
               className="text-xs !py-1.5"
             />
           </div>
+        </FilterSection>
+
+        <FilterSection
+          title="ROE (%)"
+          badge={(store.roeMin != null ? 1 : 0) + (store.roeMax != null ? 1 : 0)}
+        >
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="Min"
+              value={store.roeMin ?? ''}
+              onChange={(e) =>
+                store.setFilter('roeMin', e.target.value ? Number(e.target.value) : null)
+              }
+              className="text-xs !py-1.5"
+            />
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="Max"
+              value={store.roeMax ?? ''}
+              onChange={(e) =>
+                store.setFilter('roeMax', e.target.value ? Number(e.target.value) : null)
+              }
+              className="text-xs !py-1.5"
+            />
+          </div>
+        </FilterSection>
+
+        <FilterSection
+          title="Equity / Assets (%)"
+          badge={store.equityRatioMin != null ? 1 : 0}
+        >
+          <Input
+            type="number"
+            step="0.1"
+            placeholder="Min %"
+            value={store.equityRatioMin ?? ''}
+            onChange={(e) =>
+              store.setFilter('equityRatioMin', e.target.value ? Number(e.target.value) : null)
+            }
+            className="text-xs !py-1.5"
+          />
+        </FilterSection>
+
+        <FilterSection
+          title="Loan-to-Deposit (%)"
+          badge={(store.ldrMin != null ? 1 : 0) + (store.ldrMax != null ? 1 : 0)}
+        >
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="number"
+              step="0.1"
+              placeholder="Min %"
+              value={store.ldrMin ?? ''}
+              onChange={(e) =>
+                store.setFilter('ldrMin', e.target.value ? Number(e.target.value) : null)
+              }
+              className="text-xs !py-1.5"
+            />
+            <Input
+              type="number"
+              step="0.1"
+              placeholder="Max %"
+              value={store.ldrMax ?? ''}
+              onChange={(e) =>
+                store.setFilter('ldrMax', e.target.value ? Number(e.target.value) : null)
+              }
+              className="text-xs !py-1.5"
+            />
+          </div>
+        </FilterSection>
+
+        <FilterSection title="CRA Rating" badge={store.craRating.length}>
+          {CRA_RATINGS.map((cra) => (
+            <CheckItem
+              key={cra.value}
+              label={cra.label}
+              checked={store.craRating.includes(cra.value)}
+              onChange={() => toggleCraRating(cra.value)}
+            />
+          ))}
         </FilterSection>
 
         <FilterSection title="Card Capabilities" badge={(store.hasCreditCards ? 1 : 0) + (store.brimTier != null ? 1 : 0)}>

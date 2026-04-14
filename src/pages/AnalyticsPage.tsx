@@ -679,8 +679,8 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <div className="mb-4">
-                <p className="text-[11px] uppercase tracking-[0.22em] text-surface-400">Entity mix</p>
-                <h3 className="mt-1 text-base font-semibold text-surface-900">Charter Type Breakdown</h3>
+                <p className="text-[11px] uppercase tracking-[0.22em] text-surface-500">Entity mix</p>
+                <h3 className="mt-1 text-base font-semibold text-surface-100">Charter Type Breakdown</h3>
               </div>
               <div className="space-y-3">
                 {Object.entries(overview.total_by_charter_type)
@@ -691,10 +691,10 @@ export default function AnalyticsPage() {
                     return (
                       <div key={type}>
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="font-medium text-surface-700 capitalize">{type.replace(/_/g, ' ')}</span>
+                          <span className="font-medium text-surface-300 capitalize">{type.replace(/_/g, ' ')}</span>
                           <span className="text-surface-500">{formatNumber(count)} ({formatPercent(pct, 0)})</span>
                         </div>
-                        <div className="h-2.5 bg-surface-100 rounded-full overflow-hidden">
+                        <div className="h-2.5 bg-surface-800 rounded-full overflow-hidden">
                           <div
                             className="h-2.5 rounded-full transition-all"
                             style={{ width: `${pct}%`, backgroundColor: CHARTER_COLORS[type] || '#64748b' }}
@@ -708,8 +708,8 @@ export default function AnalyticsPage() {
 
             <Card>
               <div className="mb-4">
-                <p className="text-[11px] uppercase tracking-[0.22em] text-surface-400">Regulatory context</p>
-                <h3 className="mt-1 text-base font-semibold text-surface-900">Primary Regulator</h3>
+                <p className="text-[11px] uppercase tracking-[0.22em] text-surface-500">Regulatory context</p>
+                <h3 className="mt-1 text-base font-semibold text-surface-100">Primary Regulator</h3>
               </div>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart
@@ -742,8 +742,8 @@ export default function AnalyticsPage() {
 
           <Card>
             <div className="mb-4">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-surface-400">Geographic footprint</p>
-              <h3 className="mt-1 text-base font-semibold text-surface-900">Institutions by State</h3>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-surface-500">Geographic footprint</p>
+              <h3 className="mt-1 text-base font-semibold text-surface-100">Institutions by State</h3>
             </div>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
@@ -764,10 +764,10 @@ export default function AnalyticsPage() {
 
           <Card>
             <div className="mb-1">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-surface-400">Asset geography</p>
-              <h3 className="text-base font-semibold text-surface-900">Total Assets by State (Top 20)</h3>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-surface-500">Asset geography</p>
+              <h3 className="text-base font-semibold text-surface-100">Total Assets by State (Top 20)</h3>
             </div>
-            <p className="text-xs text-surface-400 mb-4">New York and North Carolina dominate due to mega-bank headquarters</p>
+            <p className="text-xs text-surface-500 mb-4">New York and North Carolina dominate due to mega-bank headquarters</p>
             <ResponsiveContainer width="100%" height={260}>
               <AreaChart
                 data={[...overview.by_state]
@@ -822,7 +822,7 @@ export default function AnalyticsPage() {
             <>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
-                  <h3 className="text-base font-semibold text-surface-900 mb-4">Return on Assets (ROA) Distribution</h3>
+                  <h3 className="text-base font-semibold text-surface-100 mb-4">Return on Assets (ROA) Distribution</h3>
                   <DistributionChart
                     data={distData.roa.histogram}
                     mean={distData.roa.mean}
@@ -832,22 +832,22 @@ export default function AnalyticsPage() {
                     label="ROA"
                     color="#2563eb"
                   />
-                  <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-surface-100">
+                  <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-surface-800">
                     {[
                       { label: 'Underperformers (<0.5%)', pct: distData.roa.histogram.filter((b: any) => b.max <= 0.5).reduce((s: number, b: any) => s + b.count, 0) },
                       { label: 'Average (0.5–1.5%)', pct: distData.roa.histogram.filter((b: any) => b.min >= 0.5 && b.max <= 1.5).reduce((s: number, b: any) => s + b.count, 0) },
                       { label: 'Top performers (>1.5%)', pct: distData.roa.histogram.filter((b: any) => b.min >= 1.5).reduce((s: number, b: any) => s + b.count, 0) },
                     ].map(b => (
                       <div key={b.label} className="text-center">
-                        <p className="text-lg font-bold text-surface-900">{formatNumber(b.pct)}</p>
-                        <p className="text-xs text-surface-400 mt-0.5">{b.label}</p>
+                        <p className="text-lg font-bold text-surface-100">{formatNumber(b.pct)}</p>
+                        <p className="text-xs text-surface-500 mt-0.5">{b.label}</p>
                       </div>
                     ))}
                   </div>
                 </Card>
 
                 <Card>
-                  <h3 className="text-base font-semibold text-surface-900 mb-4">Return on Equity (ROE) Distribution</h3>
+                  <h3 className="text-base font-semibold text-surface-100 mb-4">Return on Equity (ROE) Distribution</h3>
                   <DistributionChart
                     data={distData.roi.histogram}
                     mean={distData.roi.mean}
@@ -857,15 +857,15 @@ export default function AnalyticsPage() {
                     label="ROE"
                     color="#7c3aed"
                   />
-                  <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-surface-100">
+                  <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-surface-800">
                     {[
                       { label: 'Negative ROE', pct: distData.roi.histogram.filter((b: any) => b.max <= 0).reduce((s: number, b: any) => s + b.count, 0) },
                       { label: 'Mid (0–15%)', pct: distData.roi.histogram.filter((b: any) => b.min >= 0 && b.max <= 15).reduce((s: number, b: any) => s + b.count, 0) },
                       { label: 'Strong (>15%)', pct: distData.roi.histogram.filter((b: any) => b.min >= 15).reduce((s: number, b: any) => s + b.count, 0) },
                     ].map(b => (
                       <div key={b.label} className="text-center">
-                        <p className="text-lg font-bold text-surface-900">{formatNumber(b.pct)}</p>
-                        <p className="text-xs text-surface-400 mt-0.5">{b.label}</p>
+                        <p className="text-lg font-bold text-surface-100">{formatNumber(b.pct)}</p>
+                        <p className="text-xs text-surface-500 mt-0.5">{b.label}</p>
                       </div>
                     ))}
                   </div>
@@ -873,8 +873,8 @@ export default function AnalyticsPage() {
               </div>
 
               <Card>
-                <h3 className="text-base font-semibold text-surface-900 mb-1">Loan-to-Deposit Ratio Distribution</h3>
-                <p className="text-xs text-surface-400 mb-4">
+                <h3 className="text-base font-semibold text-surface-100 mb-1">Loan-to-Deposit Ratio Distribution</h3>
+                <p className="text-xs text-surface-500 mb-4">
                   Measures how much of a bank's deposits are deployed as loans. Too high (&gt;90%) = liquidity risk; too low = inefficient use of funds.
                 </p>
                 <DistributionChart
@@ -908,7 +908,7 @@ export default function AnalyticsPage() {
             <Skeleton className="h-96 w-full" />
           ) : lbData?.concentration ? (
             <Card>
-              <h3 className="text-base font-semibold text-surface-900 mb-6">U.S. Banking Asset Concentration</h3>
+              <h3 className="text-base font-semibold text-surface-100 mb-6">U.S. Banking Asset Concentration</h3>
               <AssetConcentration data={lbData.concentration} />
             </Card>
           ) : null}
@@ -924,7 +924,7 @@ export default function AnalyticsPage() {
             </p>
           </div>
           <Card>
-            <h3 className="text-base font-semibold text-surface-900 mb-4">Institution Rankings</h3>
+            <h3 className="text-base font-semibold text-surface-100 mb-4">Institution Rankings</h3>
             <Leaderboard />
           </Card>
         </div>
@@ -945,8 +945,8 @@ export default function AnalyticsPage() {
           ) : corrData ? (
             <>
               <Card>
-                <h3 className="text-base font-semibold text-surface-900 mb-1">Metric Correlation Matrix</h3>
-                <p className="text-xs text-surface-400 mb-5">
+                <h3 className="text-base font-semibold text-surface-100 mb-1">Metric Correlation Matrix</h3>
+                <p className="text-xs text-surface-500 mb-5">
                   Based on {formatNumber(corrData.count)} institutions with complete data
                 </p>
                 <CorrelationHeatmap
@@ -996,9 +996,9 @@ export default function AnalyticsPage() {
             <Skeleton className="h-[600px] w-full" />
           ) : stateData ? (
             <Card padding={false} className="overflow-hidden">
-              <div className="px-5 pt-5 pb-3 border-b border-surface-100">
-                <h3 className="text-base font-semibold text-surface-900">State × Metric Heatmap</h3>
-                <p className="text-xs text-surface-400 mt-0.5">
+              <div className="px-5 pt-5 pb-3 border-b border-surface-800">
+                <h3 className="text-base font-semibold text-surface-100">State × Metric Heatmap</h3>
+                <p className="text-xs text-surface-500 mt-0.5">
                   Rows sorted by avg ROA (highest first). Hover a cell for its percentile rank.
                 </p>
               </div>
@@ -1018,7 +1018,7 @@ export default function AnalyticsPage() {
             <select
               value={mmSizeBucket}
               onChange={e => setMmSizeBucket(e.target.value)}
-              className="text-sm border border-surface-300 rounded-lg px-3 py-2 bg-white text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="text-sm border border-surface-600 rounded-lg px-3 py-2 bg-white text-surface-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               {MM_SIZE_BUCKETS.map(b => (
                 <option key={b.value} value={b.value}>{b.label}</option>
@@ -1027,7 +1027,7 @@ export default function AnalyticsPage() {
             <select
               value={mmCharterType}
               onChange={e => setMmCharterType(e.target.value)}
-              className="text-sm border border-surface-300 rounded-lg px-3 py-2 bg-white text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="text-sm border border-surface-600 rounded-lg px-3 py-2 bg-white text-surface-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               {MM_CHARTER_TYPES.map(c => (
                 <option key={c.value} value={c.value}>{c.label}</option>
@@ -1041,9 +1041,9 @@ export default function AnalyticsPage() {
                   { label: 'Median ROE', value: formatPercent(mmData.stats.median_roi) },
                   { label: 'Institutions', value: formatNumber(mmData.count) },
                 ].map(s => (
-                  <div key={s.label} className="flex items-center gap-2 bg-surface-50 border border-surface-200 rounded-full px-3 py-1">
+                  <div key={s.label} className="flex items-center gap-2 bg-surface-900 border border-surface-700 rounded-full px-3 py-1">
                     <span className="text-xs text-surface-500">{s.label}</span>
-                    <span className="text-sm font-semibold text-surface-900">{s.value}</span>
+                    <span className="text-sm font-semibold text-surface-100">{s.value}</span>
                   </div>
                 ))}
               </div>

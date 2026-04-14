@@ -82,7 +82,7 @@ export function CMHCSnapshot({ showForCanadian = true }: CMHCSnapshotProps) {
       {/* Section header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-surface-900">Canadian Market Context</h2>
+          <h2 className="text-base font-semibold text-surface-100">Canadian Market Context</h2>
           <p className="text-xs text-surface-500 mt-0.5">
             CMHC housing metrics relevant to Canadian institutions&apos; mortgage books
           </p>
@@ -98,13 +98,13 @@ export function CMHCSnapshot({ showForCanadian = true }: CMHCSnapshotProps) {
       {isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-24 bg-surface-100 rounded-xl animate-pulse" />
+            <div key={i} className="h-24 bg-surface-800 rounded-xl animate-pulse" />
           ))}
         </div>
       )}
 
       {isError && (
-        <div className="bg-surface-50 border border-surface-200 rounded-xl p-4 flex items-center gap-2 text-sm text-surface-500">
+        <div className="bg-surface-900 border border-surface-700 rounded-xl p-4 flex items-center gap-2 text-sm text-surface-500">
           <Info className="w-4 h-4 shrink-0" />
           CMHC data unavailable. Check back later.
         </div>
@@ -125,7 +125,7 @@ export function CMHCSnapshot({ showForCanadian = true }: CMHCSnapshotProps) {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs text-surface-500 leading-tight">{m.label}</p>
-                      <p className="text-xl font-bold text-surface-900 mt-0.5">{m.value}</p>
+                      <p className="text-xl font-bold text-surface-100 mt-0.5">{m.value}</p>
                       <p className="text-xs text-surface-400 mt-0.5 leading-tight">
                         {m.description}
                       </p>

@@ -125,7 +125,7 @@ function categoryColor(category: DataSourceCategory) {
 
 function SkeletonRow() {
   return (
-    <tr className="border-b border-surface-100">
+    <tr className="border-b border-surface-800">
       {[1, 2, 3, 4, 5, 6, 7].map((i) => (
         <td key={i} className="px-4 py-3">
           <Skeleton className="h-4 w-full" />
@@ -166,9 +166,9 @@ export default function DataSourcesPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-surface-900">Data Sources</h1>
+        <h1 className="text-2xl font-bold text-surface-100">Data Sources</h1>
         <p className="mt-1 text-sm text-surface-500">
-          Moby-Data tracks official North American regulatory, registry, market, filings, and
+          Moby tracks official North American regulatory, registry, market, filings, and
           infrastructure sources here, with live ingestion status where available.
         </p>
       </div>
@@ -180,7 +180,7 @@ export default function DataSourcesPage() {
           <div className="text-sm text-primary-800 space-y-1">
             <p className="font-medium">Data provenance and audit philosophy</p>
             <p>
-              Moby-Data is built on official public authorities first: FDIC, NCUA, FFIEC, OCC,
+              Moby is built on official public authorities first: FDIC, NCUA, FFIEC, OCC,
               the Federal Reserve, OSFI, the Bank of Canada, CIRO, FINTRAC, FinCEN, CMHC, the SEC,
               CFPB, and related public registries. Each profile and dataset maps back to a stable{' '}
               <code className="bg-primary-100 px-1 rounded text-xs">source_key</code>, so the
@@ -200,8 +200,8 @@ export default function DataSourcesPage() {
           <div className="flex items-center gap-3">
             <Database className="h-5 w-5 text-primary-600" />
             <div>
-              <p className="text-xs uppercase tracking-wide text-surface-400">Tracked Sources</p>
-              <p className="text-xl font-semibold text-surface-900">{data?.total ?? 0}</p>
+              <p className="text-xs uppercase tracking-wide text-surface-500">Tracked Sources</p>
+              <p className="text-xl font-semibold text-surface-100">{data?.total ?? 0}</p>
             </div>
           </div>
         </Card>
@@ -209,8 +209,8 @@ export default function DataSourcesPage() {
           <div className="flex items-center gap-3">
             <CheckCircle2 className="h-5 w-5 text-green-600" />
             <div>
-              <p className="text-xs uppercase tracking-wide text-surface-400">Loaded</p>
-              <p className="text-xl font-semibold text-surface-900">{data?.summary.loaded ?? 0}</p>
+              <p className="text-xs uppercase tracking-wide text-surface-500">Loaded</p>
+              <p className="text-xl font-semibold text-surface-100">{data?.summary.loaded ?? 0}</p>
             </div>
           </div>
         </Card>
@@ -218,8 +218,8 @@ export default function DataSourcesPage() {
           <div className="flex items-center gap-3">
             <Clock className="h-5 w-5 text-yellow-600" />
             <div>
-              <p className="text-xs uppercase tracking-wide text-surface-400">Pending</p>
-              <p className="text-xl font-semibold text-surface-900">{data?.summary.pending ?? 0}</p>
+              <p className="text-xs uppercase tracking-wide text-surface-500">Pending</p>
+              <p className="text-xl font-semibold text-surface-100">{data?.summary.pending ?? 0}</p>
             </div>
           </div>
         </Card>
@@ -227,8 +227,8 @@ export default function DataSourcesPage() {
           <div className="flex items-center gap-3">
             <RefreshCw className="h-5 w-5 text-blue-600" />
             <div>
-              <p className="text-xs uppercase tracking-wide text-surface-400">Active</p>
-              <p className="text-xl font-semibold text-surface-900">{data?.summary.active ?? 0}</p>
+              <p className="text-xs uppercase tracking-wide text-surface-500">Active</p>
+              <p className="text-xl font-semibold text-surface-100">{data?.summary.active ?? 0}</p>
             </div>
           </div>
         </Card>
@@ -236,7 +236,7 @@ export default function DataSourcesPage() {
 
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-500" />
           <Input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
@@ -268,7 +268,7 @@ export default function DataSourcesPage() {
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 countryFilter === c
                   ? 'bg-primary-600 text-white'
-                  : 'bg-white border border-surface-300 text-surface-600 hover:bg-surface-50'
+                  : 'bg-white border border-surface-600 text-surface-400 hover:bg-surface-900'
               }`}
             >
               {label}
@@ -291,15 +291,15 @@ export default function DataSourcesPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-surface-200 bg-surface-50">
-                <th className="px-4 py-3 text-left font-semibold text-surface-700">Source</th>
-                <th className="px-4 py-3 text-left font-semibold text-surface-700">Country</th>
-                <th className="px-4 py-3 text-left font-semibold text-surface-700">Coverage</th>
-                <th className="px-4 py-3 text-left font-semibold text-surface-700">Category</th>
-                <th className="px-4 py-3 text-left font-semibold text-surface-700">Frequency</th>
-                <th className="px-4 py-3 text-left font-semibold text-surface-700">Last Synced</th>
-                <th className="px-4 py-3 text-left font-semibold text-surface-700">Status</th>
-                <th className="px-4 py-3 text-left font-semibold text-surface-700">Link</th>
+              <tr className="border-b border-surface-700 bg-surface-900">
+                <th className="px-4 py-3 text-left font-semibold text-surface-300">Source</th>
+                <th className="px-4 py-3 text-left font-semibold text-surface-300">Country</th>
+                <th className="px-4 py-3 text-left font-semibold text-surface-300">Coverage</th>
+                <th className="px-4 py-3 text-left font-semibold text-surface-300">Category</th>
+                <th className="px-4 py-3 text-left font-semibold text-surface-300">Frequency</th>
+                <th className="px-4 py-3 text-left font-semibold text-surface-300">Last Synced</th>
+                <th className="px-4 py-3 text-left font-semibold text-surface-300">Status</th>
+                <th className="px-4 py-3 text-left font-semibold text-surface-300">Link</th>
               </tr>
             </thead>
             <tbody>
@@ -308,18 +308,18 @@ export default function DataSourcesPage() {
                 : sources.map((src) => (
                     <tr
                       key={src.source_key}
-                      className="border-b border-surface-100 hover:bg-surface-50 transition-colors"
+                      className="border-b border-surface-800 hover:bg-surface-900 transition-colors"
                     >
                       {/* Source name + description */}
                       <td className="px-4 py-3">
-                        <div className="font-medium text-surface-900">{src.display_name}</div>
+                        <div className="font-medium text-surface-100">{src.display_name}</div>
                         {src.description && (
                           <div className="text-xs text-surface-500 mt-0.5 max-w-xs leading-snug">
                             {src.description}
                           </div>
                         )}
                         {src.notes && (
-                          <div className="text-xs text-surface-400 mt-0.5 italic">{src.notes}</div>
+                          <div className="text-xs text-surface-500 mt-0.5 italic">{src.notes}</div>
                         )}
                       </td>
 
@@ -329,12 +329,12 @@ export default function DataSourcesPage() {
                           <span className="text-base leading-none">
                             {COUNTRY_FLAGS[src.country] ?? src.country}
                           </span>
-                          <span className="text-surface-600">{src.country}</span>
+                          <span className="text-surface-400">{src.country}</span>
                         </span>
                       </td>
 
                       {/* Coverage */}
-                      <td className="px-4 py-3 text-surface-700">
+                      <td className="px-4 py-3 text-surface-300">
                         <div className="font-medium tabular-nums">{src.coverage_label}</div>
                         {src.record_count != null && src.record_count > 0 && (
                           <div className="text-xs text-surface-500">
@@ -366,15 +366,15 @@ export default function DataSourcesPage() {
                             {FREQ_LABELS[src.update_frequency] ?? src.update_frequency}
                           </Badge>
                         ) : (
-                          <span className="text-surface-400">—</span>
+                          <span className="text-surface-500">—</span>
                         )}
                       </td>
 
                       {/* Last synced */}
-                      <td className="px-4 py-3 whitespace-nowrap text-surface-600">
+                      <td className="px-4 py-3 whitespace-nowrap text-surface-400">
                         <span className="inline-flex items-center gap-1">
                           {src.last_synced_at && (
-                            <RefreshCw className="h-3 w-3 text-surface-400" />
+                            <RefreshCw className="h-3 w-3 text-surface-500" />
                           )}
                           {formatSyncDate(src.last_synced_at)}
                         </span>
@@ -398,7 +398,7 @@ export default function DataSourcesPage() {
                             <ExternalLink className="h-3.5 w-3.5" />
                           </a>
                         ) : (
-                          <span className="text-surface-400">—</span>
+                          <span className="text-surface-500">—</span>
                         )}
                       </td>
                     </tr>
@@ -406,7 +406,7 @@ export default function DataSourcesPage() {
 
               {!isLoading && !error && sources.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-surface-400 text-sm">
+                  <td colSpan={8} className="px-4 py-10 text-center text-surface-500 text-sm">
                     No data sources found for the current search and filters.
                   </td>
                 </tr>
@@ -417,10 +417,10 @@ export default function DataSourcesPage() {
       </Card>
 
       {/* Footer note */}
-      <p className="text-xs text-surface-400 text-center">
+      <p className="text-xs text-surface-500 text-center">
         Source registry data is served by{' '}
-        <code className="bg-surface-100 px-1 rounded">/api/sources</code> and backed by the{' '}
-        <code className="bg-surface-100 px-1 rounded">data_sources</code> table plus live sync
+        <code className="bg-surface-800 px-1 rounded">/api/sources</code> and backed by the{' '}
+        <code className="bg-surface-800 px-1 rounded">data_sources</code> table plus live sync
         metadata from the warehouse.
       </p>
     </div>

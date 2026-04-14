@@ -57,8 +57,8 @@ export function BalanceSheetFlow({ data }: BalanceSheetFlowProps) {
   const loanToDeposit = totalDeposits > 0 ? (((data.total_loans ?? 0) / totalDeposits) * 100).toFixed(1) : '—';
 
   return (
-    <div className="bg-white rounded-xl border border-surface-200 p-6">
-      <h3 className="text-base font-semibold text-surface-900 mb-6 flex items-center gap-2">
+    <div className="bg-white rounded-xl border border-surface-700 p-6">
+      <h3 className="text-base font-semibold text-surface-100 mb-6 flex items-center gap-2">
         <Scale className="w-5 h-5 text-primary-600" />
         Balance Sheet
       </h3>
@@ -66,7 +66,7 @@ export function BalanceSheetFlow({ data }: BalanceSheetFlowProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Assets Side */}
         <div>
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-surface-200">
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-surface-700">
             <span className="text-sm font-semibold text-primary-700 flex items-center gap-1.5">
               <Landmark className="w-4 h-4" /> Assets
             </span>
@@ -94,7 +94,7 @@ export function BalanceSheetFlow({ data }: BalanceSheetFlowProps) {
 
         {/* Liabilities + Equity Side */}
         <div>
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-surface-200">
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-surface-700">
             <span className="text-sm font-semibold text-amber-700 flex items-center gap-1.5">
               <Wallet className="w-4 h-4" /> Liabilities & Equity
             </span>
@@ -121,7 +121,7 @@ export function BalanceSheetFlow({ data }: BalanceSheetFlowProps) {
       </div>
 
       {/* Key Ratios */}
-      <div className="mt-6 pt-4 border-t border-surface-200 grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="mt-6 pt-4 border-t border-surface-700 grid grid-cols-2 sm:grid-cols-4 gap-3">
         <RatioCard icon={<ShieldCheck className="w-4 h-4" />} label="Equity/Assets" value={`${leverageRatio}%`} />
         <RatioCard icon={<Landmark className="w-4 h-4" />} label="Loan/Deposit" value={`${loanToDeposit}%`} />
         <RatioCard icon={<Wallet className="w-4 h-4" />} label="Deposits" value={formatCurrency(totalDeposits)} />
@@ -135,15 +135,15 @@ function StackedItem({ label, value, total, color }: { label: string; value: num
   const pct = total > 0 ? (value / total) * 100 : 0;
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-surface-600 w-32 shrink-0 truncate">{label}</span>
-      <div className="flex-1 bg-surface-100 rounded-full h-4 overflow-hidden">
+      <span className="text-xs text-surface-400 w-32 shrink-0 truncate">{label}</span>
+      <div className="flex-1 bg-surface-800 rounded-full h-4 overflow-hidden">
         <div
           className={`${color} h-full rounded-full opacity-80`}
           style={{ width: `${Math.max(pct, 1)}%` }}
         />
       </div>
       <span className="text-xs text-surface-500 w-12 text-right shrink-0">{pct.toFixed(0)}%</span>
-      <span className="text-xs font-medium text-surface-700 w-16 text-right shrink-0">
+      <span className="text-xs font-medium text-surface-300 w-16 text-right shrink-0">
         {formatCurrency(value)}
       </span>
     </div>
@@ -152,9 +152,9 @@ function StackedItem({ label, value, total, color }: { label: string; value: num
 
 function RatioCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-surface-50 rounded-lg p-3 text-center">
+    <div className="bg-surface-900 rounded-lg p-3 text-center">
       <div className="flex items-center justify-center gap-1 text-surface-500 mb-1">{icon}<span className="text-xs">{label}</span></div>
-      <p className="text-sm font-bold text-surface-800">{value}</p>
+      <p className="text-sm font-bold text-surface-200">{value}</p>
     </div>
   );
 }

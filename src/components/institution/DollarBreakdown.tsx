@@ -180,10 +180,10 @@ export function DollarBreakdown({ data }: DollarBreakdownProps) {
 
   if (!treeData) {
     return (
-      <div className="rounded-xl border border-surface-200 bg-white p-6">
+      <div className="rounded-xl border border-surface-700 bg-white p-6">
         <div className="mb-4 flex items-center gap-2">
           <PieChart className="h-5 w-5 text-primary-600" />
-          <h3 className="text-lg font-semibold text-surface-900">For Every $1 of Assets</h3>
+          <h3 className="text-lg font-semibold text-surface-100">For Every $1 of Assets</h3>
         </div>
         <div className="flex h-48 items-center justify-center text-surface-500">
           Data not available
@@ -193,10 +193,10 @@ export function DollarBreakdown({ data }: DollarBreakdownProps) {
   }
 
   return (
-    <div className="rounded-xl border border-surface-200 bg-white p-6">
+    <div className="rounded-xl border border-surface-700 bg-white p-6">
       <div className="mb-4 flex items-center gap-2">
         <PieChart className="h-5 w-5 text-primary-600" />
-        <h3 className="text-lg font-semibold text-surface-900">For Every $1 of Assets</h3>
+        <h3 className="text-lg font-semibold text-surface-100">For Every $1 of Assets</h3>
       </div>
 
       {/* Legend */}
@@ -207,7 +207,7 @@ export function DollarBreakdown({ data }: DollarBreakdownProps) {
               className="inline-block h-2.5 w-2.5 rounded-sm"
               style={{ backgroundColor: item.color }}
             />
-            <span className="text-xs text-surface-600">
+            <span className="text-xs text-surface-400">
               {item.name} ({item.dollars})
             </span>
           </div>
@@ -228,7 +228,7 @@ export function DollarBreakdown({ data }: DollarBreakdownProps) {
       </div>
 
       {/* Summary row */}
-      <div className="mt-3 flex items-center justify-between border-t border-surface-100 pt-3">
+      <div className="mt-3 flex items-center justify-between border-t border-surface-800 pt-3">
         <span className="text-xs text-surface-500">
           Total Assets: {formatCurrency(data.total_assets ?? 0)}
         </span>

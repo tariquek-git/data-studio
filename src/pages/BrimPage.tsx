@@ -28,8 +28,8 @@ const TIER_COLORS: Record<string, { bg: string; text: string; border: string }> 
   A: { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
   B: { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200' },
   C: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-  D: { bg: 'bg-surface-50', text: 'text-content-secondary', border: 'border-surface-200' },
-  F: { bg: 'bg-surface-50', text: 'text-content-tertiary', border: 'border-surface-100' },
+  D: { bg: 'bg-surface-900', text: 'text-surface-400', border: 'border-surface-700' },
+  F: { bg: 'bg-surface-900', text: 'text-surface-500', border: 'border-surface-800' },
 };
 
 async function fetchBrimTargets(tier: string, minScore: number): Promise<BrimInstitution[]> {
@@ -63,18 +63,27 @@ export default function BrimPage() {
     overscan: 10,
   });
 
-  const tierCounts = { A: 15, B: 412, C: 3159, D: 4465, F: 648 };
+  const { data: tierData } = useQuery({
+    queryKey: ['brim-tier-counts'],
+    queryFn: async () => {
+      const res = await fetch('/api/analytics/brim-tiers');
+      if (!res.ok) throw new Error('Failed to fetch tier counts');
+      return res.json() as Promise<{ counts: Record<string, number>; total: number }>;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const tierCounts = tierData?.counts ?? { A: 0, B: 0, C: 0, D: 0, F: 0 };
 
   return (
-    <div className="min-h-screen bg-surface-50">
+    <div className="min-h-screen bg-surface-900">
       {/* Header */}
-      <div className="bg-white border-b border-surface-200 px-6 py-5">
+      <div className="bg-white border-b border-surface-700 px-6 py-5">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3 mb-1">
             <Target className="w-6 h-6 text-violet-600" />
-            <h1 className="text-xl font-semibold text-content-primary">Brim BD Intelligence</h1>
+            <h1 className="text-xl font-semibold text-surface-100">Brim BD Intelligence</h1>
           </div>
-          <p className="text-sm text-content-secondary">
+          <p className="text-sm text-surface-400">
             {institutions.length.toLocaleString()} institutions scored for Brim card program fit.
             Tier A = highest fit. Excludes existing Brim clients.
           </p>
@@ -96,7 +105,7 @@ export default function BrimPage() {
                     ? colors
                       ? `${colors.bg} ${colors.text} ${colors.border}`
                       : 'bg-violet-600 text-white border-violet-600'
-                    : 'bg-white text-content-secondary border-surface-200 hover:border-surface-300'
+                    : 'bg-white text-surface-400 border-surface-700 hover:border-surface-600'
                 }`}
               >
                 {tier === 'ALL' ? 'All tiers' : `Tier ${tier}`}
@@ -109,7 +118,7 @@ export default function BrimPage() {
             );
           })}
           <div className="flex items-center gap-2 ml-auto">
-            <label className="text-xs text-content-secondary">Min score</label>
+            <label className="text-xs text-surface-400">Min score</label>
             <input
               type="range"
               min={0}
@@ -119,7 +128,7 @@ export default function BrimPage() {
               onChange={(e) => setMinScore(Number(e.target.value))}
               className="w-24"
             />
-            <span className="text-xs font-mono text-content-primary w-6">{minScore}</span>
+            <span className="text-xs font-mono text-surface-100 w-6">{minScore}</span>
           </div>
         </div>
 
@@ -155,20 +164,20 @@ export default function BrimPage() {
               icon: TrendingUp,
             },
           ].map(({ label, value, icon: Icon }) => (
-            <div key={label} className="bg-white border border-surface-200 rounded-lg p-3">
+            <div key={label} className="bg-white border border-surface-700 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-0.5">
-                <Icon className="w-3.5 h-3.5 text-content-tertiary" />
-                <span className="text-xs text-content-secondary">{label}</span>
+                <Icon className="w-3.5 h-3.5 text-surface-500" />
+                <span className="text-xs text-surface-400">{label}</span>
               </div>
-              <div className="text-lg font-semibold text-content-primary">{value}</div>
+              <div className="text-lg font-semibold text-surface-100">{value}</div>
             </div>
           ))}
         </div>
 
         {/* Virtual scroll table */}
-        <div className="bg-white border border-surface-200 rounded-lg overflow-hidden">
+        <div className="bg-white border border-surface-700 rounded-lg overflow-hidden">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_60px_140px_110px_100px_80px_80px_100px] gap-0 border-b border-surface-200 bg-surface-50 px-4 py-2 text-xs font-medium text-content-secondary uppercase tracking-wide">
+          <div className="grid grid-cols-[1fr_60px_140px_110px_100px_80px_80px_100px] gap-0 border-b border-surface-700 bg-surface-900 px-4 py-2 text-xs font-medium text-surface-400 uppercase tracking-wide">
             <div>Institution</div>
             <div className="text-right">State</div>
             <div className="text-right">Assets</div>
@@ -180,11 +189,11 @@ export default function BrimPage() {
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center h-48 text-content-secondary text-sm">
+            <div className="flex items-center justify-center h-48 text-surface-400 text-sm">
               Loading…
             </div>
           ) : institutions.length === 0 ? (
-            <div className="flex items-center justify-center h-48 text-content-secondary text-sm">
+            <div className="flex items-center justify-center h-48 text-surface-400 text-sm">
               No institutions match these filters.
             </div>
           ) : (
@@ -210,22 +219,22 @@ export default function BrimPage() {
                         height: `${virtualRow.size}px`,
                         transform: `translateY(${virtualRow.start}px)`,
                       }}
-                      className="grid grid-cols-[1fr_60px_140px_110px_100px_80px_80px_100px] gap-0 px-4 items-center border-b border-surface-100 hover:bg-surface-50 transition-colors"
+                      className="grid grid-cols-[1fr_60px_140px_110px_100px_80px_80px_100px] gap-0 px-4 items-center border-b border-surface-800 hover:bg-surface-900 transition-colors"
                     >
                       <div className="truncate">
                         <Link
                           to={`/institution/${inst.cert_number}`}
-                          className="text-sm font-medium text-content-primary hover:text-violet-700 truncate"
+                          className="text-sm font-medium text-surface-100 hover:text-violet-700 truncate"
                         >
                           {inst.name}
                         </Link>
-                        <div className="text-xs text-content-tertiary">{inst.city}</div>
+                        <div className="text-xs text-surface-500">{inst.city}</div>
                       </div>
-                      <div className="text-right text-xs text-content-secondary font-mono">{inst.state}</div>
-                      <div className="text-right text-sm font-mono text-content-primary">
+                      <div className="text-right text-xs text-surface-400 font-mono">{inst.state}</div>
+                      <div className="text-right text-sm font-mono text-surface-100">
                         {inst.total_assets ? formatCurrency(inst.total_assets) : '—'}
                       </div>
-                      <div className="text-right text-sm font-mono text-content-secondary">
+                      <div className="text-right text-sm font-mono text-surface-400">
                         {(inst.card_portfolio_size ?? inst.credit_card_loans)
                           ? formatCurrency(inst.card_portfolio_size ?? inst.credit_card_loans ?? 0)
                           : '—'}
@@ -237,7 +246,7 @@ export default function BrimPage() {
                       >
                         {inst.roa != null ? formatPercent(inst.roa) : '—'}
                       </div>
-                      <div className="text-center text-sm font-bold text-content-primary">
+                      <div className="text-center text-sm font-bold text-surface-100">
                         {inst.brim_score ?? '—'}
                       </div>
                       <div className="flex justify-center">
@@ -247,7 +256,7 @@ export default function BrimPage() {
                           {tier}
                         </span>
                       </div>
-                      <div className="text-xs text-content-secondary truncate">
+                      <div className="text-xs text-surface-400 truncate">
                         {inst.core_processor ?? inst.agent_bank_program ?? '—'}
                       </div>
                     </div>

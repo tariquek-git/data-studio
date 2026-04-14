@@ -185,7 +185,7 @@ export default function InstitutionPage() {
 
       {/* Tabs — only shown for deposit-taking institutions with financial data */}
       {!isRegistryOnly && (
-        <div className="border-b border-surface-200">
+        <div className="border-b border-surface-700">
           <nav className="flex gap-1 -mb-px">
             {TABS.map((tab) => (
               <button
@@ -194,7 +194,7 @@ export default function InstitutionPage() {
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab.id
                     ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300'
+                    : 'border-transparent text-surface-500 hover:text-surface-300 hover:border-surface-600'
                 }`}
               >
                 {tab.icon}
@@ -236,9 +236,9 @@ export default function InstitutionPage() {
                 </div>
                 <div>
                   <p className="text-xs text-surface-500">Branches</p>
-                  <p className="text-lg font-bold text-surface-900">{formatNumber(institution.num_branches)}</p>
-                  <p className="text-xs text-surface-400">{institution.state ?? 'Multiple locations'}</p>
-                  <p className="text-xs text-surface-400 mt-0.5">
+                  <p className="text-lg font-bold text-surface-100">{formatNumber(institution.num_branches)}</p>
+                  <p className="text-xs text-surface-500">{institution.state ?? 'Multiple locations'}</p>
+                  <p className="text-xs text-surface-500 mt-0.5">
                     Branch locations via FDIC SOD{' '}
                     <a
                       href={`https://banks.data.fdic.gov/api/branches?filters=CERT:${institution.cert_number}&limit=100`}
@@ -260,8 +260,8 @@ export default function InstitutionPage() {
                 </div>
                 <div>
                   <p className="text-xs text-surface-500">Employees</p>
-                  <p className="text-lg font-bold text-surface-900">{formatNumber(institution.num_employees)}</p>
-                  <p className="text-xs text-surface-400">Full-time equivalent</p>
+                  <p className="text-lg font-bold text-surface-100">{formatNumber(institution.num_employees)}</p>
+                  <p className="text-xs text-surface-500">Full-time equivalent</p>
                 </div>
               </Card>
             )}
@@ -272,8 +272,8 @@ export default function InstitutionPage() {
                 </div>
                 <div>
                   <p className="text-xs text-surface-500">CC Receivables</p>
-                  <p className="text-lg font-bold text-surface-900">{formatCurrency(institution.credit_card_loans)}</p>
-                  <p className="text-xs text-surface-400">Active CC program</p>
+                  <p className="text-lg font-bold text-surface-100">{formatCurrency(institution.credit_card_loans)}</p>
+                  <p className="text-xs text-surface-500">Active CC program</p>
                 </div>
               </Card>
             )}
@@ -286,19 +286,19 @@ export default function InstitutionPage() {
                   <p className="text-xs text-surface-500">Loan / Deposit</p>
                   <p className={`text-lg font-bold ${
                     institution.total_deposits && (institution.total_loans / institution.total_deposits) > 0.9
-                      ? 'text-amber-600' : 'text-surface-900'
+                      ? 'text-amber-600' : 'text-surface-100'
                   }`}>
                     {institution.total_deposits
                       ? formatPercent((institution.total_loans / institution.total_deposits) * 100, 0)
                       : '—'}
                   </p>
-                  <p className="text-xs text-surface-400">Optimal: 70–85%</p>
+                  <p className="text-xs text-surface-500">Optimal: 70–85%</p>
                 </div>
               </Card>
             )}
             {institution.website && (
               <Card className="flex items-center gap-3">
-                <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-surface-50 shrink-0">
+                <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-surface-900 shrink-0">
                   <Globe className="h-5 w-5 text-surface-500" />
                 </div>
                 <div className="min-w-0">
@@ -327,9 +327,9 @@ export default function InstitutionPage() {
                   : null;
                 return (
                   <>
-                    <h3 className="text-sm font-semibold text-surface-700 mb-4">Efficiency Ratio</h3>
+                    <h3 className="text-sm font-semibold text-surface-300 mb-4">Efficiency Ratio</h3>
                     <EfficiencyGauge efficiencyRatio={effRatio} />
-                    <p className="text-xs text-surface-400 text-center mt-3 max-w-[200px]">
+                    <p className="text-xs text-surface-500 text-center mt-3 max-w-[200px]">
                       Non-interest expense as % of total revenue. Lower = more efficient.
                     </p>
                   </>
@@ -354,9 +354,9 @@ export default function InstitutionPage() {
 
           {/* Quick benchmarks vs live national averages */}
           <Card>
-            <h3 className="text-sm font-semibold text-surface-700 mb-1">vs. Industry Benchmarks</h3>
+            <h3 className="text-sm font-semibold text-surface-300 mb-1">vs. Industry Benchmarks</h3>
             {benchmarks && (
-              <p className="text-xs text-surface-400 mb-4">
+              <p className="text-xs text-surface-500 mb-4">
                 Computed live from {formatNumber(benchmarks.institution_count)} active FDIC-insured banks
               </p>
             )}
@@ -395,12 +395,12 @@ export default function InstitutionPage() {
                 if (metric.value == null) return null;
                 const bm = metric.benchmark;
                 if (bm == null) return (
-                  <div key={metric.label} className="bg-surface-50 rounded-xl p-4">
+                  <div key={metric.label} className="bg-surface-900 rounded-xl p-4">
                     <p className="text-xs text-surface-500 mb-1">{metric.label}</p>
-                    <p className={`text-2xl font-bold ${metric.value >= 0 ? 'text-surface-900' : 'text-red-600'}`}>
+                    <p className={`text-2xl font-bold ${metric.value >= 0 ? 'text-surface-100' : 'text-red-600'}`}>
                       {metric.format(metric.value)}
                     </p>
-                    <p className="text-xs text-surface-400 mt-2">Loading industry avg…</p>
+                    <p className="text-xs text-surface-500 mt-2">Loading industry avg…</p>
                   </div>
                 );
                 const diff = metric.value - bm;
@@ -408,9 +408,9 @@ export default function InstitutionPage() {
                 const inTopQuartile = metric.p75 != null && metric.value >= metric.p75;
                 const inBottomQuartile = metric.p25 != null && metric.value <= metric.p25;
                 return (
-                  <div key={metric.label} className="bg-surface-50 rounded-xl p-4">
+                  <div key={metric.label} className="bg-surface-900 rounded-xl p-4">
                     <p className="text-xs text-surface-500 mb-1">{metric.label}</p>
-                    <p className={`text-2xl font-bold ${metric.value >= 0 ? 'text-surface-900' : 'text-red-600'}`}>
+                    <p className={`text-2xl font-bold ${metric.value >= 0 ? 'text-surface-100' : 'text-red-600'}`}>
                       {metric.format(metric.value)}
                     </p>
                     <div className="flex items-center gap-1.5 mt-2">
@@ -422,7 +422,7 @@ export default function InstitutionPage() {
                         {better ? '▲' : '▼'} {metric.format(Math.abs(diff))} vs median
                       </span>
                     </div>
-                    <p className="text-xs text-surface-400 mt-1">
+                    <p className="text-xs text-surface-500 mt-1">
                       Industry median: {metric.format(bm)}
                       {metric.p25 != null && metric.p75 != null && (
                         <> · IQR {metric.format(metric.p25)}–{metric.format(metric.p75)}</>
@@ -523,7 +523,7 @@ export default function InstitutionPage() {
             <StrengthsFlags institution={institution} raw={raw} />
             <CAMELSScore institution={institution} raw={raw} />
           </div>
-          <p className="text-xs text-surface-400 text-center">
+          <p className="text-xs text-surface-500 text-center">
             Data sourced from FDIC Call Reports (BankFind Suite). CAMELS approximation uses public financial ratios only.
           </p>
         </div>
@@ -537,7 +537,7 @@ export default function InstitutionPage() {
 
       {/* Data freshness */}
       {institution.data_as_of && (
-        <p className="text-xs text-surface-400 text-right">
+        <p className="text-xs text-surface-500 text-right">
           Data as of {institution.data_as_of} | FDIC Cert #{institution.cert_number}
         </p>
       )}

@@ -24,10 +24,22 @@ export function useExploreResults() {
   if (store.depositMax != null) params.set('max_deposits', String(store.depositMax));
   if (store.roaMin != null) params.set('min_roa', String(store.roaMin));
   if (store.roaMax != null) params.set('max_roa', String(store.roaMax));
+  if (store.roeMin != null) params.set('min_roi', String(store.roeMin));
+  if (store.roeMax != null) params.set('max_roi', String(store.roeMax));
+  if (store.equityRatioMin != null) params.set('equity_ratio_min', String(store.equityRatioMin));
+  if (store.ldrMin != null) params.set('ldr_min', String(store.ldrMin));
+  if (store.ldrMax != null) params.set('ldr_max', String(store.ldrMax));
+  if (store.craRating.length) params.set('cra_rating', store.craRating.join(','));
   if (store.hasCreditCards) params.set('has_credit_cards', 'true');
-  if (store.brimTier) params.set('brim_tier', store.brimTier);
   if (store.minBrimScore != null) params.set('min_brim_score', String(store.minBrimScore));
-  if (store.brimTiers.length) params.set('brim_tier', store.brimTiers.join(','));
+  // Merge single brimTier and multi-select brimTiers into one param, deduped
+  {
+    const tiers = [
+      ...(store.brimTier ? [store.brimTier] : []),
+      ...store.brimTiers,
+    ].filter((v, i, arr) => arr.indexOf(v) === i);
+    if (tiers.length) params.set('brim_tier', tiers.join(','));
+  }
   if (store.excludeBdExclusions) params.set('exclude_bd_exclusions', 'true');
   if (store.migrationTargetsOnly) params.set('migration_targets_only', 'true');
   params.set('sort_by', store.sortBy);
@@ -48,6 +60,12 @@ export function useExploreResults() {
     store.depositMax,
     store.roaMin,
     store.roaMax,
+    store.roeMin,
+    store.roeMax,
+    store.equityRatioMin,
+    store.ldrMin,
+    store.ldrMax,
+    store.craRating.join(','),
     store.hasCreditCards,
     store.brimTier,
     store.minBrimScore,

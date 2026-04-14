@@ -46,7 +46,7 @@ export function EnrichmentPanel({ institution }: Props) {
   if (isLoading) {
     return (
       <div className="h-6 flex items-center gap-2 text-xs text-surface-400">
-        <div className="h-3 w-3 rounded-full border-2 border-surface-300 border-t-primary-500 animate-spin" />
+        <div className="h-3 w-3 rounded-full border-2 border-surface-600 border-t-primary-500 animate-spin" />
         Loading public records…
       </div>
     );
@@ -59,7 +59,7 @@ export function EnrichmentPanel({ institution }: Props) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-surface-700 flex items-center gap-2">
+      <h3 className="text-sm font-semibold text-surface-300 flex items-center gap-2">
         <BookOpen className="h-4 w-4 text-primary-500" />
         Public Records & Filings
         <span className="text-xs font-normal text-surface-400 ml-1">
@@ -76,7 +76,7 @@ export function EnrichmentPanel({ institution }: Props) {
                 <img
                   src={data.wiki.thumbnail}
                   alt={data.wiki.title}
-                  className="h-14 w-14 rounded-lg object-cover shrink-0 border border-surface-200"
+                  className="h-14 w-14 rounded-lg object-cover shrink-0 border border-surface-700"
                 />
               )}
               <div className="min-w-0">
@@ -92,7 +92,7 @@ export function EnrichmentPanel({ institution }: Props) {
                     Wikipedia <ExternalLink className="h-2.5 w-2.5" />
                   </a>
                 </div>
-                <p className="text-sm text-surface-700 leading-relaxed">{data.wiki.extract}</p>
+                <p className="text-sm text-surface-300 leading-relaxed">{data.wiki.extract}</p>
               </div>
             </div>
           </Card>
@@ -130,12 +130,12 @@ export function EnrichmentPanel({ institution }: Props) {
                     href={f.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-xs hover:bg-surface-50 px-2 py-1 rounded-lg transition-colors group"
+                    className="flex items-center gap-2 text-xs hover:bg-surface-900 px-2 py-1 rounded-lg transition-colors group"
                   >
                     <span className={`font-semibold px-1.5 py-0.5 rounded text-[10px] ${
-                      f.form === '10-K' ? 'bg-blue-100 text-blue-700' : 'bg-surface-100 text-surface-600'
+                      f.form === '10-K' ? 'bg-blue-100 text-blue-700' : 'bg-surface-800 text-surface-400'
                     }`}>{f.form}</span>
-                    <span className="text-surface-600">{f.date}</span>
+                    <span className="text-surface-400">{f.date}</span>
                     <ExternalLink className="h-3 w-3 text-surface-300 group-hover:text-primary-500 ml-auto" />
                   </a>
                 ))}
@@ -227,12 +227,12 @@ export function EnrichmentPanel({ institution }: Props) {
               <div
                 key={i}
                 className={`flex items-start gap-3 text-xs px-3 py-2 rounded-lg ${
-                  action.active ? 'bg-red-100' : 'bg-surface-50'
+                  action.active ? 'bg-red-100' : 'bg-surface-900'
                 }`}
               >
                 <div className={`mt-0.5 h-2 w-2 rounded-full shrink-0 ${action.active ? 'bg-red-500' : 'bg-surface-300'}`} />
                 <div className="min-w-0 flex-1">
-                  <span className={`font-medium ${action.active ? 'text-red-700' : 'text-surface-600'}`}>
+                  <span className={`font-medium ${action.active ? 'text-red-700' : 'text-surface-400'}`}>
                     {action.type}
                   </span>
                   <span className="text-surface-400 ml-2">{action.date}</span>

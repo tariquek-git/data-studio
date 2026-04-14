@@ -108,7 +108,7 @@ export function FormulaReference() {
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-base font-semibold text-surface-900">Formula Reference</h2>
+          <h2 className="text-base font-semibold text-surface-100">Formula Reference</h2>
           <p className="text-xs text-surface-500 mt-0.5">
             Standard banking metrics with definitions, computation details, and primary sources.
           </p>
@@ -130,26 +130,26 @@ export function FormulaReference() {
             {/* Header */}
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h3 className="text-sm font-semibold text-surface-900">{formula.name}</h3>
+                <h3 className="text-sm font-semibold text-surface-100">{formula.name}</h3>
                 <p className="text-xs text-surface-500 mt-0.5">{formula.definition}</p>
               </div>
               <Badge color="blue" className="shrink-0">{formula.abbreviation}</Badge>
             </div>
 
             {/* Formula display */}
-            <div className="bg-surface-50 rounded-lg px-4 py-3 text-center">
+            <div className="bg-surface-900 rounded-lg px-4 py-3 text-center">
               <div className="inline-flex flex-col items-center gap-0.5">
-                <span className="text-sm font-medium text-surface-800 border-b border-surface-400 pb-1 w-full text-center">
+                <span className="text-sm font-medium text-surface-200 border-b border-surface-400 pb-1 w-full text-center">
                   {formula.numerator}
                 </span>
-                <span className="text-sm font-medium text-surface-800 pt-1">
+                <span className="text-sm font-medium text-surface-200 pt-1">
                   {formula.denominator}
                 </span>
               </div>
             </div>
 
             {/* Notes */}
-            <p className="text-xs text-surface-600">{formula.notes}</p>
+            <p className="text-xs text-surface-400">{formula.notes}</p>
 
             {/* Benchmarks */}
             {formula.benchmarks && (

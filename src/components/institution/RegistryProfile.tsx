@@ -91,7 +91,7 @@ function KeyFact({ icon: Icon, label, value }: { icon: React.ElementType; label:
       <Icon className="h-3.5 w-3.5 text-surface-400 mt-0.5 shrink-0" />
       <div>
         <p className="text-xs text-surface-400">{label}</p>
-        <p className="font-medium text-surface-800">{value}</p>
+        <p className="font-medium text-surface-200">{value}</p>
       </div>
     </div>
   );
@@ -198,7 +198,7 @@ export function RegistryProfile({ institution }: RegistryProfileProps) {
             {services.map(s => (
               <span
                 key={s}
-                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-surface-100 text-surface-700 border border-surface-200"
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-surface-800 text-surface-300 border border-surface-700"
               >
                 {SERVICE_LABELS[s] ?? s.replace(/_/g, ' ')}
               </span>
@@ -222,7 +222,7 @@ export function RegistryProfile({ institution }: RegistryProfileProps) {
       )}
 
       {/* No financial data notice */}
-      <div className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3 text-xs text-surface-400 text-center">
+      <div className="rounded-xl border border-surface-700 bg-surface-900 px-4 py-3 text-xs text-surface-400 text-center">
         Financial statements not available — this institution does not file call reports with banking regulators and is not a deposit-taking entity.
       </div>
     </div>

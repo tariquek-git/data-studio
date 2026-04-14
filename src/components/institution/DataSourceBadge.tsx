@@ -122,7 +122,7 @@ export function DataSourceBadge({ institution }: DataSourceBadgeProps) {
             href={supplemental.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-0.5 hover:underline text-surface-600 hover:text-surface-900"
+            className="inline-flex items-center gap-0.5 hover:underline text-surface-400 hover:text-surface-100"
           >
             {supplemental.label}
             <ExternalLink className="h-3 w-3" />

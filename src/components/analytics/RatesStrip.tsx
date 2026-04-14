@@ -55,7 +55,7 @@ function RateItem({ label, value, prevValue, decimals = 2, suffix = '%' }: RateI
   return (
     <div className="flex items-center gap-1.5 whitespace-nowrap">
       <span className="text-xs text-surface-500 font-medium">{label}:</span>
-      <span className="text-xs font-semibold text-surface-900">{formatted}</span>
+      <span className="text-xs font-semibold text-surface-100">{formatted}</span>
       <DirectionIcon dir={dir} />
     </div>
   );

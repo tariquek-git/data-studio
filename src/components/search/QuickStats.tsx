@@ -44,7 +44,7 @@ export function QuickStats({ aggregations, total }: QuickStatsProps) {
               <Icon className="h-4 w-4 text-primary-500 shrink-0" />
               <div className="min-w-0">
                 <p className="text-xs text-surface-500 truncate">{stat.label}</p>
-                <p className="text-sm font-semibold text-surface-900 truncate">{stat.value}</p>
+                <p className="text-sm font-semibold text-surface-100 truncate">{stat.value}</p>
               </div>
             </div>
           </Card>

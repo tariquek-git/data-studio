@@ -2,12 +2,12 @@ import { Link } from 'react-router';
 
 export function Footer() {
   return (
-    <footer className="border-t border-surface-800 bg-surface-950">
+    <footer className="border-t border-surface-700/50 bg-surface-950">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Branding */}
           <div>
-            <p className="text-sm font-bold text-surface-200">Moby-Data</p>
+            <p className="text-sm font-bold text-surface-200">Moby</p>
             <p className="text-xs mt-1 italic text-surface-600">
               "Thar she blows!" — Hunt whales. Spearfish prospects. Land the big catch.
             </p>
@@ -39,9 +39,9 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-surface-800">
+        <div className="mt-8 pt-6 border-t border-surface-700/50">
           <p className="text-xs text-center text-surface-600">
-            &copy; {new Date().getFullYear()} Moby-Data. All rights reserved.
+            &copy; {new Date().getFullYear()} Moby. All rights reserved.
           </p>
         </div>
       </div>

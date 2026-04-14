@@ -47,7 +47,7 @@ export function SimilarInstitutions({ entityId }: SimilarInstitutionsProps) {
   if (isLoading) {
     return (
       <Card>
-        <h3 className="text-sm font-semibold text-surface-700 mb-4 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-surface-300 mb-4 flex items-center gap-2">
           <Layers className="h-4 w-4 text-primary-500" />
           Similar Institutions
         </h3>
@@ -63,7 +63,7 @@ export function SimilarInstitutions({ entityId }: SimilarInstitutionsProps) {
   if (!data?.embedding_available || data.similar.length === 0) {
     return (
       <Card>
-        <h3 className="text-sm font-semibold text-surface-700 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-surface-300 mb-3 flex items-center gap-2">
           <Layers className="h-4 w-4 text-primary-500" />
           Similar Institutions
         </h3>
@@ -76,7 +76,7 @@ export function SimilarInstitutions({ entityId }: SimilarInstitutionsProps) {
 
   return (
     <Card>
-      <h3 className="text-sm font-semibold text-surface-700 mb-4 flex items-center gap-2">
+      <h3 className="text-sm font-semibold text-surface-300 mb-4 flex items-center gap-2">
         <Layers className="h-4 w-4 text-primary-500" />
         Similar Institutions
       </h3>
@@ -88,10 +88,10 @@ export function SimilarInstitutions({ entityId }: SimilarInstitutionsProps) {
             <li key={inst.id}>
               <Link
                 to={inst.cert_number ? `/institution/${inst.cert_number}` : `/entities/${inst.id}`}
-                className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 hover:bg-surface-50 transition-colors group"
+                className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 hover:bg-surface-900 transition-colors group"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-surface-900 group-hover:text-primary-700 truncate">
+                  <p className="text-sm font-medium text-surface-100 group-hover:text-primary-700 truncate">
                     {inst.name}
                   </p>
                   <p className="text-xs text-surface-400 truncate">

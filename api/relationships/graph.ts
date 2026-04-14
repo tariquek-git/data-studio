@@ -41,14 +41,16 @@ interface RegistryEntityRow {
   id: string;
   name: string;
   entity_subtype: string | null;
-  jurisdiction: string | null;
+  state: string | null;
+  country: string | null;
+  source_key: string | null;
 }
 
 interface EcosystemEntityRow {
   id: string;
   name: string;
-  entity_subtype: string | null;
-  category: string | null;
+  entity_type: string | null;
+  source_key: string | null;
 }
 
 interface GraphNode {
@@ -266,7 +268,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   if (regIds.length > 0) {
     const { data: regs, error: regErr } = await supabase
       .from('registry_entities')
-      .select('id, name, entity_subtype, jurisdiction')
+      .select('id, name, entity_subtype, state, country, source_key')
       .in('id', regIds);
     if (regErr) throw regErr;
     for (const reg of (regs ?? []) as RegistryEntityRow[]) {
@@ -277,8 +279,8 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
         cert_number: null,
         name: reg.name,
         city: null,
-        state: reg.jurisdiction ?? null,
-        source: null,
+        state: reg.state ?? reg.country ?? null,
+        source: reg.source_key ?? null,
         charter_type: reg.entity_subtype ?? null,
         total_assets: null,
         roa: null,
@@ -289,7 +291,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   if (ecoIds.length > 0) {
     const { data: ecos, error: ecoErr } = await supabase
       .from('ecosystem_entities')
-      .select('id, name, entity_subtype, category')
+      .select('id, name, entity_type, source_key')
       .in('id', ecoIds);
     if (ecoErr) throw ecoErr;
     for (const eco of (ecos ?? []) as EcosystemEntityRow[]) {
@@ -301,8 +303,8 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
         name: eco.name,
         city: null,
         state: null,
-        source: eco.category ?? null,
-        charter_type: eco.entity_subtype ?? null,
+        source: eco.source_key ?? null,
+        charter_type: eco.entity_type ?? null,
         total_assets: null,
         roa: null,
       });

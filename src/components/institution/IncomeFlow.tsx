@@ -42,8 +42,8 @@ export function IncomeFlow({ data }: IncomeFlowProps) {
   const maxValue = Math.max(totalRevenue, totalExpenses, 1);
 
   return (
-    <div className="bg-white rounded-xl border border-surface-200 p-6">
-      <h3 className="text-base font-semibold text-surface-900 mb-6 flex items-center gap-2">
+    <div className="bg-white rounded-xl border border-surface-700 p-6">
+      <h3 className="text-base font-semibold text-surface-100 mb-6 flex items-center gap-2">
         <DollarSign className="w-5 h-5 text-primary-600" />
         Income Statement Flow
       </h3>
@@ -134,14 +134,14 @@ function FlowBar({ label, value, maxValue, color }: { label: string; value: numb
   const width = Math.max((value / maxValue) * 100, 2);
   return (
     <div className="flex items-center gap-3">
-      <span className="text-xs text-surface-600 w-36 shrink-0 truncate">{label}</span>
-      <div className="flex-1 bg-surface-100 rounded-full h-5 relative overflow-hidden">
+      <span className="text-xs text-surface-400 w-36 shrink-0 truncate">{label}</span>
+      <div className="flex-1 bg-surface-800 rounded-full h-5 relative overflow-hidden">
         <div
           className={`${color} h-full rounded-full transition-all duration-500`}
           style={{ width: `${width}%` }}
         />
       </div>
-      <span className="text-xs font-medium text-surface-700 w-20 text-right shrink-0">
+      <span className="text-xs font-medium text-surface-300 w-20 text-right shrink-0">
         {formatCurrency(value)}
       </span>
     </div>

@@ -110,7 +110,7 @@ function severityIcon(severity: CheckSeverity, className = 'w-4 h-4') {
     case 'error':
       return <XCircle className={`${className} text-red-500`} />;
     case 'info':
-      return <Info className={`${className} text-surface-400`} />;
+      return <Info className={`${className} text-surface-500`} />;
   }
 }
 
@@ -141,20 +141,20 @@ function StatusOverview({ status }: { status: QAStatusResponse }) {
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <Card className="flex flex-col gap-1">
         <p className="text-xs text-surface-500">FDIC Institutions</p>
-        <p className="text-2xl font-bold text-surface-900">{db.total_fdic_institutions.toLocaleString()}</p>
-        <p className="text-xs text-surface-400">{db.total_active_fdic.toLocaleString()} active</p>
+        <p className="text-2xl font-bold text-surface-100">{db.total_fdic_institutions.toLocaleString()}</p>
+        <p className="text-xs text-surface-500">{db.total_active_fdic.toLocaleString()} active</p>
       </Card>
       <Card className="flex flex-col gap-1">
         <p className="text-xs text-surface-500">With Raw Data</p>
-        <p className="text-2xl font-bold text-surface-900">{db.institutions_with_raw_data.toLocaleString()}</p>
-        <p className="text-xs text-surface-400">needed for derived metrics</p>
+        <p className="text-2xl font-bold text-surface-100">{db.institutions_with_raw_data.toLocaleString()}</p>
+        <p className="text-xs text-surface-500">needed for derived metrics</p>
       </Card>
       <Card className="flex flex-col gap-1">
         <p className="text-xs text-surface-500">Stale Records</p>
         <p className={`text-2xl font-bold ${db.stale_records_count > 0 ? 'text-yellow-600' : 'text-green-600'}`}>
           {db.stale_records_count.toLocaleString()}
         </p>
-        <p className="text-xs text-surface-400">data_as_of &gt; 6 months old</p>
+        <p className="text-xs text-surface-500">data_as_of &gt; 6 months old</p>
       </Card>
       <Card className="flex flex-col gap-1">
         <p className="text-xs text-surface-500">Database Health</p>
@@ -163,7 +163,7 @@ function StatusOverview({ status }: { status: QAStatusResponse }) {
             ? <CheckCircle className="w-6 h-6 text-green-500" />
             : health === 'degraded'
             ? <XCircle className="w-6 h-6 text-red-500" />
-            : <Info className="w-6 h-6 text-surface-400" />}
+            : <Info className="w-6 h-6 text-surface-500" />}
           <span className={`text-lg font-semibold capitalize ${
             health === 'healthy' ? 'text-green-600' : health === 'degraded' ? 'text-red-600' : 'text-surface-500'
           }`}>
@@ -200,7 +200,7 @@ function FieldChecksTable({ checks }: { checks: FieldCheck[] }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-surface-200">
+          <tr className="border-b border-surface-700">
             <th className="text-left py-2 px-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Field</th>
             <th className="text-right py-2 px-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Stored</th>
             <th className="text-right py-2 px-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">FDIC Live</th>
@@ -209,18 +209,18 @@ function FieldChecksTable({ checks }: { checks: FieldCheck[] }) {
             <th className="text-left py-2 px-3 text-xs font-semibold text-surface-500 uppercase tracking-wide">Message</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-surface-100">
+        <tbody className="divide-y divide-surface-800">
           {checks.map((check) => (
-            <tr key={check.field} className="hover:bg-surface-50 transition-colors">
-              <td className="py-2.5 px-3 font-medium text-surface-800">{check.label}</td>
-              <td className="py-2.5 px-3 text-right text-surface-700 tabular-nums">
+            <tr key={check.field} className="hover:bg-surface-900 transition-colors">
+              <td className="py-2.5 px-3 font-medium text-surface-200">{check.label}</td>
+              <td className="py-2.5 px-3 text-right text-surface-300 tabular-nums">
                 {formatFieldValue(check.field, check.stored_value)}
               </td>
-              <td className="py-2.5 px-3 text-right text-surface-700 tabular-nums">
+              <td className="py-2.5 px-3 text-right text-surface-300 tabular-nums">
                 {formatFieldValue(check.field, check.fdic_value)}
               </td>
               <td className={`py-2.5 px-3 text-right tabular-nums font-medium ${
-                check.pct_diff == null ? 'text-surface-400'
+                check.pct_diff == null ? 'text-surface-500'
                 : Math.abs(check.pct_diff) > 5 ? 'text-red-600'
                 : Math.abs(check.pct_diff) > 1 ? 'text-yellow-600'
                 : 'text-green-600'
@@ -254,23 +254,23 @@ function DerivedMetricsSection({ metrics }: { metrics: DerivedMetric[] }) {
         return (
           <div
             key={m.metric}
-            className="border border-surface-200 rounded-lg overflow-hidden"
+            className="border border-surface-700 rounded-lg overflow-hidden"
           >
             <button
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-50 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-900 transition-colors text-left"
               onClick={() => toggle(m.metric)}
             >
               {isExpanded
-                ? <ChevronDown className="w-4 h-4 text-surface-400 shrink-0" />
-                : <ChevronRight className="w-4 h-4 text-surface-400 shrink-0" />}
+                ? <ChevronDown className="w-4 h-4 text-surface-500 shrink-0" />
+                : <ChevronRight className="w-4 h-4 text-surface-500 shrink-0" />}
               {severityIcon(m.severity)}
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-surface-800">{m.label}</span>
+                <span className="text-sm font-medium text-surface-200">{m.label}</span>
                 <span className="ml-2 text-xs text-surface-500">{m.formula}</span>
               </div>
               <div className="flex items-center gap-4 shrink-0">
                 {m.computed_value != null && (
-                  <span className="text-sm text-surface-600 tabular-nums">
+                  <span className="text-sm text-surface-400 tabular-nums">
                     {formatPercent(m.computed_value)} (FDIC)
                   </span>
                 )}
@@ -288,33 +288,33 @@ function DerivedMetricsSection({ metrics }: { metrics: DerivedMetric[] }) {
             </button>
 
             {isExpanded && (
-              <div className="px-4 pb-4 pt-1 border-t border-surface-100 bg-surface-50 space-y-3">
+              <div className="px-4 pb-4 pt-1 border-t border-surface-800 bg-surface-900 space-y-3">
                 {/* Step-by-step math */}
                 <div>
-                  <p className="text-xs font-semibold text-surface-600 mb-1">Step-by-step computation</p>
-                  <code className="block bg-white border border-surface-200 rounded px-3 py-2 text-xs text-surface-800 font-mono whitespace-pre-wrap">
+                  <p className="text-xs font-semibold text-surface-400 mb-1">Step-by-step computation</p>
+                  <code className="block bg-white border border-surface-700 rounded px-3 py-2 text-xs text-surface-200 font-mono whitespace-pre-wrap">
                     {m.step_by_step}
                   </code>
                 </div>
 
                 {/* Stored vs computed */}
                 <div className="grid grid-cols-3 gap-3 text-xs">
-                  <div className="bg-white rounded-md border border-surface-200 p-2">
+                  <div className="bg-white rounded-md border border-surface-700 p-2">
                     <p className="text-surface-500 mb-0.5">Computed (FDIC raw)</p>
-                    <p className="font-semibold text-surface-900 tabular-nums">
+                    <p className="font-semibold text-surface-100 tabular-nums">
                       {m.computed_value != null ? formatPercent(m.computed_value) : '—'}
                     </p>
                   </div>
-                  <div className="bg-white rounded-md border border-surface-200 p-2">
+                  <div className="bg-white rounded-md border border-surface-700 p-2">
                     <p className="text-surface-500 mb-0.5">Stored (our DB)</p>
-                    <p className="font-semibold text-surface-900 tabular-nums">
+                    <p className="font-semibold text-surface-100 tabular-nums">
                       {m.stored_value != null ? formatPercent(m.stored_value) : '—'}
                     </p>
                   </div>
-                  <div className="bg-white rounded-md border border-surface-200 p-2">
+                  <div className="bg-white rounded-md border border-surface-700 p-2">
                     <p className="text-surface-500 mb-0.5">Difference</p>
                     <p className={`font-semibold tabular-nums ${
-                      m.pct_diff == null ? 'text-surface-400'
+                      m.pct_diff == null ? 'text-surface-500'
                       : Math.abs(m.pct_diff) > 5 ? 'text-red-600'
                       : Math.abs(m.pct_diff) > 1 ? 'text-yellow-600'
                       : 'text-green-600'
@@ -328,7 +328,7 @@ function DerivedMetricsSection({ metrics }: { metrics: DerivedMetric[] }) {
                 {benchmark && m.computed_value != null && (
                   <div className="flex items-center gap-2 text-xs text-surface-500">
                     <Info className="w-3.5 h-3.5 shrink-0" />
-                    Industry benchmark: <span className="font-semibold text-surface-700">{benchmark.value}{benchmark.unit}</span>
+                    Industry benchmark: <span className="font-semibold text-surface-300">{benchmark.value}{benchmark.unit}</span>
                   </div>
                 )}
               </div>
@@ -350,7 +350,7 @@ function SanityChecksGrid({ checks }: { checks: SanityCheck[] }) {
             check.severity === 'ok' ? 'bg-green-50 border-green-200'
             : check.severity === 'error' ? 'bg-red-50 border-red-200'
             : check.severity === 'warning' ? 'bg-yellow-50 border-yellow-200'
-            : 'bg-surface-50 border-surface-200'
+            : 'bg-surface-900 border-surface-700'
           }`}
         >
           {severityIcon(check.severity, 'w-4 h-4 shrink-0 mt-0.5')}
@@ -375,13 +375,13 @@ function InstitutionResult({ result }: { result: InstitutionQAResult }) {
     <Card padding={false} className="overflow-hidden">
       {/* Institution header */}
       <button
-        className="w-full flex items-center gap-3 px-5 py-4 hover:bg-surface-50 transition-colors text-left"
+        className="w-full flex items-center gap-3 px-5 py-4 hover:bg-surface-900 transition-colors text-left"
         onClick={() => setOpen((o) => !o)}
       >
-        {open ? <ChevronDown className="w-4 h-4 text-surface-400" /> : <ChevronRight className="w-4 h-4 text-surface-400" />}
+        {open ? <ChevronDown className="w-4 h-4 text-surface-500" /> : <ChevronRight className="w-4 h-4 text-surface-500" />}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-surface-900 text-sm truncate">{result.name}</p>
-          <p className="text-xs text-surface-400">
+          <p className="font-semibold text-surface-100 text-sm truncate">{result.name}</p>
+          <p className="text-xs text-surface-500">
             FDIC Cert #{result.cert_number}
             {result.data_as_of && ` · Data as of ${result.data_as_of}`}
             {result.fdic_report_date && ` · FDIC report: ${result.fdic_report_date}`}
@@ -404,7 +404,7 @@ function InstitutionResult({ result }: { result: InstitutionQAResult }) {
       </button>
 
       {open && (
-        <div className="border-t border-surface-200 divide-y divide-surface-100">
+        <div className="border-t border-surface-700 divide-y divide-surface-800">
           {result.error ? (
             <div className="px-5 py-4 flex items-center gap-2 text-sm text-red-600">
               <XCircle className="w-4 h-4 shrink-0" />
@@ -441,8 +441,8 @@ function InstitutionResult({ result }: { result: InstitutionQAResult }) {
               )}
 
               {/* FDIC SDI link */}
-              <div className="px-5 py-3 bg-surface-50 flex items-center justify-between">
-                <p className="text-xs text-surface-400">
+              <div className="px-5 py-3 bg-surface-900 flex items-center justify-between">
+                <p className="text-xs text-surface-500">
                   Checked at {new Date(result.checked_at).toLocaleTimeString()}
                 </p>
                 <a
@@ -549,7 +549,7 @@ export default function QAPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Page title */}
       <div>
-        <h1 className="text-2xl font-bold text-surface-900 flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-surface-100 flex items-center gap-2">
           <FlaskConical className="w-6 h-6 text-primary-600" />
           Data QA Dashboard
         </h1>
@@ -559,7 +559,7 @@ export default function QAPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-surface-200">
+      <div className="border-b border-surface-700">
         <nav className="flex gap-1 -mb-px">
           {TABS.map((t) => (
             <button
@@ -568,7 +568,7 @@ export default function QAPage() {
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 tab === t.id
                   ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300'
+                  : 'border-transparent text-surface-500 hover:text-surface-300 hover:border-surface-600'
               }`}
             >
               {t.icon}
@@ -586,7 +586,7 @@ export default function QAPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Single cert check */}
               <div>
-                <h2 className="text-sm font-semibold text-surface-800 mb-3">Check by FDIC Cert Number</h2>
+                <h2 className="text-sm font-semibold text-surface-200 mb-3">Check by FDIC Cert Number</h2>
                 <form onSubmit={handleCertCheck} className="flex gap-2">
                   <Input
                     type="number"
@@ -605,19 +605,19 @@ export default function QAPage() {
                     Check
                   </Button>
                 </form>
-                <p className="text-xs text-surface-400 mt-1.5">
+                <p className="text-xs text-surface-500 mt-1.5">
                   Fetches live FDIC data and compares with our stored values.
                 </p>
               </div>
 
               {/* Random sample */}
               <div>
-                <h2 className="text-sm font-semibold text-surface-800 mb-3">Random Sample Check</h2>
+                <h2 className="text-sm font-semibold text-surface-200 mb-3">Random Sample Check</h2>
                 <div className="flex gap-2">
                   <select
                     value={sampleSize}
                     onChange={(e) => setSampleSize(Number(e.target.value))}
-                    className="block rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-surface-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                    className="block rounded-lg border border-surface-600 bg-white px-3 py-2 text-sm text-surface-100 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                   >
                     {[5, 10, 20, 50].map((n) => (
                       <option key={n} value={n}>{n} institutions</option>
@@ -632,7 +632,7 @@ export default function QAPage() {
                     Run Sample
                   </Button>
                 </div>
-                <p className="text-xs text-surface-400 mt-1.5">
+                <p className="text-xs text-surface-500 mt-1.5">
                   Checks a random slice of active FDIC institutions from the database.
                 </p>
               </div>
@@ -643,7 +643,7 @@ export default function QAPage() {
           {activeReport && (
             <div className="grid grid-cols-4 gap-4">
               {[
-                { label: 'Checked', value: activeReport.total_checked, color: 'text-surface-900' },
+                { label: 'Checked', value: activeReport.total_checked, color: 'text-surface-100' },
                 { label: 'Pass', value: activeReport.pass_count, color: 'text-green-600' },
                 { label: 'Warnings', value: activeReport.warning_count, color: 'text-yellow-600' },
                 { label: 'Errors', value: activeReport.error_count, color: 'text-red-600' },
@@ -684,7 +684,7 @@ export default function QAPage() {
 
           {!activeReport && !certLoading && !sampleLoading && !certError && !sampleError && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <FlaskConical className="w-10 h-10 text-surface-300 mb-3" />
+              <FlaskConical className="w-10 h-10 text-surface-600 mb-3" />
               <p className="text-surface-500 text-sm">
                 Enter a cert number or run a sample check to begin validation.
               </p>

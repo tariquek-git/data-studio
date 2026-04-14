@@ -82,7 +82,7 @@ export default function FailuresPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-surface-900">FDIC Bank Failures</h1>
+        <h1 className="text-2xl font-bold text-surface-100">FDIC Bank Failures</h1>
         <p className="mt-1 text-sm text-surface-500">
           Warehouse-backed record of FDIC-supervised institution failures since 2000, sourced from the FDIC Failures API.
         </p>
@@ -112,8 +112,8 @@ export default function FailuresPage() {
               </div>
               <div>
                 <p className="text-xs text-surface-500">Total Failures (Filtered)</p>
-                <p className="text-xl font-bold text-surface-900">{formatNumber(filtered.length)}</p>
-                <p className="text-xs text-surface-400">of {formatNumber(data.total)} total since 2000</p>
+                <p className="text-xl font-bold text-surface-100">{formatNumber(filtered.length)}</p>
+                <p className="text-xs text-surface-500">of {formatNumber(data.total)} total since 2000</p>
               </div>
             </div>
           </Card>
@@ -125,23 +125,23 @@ export default function FailuresPage() {
               </div>
               <div>
                 <p className="text-xs text-surface-500">Estimated Losses (Filtered)</p>
-                <p className="text-xl font-bold text-surface-900">{formatCurrency(totalLoss)}</p>
-                <p className="text-xs text-surface-400">to FDIC deposit insurance fund</p>
+                <p className="text-xl font-bold text-surface-100">{formatCurrency(totalLoss)}</p>
+                <p className="text-xs text-surface-500">to FDIC deposit insurance fund</p>
               </div>
             </div>
           </Card>
 
           <Card>
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-surface-50 shrink-0">
+              <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-surface-900 shrink-0">
                 <Calendar className="h-5 w-5 text-surface-500" />
               </div>
               <div>
                 <p className="text-xs text-surface-500">Most Recent Failure</p>
-                <p className="text-base font-bold text-surface-900 truncate max-w-[160px]">
+                <p className="text-base font-bold text-surface-100 truncate max-w-[160px]">
                   {mostRecent ? mostRecent.name : '—'}
                 </p>
-                <p className="text-xs text-surface-400">
+                <p className="text-xs text-surface-500">
                   {mostRecent ? formatDate(mostRecent.fail_date) : ''}
                 </p>
               </div>
@@ -161,7 +161,7 @@ export default function FailuresPage() {
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors border ${
                 yearFilter === f.id
                   ? 'bg-primary-600 text-white border-primary-600'
-                  : 'bg-white text-surface-600 border-surface-300 hover:border-surface-400 hover:text-surface-900'
+                  : 'bg-white text-surface-400 border-surface-600 hover:border-surface-500 hover:text-surface-100'
               }`}
             >
               {f.label}
@@ -171,7 +171,7 @@ export default function FailuresPage() {
 
         {/* Search */}
         <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-surface-400 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-surface-500 pointer-events-none" />
           <Input
             type="search"
             placeholder="Filter by bank name..."
@@ -200,7 +200,7 @@ export default function FailuresPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-surface-200 bg-surface-50">
+                <tr className="border-b border-surface-700 bg-surface-900">
                   <th className="px-4 py-3 text-left text-xs font-semibold text-surface-500 uppercase tracking-wide">
                     Institution Name
                   </th>
@@ -218,7 +218,7 @@ export default function FailuresPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-surface-800">
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-4 py-12 text-center text-sm text-surface-500">
@@ -227,17 +227,17 @@ export default function FailuresPage() {
                   </tr>
                 ) : (
                   filtered.map((f) => (
-                    <tr key={`${f.cert_number}-${f.fail_date}`} className="hover:bg-surface-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-surface-900">
+                    <tr key={`${f.cert_number}-${f.fail_date}`} className="hover:bg-surface-900 transition-colors">
+                      <td className="px-4 py-3 font-medium text-surface-100">
                         <Link
                           to={`/institution/${f.cert_number}`}
                           className="text-primary-600 hover:text-primary-700 hover:underline"
                         >
                           {f.name}
                         </Link>
-                        <span className="ml-2 text-xs text-surface-400">#{f.cert_number}</span>
+                        <span className="ml-2 text-xs text-surface-500">#{f.cert_number}</span>
                       </td>
-                      <td className="px-4 py-3 text-surface-600 whitespace-nowrap">
+                      <td className="px-4 py-3 text-surface-400 whitespace-nowrap">
                         {formatDate(f.fail_date)}
                       </td>
                       <td className="px-4 py-3">
@@ -245,10 +245,10 @@ export default function FailuresPage() {
                           {f.resolution_type || '—'}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-right font-medium text-surface-900">
+                      <td className="px-4 py-3 text-right font-medium text-surface-100">
                         {f.estimated_loss != null ? formatCurrency(f.estimated_loss) : '—'}
                       </td>
-                      <td className="px-4 py-3 text-surface-600">
+                      <td className="px-4 py-3 text-surface-400">
                         {f.charter_class ?? '—'}
                       </td>
                     </tr>
@@ -257,8 +257,8 @@ export default function FailuresPage() {
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-3 border-t border-surface-100 bg-surface-50 flex items-center justify-between">
-            <p className="text-xs text-surface-400">
+          <div className="px-4 py-3 border-t border-surface-800 bg-surface-900 flex items-center justify-between">
+            <p className="text-xs text-surface-500">
               Showing {formatNumber(filtered.length)} failures · Source: FDIC BankFind Suite
             </p>
             <a

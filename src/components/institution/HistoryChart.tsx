@@ -101,7 +101,7 @@ export function HistoryChart({ history, institution }: HistoryChartProps) {
 
   if (history.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-surface-200 shadow-sm p-5 text-center py-12 text-sm text-surface-500">
+      <div className="bg-white rounded-xl border border-surface-700 shadow-sm p-5 text-center py-12 text-sm text-surface-500">
         No historical data available.
       </div>
     );
@@ -135,19 +135,19 @@ export function HistoryChart({ history, institution }: HistoryChartProps) {
   }));
 
   return (
-    <div className="bg-white rounded-xl border border-surface-200 shadow-sm p-5">
+    <div className="bg-white rounded-xl border border-surface-700 shadow-sm p-5">
       {/* Tab bar */}
       <div className="flex items-center justify-between mb-5">
-        <h3 className="text-base font-semibold text-surface-900">Historical Trends</h3>
-        <div className="flex gap-1 bg-surface-100 rounded-lg p-1">
+        <h3 className="text-base font-semibold text-surface-100">Historical Trends</h3>
+        <div className="flex gap-1 bg-surface-800 rounded-lg p-1">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                 tab === t.id
-                  ? 'bg-white text-surface-900 shadow-sm'
-                  : 'text-surface-500 hover:text-surface-700'
+                  ? 'bg-white text-surface-100 shadow-sm'
+                  : 'text-surface-500 hover:text-surface-300'
               }`}
             >
               {t.label}

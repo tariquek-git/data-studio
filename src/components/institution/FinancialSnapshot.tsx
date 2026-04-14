@@ -14,21 +14,21 @@ export function FinancialSnapshot({ institution }: FinancialSnapshotProps) {
       value: formatCurrency(institution.total_assets),
       icon: DollarSign,
       subtitle: null,
-      color: 'text-surface-900',
+      color: 'text-surface-100',
     },
     {
       label: 'Total Deposits',
       value: formatCurrency(institution.total_deposits),
       icon: Landmark,
       subtitle: null,
-      color: 'text-surface-900',
+      color: 'text-surface-100',
     },
     {
       label: 'Total Loans',
       value: formatCurrency(institution.total_loans),
       icon: CreditCard,
       subtitle: null,
-      color: 'text-surface-900',
+      color: 'text-surface-100',
     },
     {
       label: 'Equity Capital',
@@ -37,7 +37,7 @@ export function FinancialSnapshot({ institution }: FinancialSnapshotProps) {
       subtitle: institution.total_assets && institution.equity_capital
         ? `${((institution.equity_capital / institution.total_assets) * 100).toFixed(1)}% of assets`
         : null,
-      color: 'text-surface-900',
+      color: 'text-surface-100',
     },
     {
       label: 'ROA',
@@ -49,7 +49,7 @@ export function FinancialSnapshot({ institution }: FinancialSnapshotProps) {
           ? institution.roa >= 0
             ? 'text-green-700'
             : 'text-red-600'
-          : 'text-surface-900',
+          : 'text-surface-100',
     },
     {
       label: 'ROE',
@@ -61,7 +61,7 @@ export function FinancialSnapshot({ institution }: FinancialSnapshotProps) {
           ? institution.roi >= 0
             ? 'text-green-700'
             : 'text-red-600'
-          : 'text-surface-900',
+          : 'text-surface-100',
     },
   ];
 

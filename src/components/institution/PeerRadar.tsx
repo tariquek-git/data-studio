@@ -165,10 +165,10 @@ export function PeerRadar({ institution, peerMedian }: PeerRadarProps) {
   }
 
   return (
-    <div className="rounded-xl border border-surface-200 bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-surface-700 bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <Target className="h-5 w-5 text-primary-600" />
-        <h3 className="text-lg font-semibold text-surface-900">Peer Comparison</h3>
+        <h3 className="text-lg font-semibold text-surface-100">Peer Comparison</h3>
       </div>
 
       {!peerMedian && (
@@ -220,7 +220,7 @@ export function PeerRadar({ institution, peerMedian }: PeerRadarProps) {
       <div className="mt-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-surface-200 text-left text-surface-500">
+            <tr className="border-b border-surface-700 text-left text-surface-500">
               <th className="pb-2 pr-4 font-medium">Metric</th>
               <th className="pb-2 pr-4 font-medium">This Bank</th>
               {peerMedian && <th className="pb-2 font-medium">Peer Median</th>}
@@ -228,17 +228,17 @@ export function PeerRadar({ institution, peerMedian }: PeerRadarProps) {
           </thead>
           <tbody>
             {tableMetrics.map((m) => (
-              <tr key={m.key} className="border-b border-surface-100">
-                <td className="py-2 pr-4 text-surface-700">{m.label}</td>
+              <tr key={m.key} className="border-b border-surface-800">
+                <td className="py-2 pr-4 text-surface-300">{m.label}</td>
                 <td
                   className={`py-2 pr-4 font-medium ${
-                    peerMedian ? diffColor(m.institutionRaw, m.peerRaw) : 'text-surface-900'
+                    peerMedian ? diffColor(m.institutionRaw, m.peerRaw) : 'text-surface-100'
                   }`}
                 >
                   {m.format(m.institutionRaw)}
                 </td>
                 {peerMedian && (
-                  <td className="py-2 text-surface-600">
+                  <td className="py-2 text-surface-400">
                     {m.format(m.peerRaw)}
                   </td>
                 )}

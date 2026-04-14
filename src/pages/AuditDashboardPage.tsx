@@ -255,7 +255,7 @@ function freshnessColor(f: SourceHealth['freshness']): string {
     case 'fresh': return 'text-emerald-600 bg-emerald-50';
     case 'stale': return 'text-amber-600 bg-amber-50';
     case 'very_stale': return 'text-red-600 bg-red-50';
-    case 'never_synced': return 'text-surface-400 bg-surface-50';
+    case 'never_synced': return 'text-surface-500 bg-surface-900';
   }
 }
 
@@ -264,7 +264,7 @@ function statusIcon(status: string) {
     case 'completed': return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
     case 'failed': return <XCircle className="h-4 w-4 text-red-500" />;
     case 'running': return <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />;
-    default: return <Clock className="h-4 w-4 text-surface-400" />;
+    default: return <Clock className="h-4 w-4 text-surface-500" />;
   }
 }
 
@@ -273,13 +273,13 @@ function confidenceColor(level: string): string {
     case 'high': return 'bg-emerald-500';
     case 'medium': return 'bg-amber-500';
     case 'low': return 'bg-red-500';
-    default: return 'bg-surface-300';
+    default: return 'bg-surface-600';
   }
 }
 
 /* ─── Components ─── */
 
-function StatCard({ label, value, icon: Icon, sub, color = 'text-surface-900' }: {
+function StatCard({ label, value, icon: Icon, sub, color = 'text-surface-100' }: {
   label: string;
   value: string | number;
   icon: typeof Database;
@@ -287,14 +287,14 @@ function StatCard({ label, value, icon: Icon, sub, color = 'text-surface-900' }:
   color?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-surface-200 p-4 flex items-start gap-3">
-      <div className="p-2 rounded-lg bg-surface-50">
+    <div className="bg-white rounded-xl border border-surface-700 p-4 flex items-start gap-3">
+      <div className="p-2 rounded-lg bg-surface-900">
         <Icon className={`h-5 w-5 ${color}`} />
       </div>
       <div className="min-w-0">
         <p className="text-sm text-surface-500">{label}</p>
         <p className={`text-2xl font-semibold ${color}`}>{typeof value === 'number' ? value.toLocaleString() : value}</p>
-        {sub && <p className="text-xs text-surface-400 mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs text-surface-500 mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -302,13 +302,13 @@ function StatCard({ label, value, icon: Icon, sub, color = 'text-surface-900' }:
 
 function ConfidenceBar({ distribution }: { distribution: AuditOverview['confidenceDistribution'] }) {
   const total = distribution.high + distribution.medium + distribution.low + distribution.unverified;
-  if (total === 0) return <p className="text-sm text-surface-400">No entities</p>;
+  if (total === 0) return <p className="text-sm text-surface-500">No entities</p>;
 
   const segments = [
     { key: 'high', label: 'High', count: distribution.high, color: 'bg-emerald-500' },
     { key: 'medium', label: 'Medium', count: distribution.medium, color: 'bg-amber-500' },
     { key: 'low', label: 'Low', count: distribution.low, color: 'bg-red-500' },
-    { key: 'unverified', label: 'Unverified', count: distribution.unverified, color: 'bg-surface-300' },
+    { key: 'unverified', label: 'Unverified', count: distribution.unverified, color: 'bg-surface-600' },
   ];
 
   return (
@@ -329,9 +329,9 @@ function ConfidenceBar({ distribution }: { distribution: AuditOverview['confiden
         {segments.map(s => (
           <div key={s.key} className="flex items-center gap-1.5">
             <span className={`inline-block w-2.5 h-2.5 rounded-full ${s.color}`} />
-            <span className="text-surface-600">{s.label}</span>
-            <span className="font-medium text-surface-800">{s.count.toLocaleString()}</span>
-            <span className="text-surface-400">({pct(s.count, total)})</span>
+            <span className="text-surface-400">{s.label}</span>
+            <span className="font-medium text-surface-200">{s.count.toLocaleString()}</span>
+            <span className="text-surface-500">({pct(s.count, total)})</span>
           </div>
         ))}
       </div>
@@ -343,7 +343,7 @@ function ScoreHistogram({ data, label }: { data: HistogramBucket[]; label: strin
   const max = Math.max(...data.map(d => d.count), 1);
   return (
     <div>
-      <p className="text-sm font-medium text-surface-700 mb-2">{label}</p>
+      <p className="text-sm font-medium text-surface-300 mb-2">{label}</p>
       <div className="flex items-end gap-1 h-24">
         {data.map(d => (
           <div key={d.bucket} className="flex-1 flex flex-col items-center gap-1">
@@ -352,11 +352,11 @@ function ScoreHistogram({ data, label }: { data: HistogramBucket[]; label: strin
               style={{ height: `${Math.max((d.count / max) * 100, 2)}%` }}
               title={`${d.bucket}: ${d.count}`}
             />
-            <span className="text-[10px] text-surface-400 leading-none">{d.bucket.split('-')[0]}</span>
+            <span className="text-[10px] text-surface-500 leading-none">{d.bucket.split('-')[0]}</span>
           </div>
         ))}
       </div>
-      <div className="flex justify-between text-[10px] text-surface-400 mt-1">
+      <div className="flex justify-between text-[10px] text-surface-500 mt-1">
         <span>Low confidence</span>
         <span>High confidence</span>
       </div>
@@ -378,13 +378,13 @@ function LineageCompleteness({ lineage }: { lineage: AuditOverview['lineage'] })
         return (
           <div key={t.label}>
             <div className="flex justify-between text-sm mb-1">
-              <span className="text-surface-600">{t.label}</span>
-              <span className="font-medium text-surface-800">
+              <span className="text-surface-400">{t.label}</span>
+              <span className="font-medium text-surface-200">
                 {t.withSyncJob.toLocaleString()} / {t.total.toLocaleString()}
-                <span className="text-surface-400 ml-1">({Math.round(ratio)}%)</span>
+                <span className="text-surface-500 ml-1">({Math.round(ratio)}%)</span>
               </span>
             </div>
-            <div className="h-2 bg-surface-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${
                   ratio >= 80 ? 'bg-emerald-500' : ratio >= 50 ? 'bg-amber-500' : 'bg-red-500'
@@ -405,7 +405,7 @@ function SourceKindPie({ breakdown }: { breakdown: AuditOverview['sourceKindBrea
     { label: 'Official', count: breakdown.official, color: 'bg-emerald-500' },
     { label: 'Company', count: breakdown.company, color: 'bg-blue-500' },
     { label: 'Curated', count: breakdown.curated, color: 'bg-violet-500' },
-    { label: 'Unknown', count: breakdown.unknown, color: 'bg-surface-300' },
+    { label: 'Unknown', count: breakdown.unknown, color: 'bg-surface-600' },
   ];
 
   return (
@@ -421,7 +421,7 @@ function SourceKindPie({ breakdown }: { breakdown: AuditOverview['sourceKindBrea
         {segments.map(s => (
           <div key={s.label} className="flex items-center gap-1.5">
             <span className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
-            <span className="text-surface-600">{s.label}</span>
+            <span className="text-surface-400">{s.label}</span>
             <span className="font-medium">{s.count.toLocaleString()}</span>
           </div>
         ))}
@@ -437,7 +437,7 @@ function SourceHealthTable({ sources }: { sources: SourceHealth[] }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-surface-200 text-left">
+          <tr className="border-b border-surface-700 text-left">
             <th className="pb-2 font-medium text-surface-500 w-6" />
             <th className="pb-2 font-medium text-surface-500">Source</th>
             <th className="pb-2 font-medium text-surface-500">Country</th>
@@ -452,20 +452,20 @@ function SourceHealthTable({ sources }: { sources: SourceHealth[] }) {
           {sources.map(s => (
             <Fragment key={s.source_key}>
               <tr
-                className="border-b border-surface-100 hover:bg-surface-50 cursor-pointer"
+                className="border-b border-surface-800 hover:bg-surface-900 cursor-pointer"
                 onClick={() => setExpanded(expanded === s.source_key ? null : s.source_key)}
               >
                 <td className="py-2.5">
                   {expanded === s.source_key
-                    ? <ChevronDown className="h-3.5 w-3.5 text-surface-400" />
-                    : <ChevronRight className="h-3.5 w-3.5 text-surface-400" />
+                    ? <ChevronDown className="h-3.5 w-3.5 text-surface-500" />
+                    : <ChevronRight className="h-3.5 w-3.5 text-surface-500" />
                   }
                 </td>
                 <td className="py-2.5">
-                  <div className="font-medium text-surface-800">{s.display_name}</div>
-                  <div className="text-xs text-surface-400">{s.source_key}</div>
+                  <div className="font-medium text-surface-200">{s.display_name}</div>
+                  <div className="text-xs text-surface-500">{s.source_key}</div>
                 </td>
-                <td className="py-2.5 text-surface-600">{s.country}</td>
+                <td className="py-2.5 text-surface-400">{s.country}</td>
                 <td className="py-2.5">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                     s.status === 'active' ? 'bg-emerald-50 text-emerald-700' :
@@ -475,10 +475,10 @@ function SourceHealthTable({ sources }: { sources: SourceHealth[] }) {
                     {s.status}
                   </span>
                 </td>
-                <td className="py-2.5 text-right tabular-nums text-surface-700">
+                <td className="py-2.5 text-right tabular-nums text-surface-300">
                   {s.institution_count?.toLocaleString() ?? '—'}
                 </td>
-                <td className="py-2.5 text-surface-600">{ago(s.last_synced_at)}</td>
+                <td className="py-2.5 text-surface-400">{ago(s.last_synced_at)}</td>
                 <td className="py-2.5">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${freshnessColor(s.freshness)}`}>
                     {s.freshness.replace('_', ' ')}
@@ -487,44 +487,44 @@ function SourceHealthTable({ sources }: { sources: SourceHealth[] }) {
                 <td className="py-2.5 text-surface-500">{s.update_frequency ?? '—'}</td>
               </tr>
               {expanded === s.source_key && (
-                <tr key={`${s.source_key}-detail`} className="bg-surface-50">
+                <tr key={`${s.source_key}-detail`} className="bg-surface-900">
                   <td />
                   <td colSpan={7} className="py-3 px-4">
                     <div className="grid grid-cols-2 gap-4 text-xs">
                       {s.description && (
                         <div className="col-span-2">
                           <span className="text-surface-500">Description:</span>{' '}
-                          <span className="text-surface-700">{s.description}</span>
+                          <span className="text-surface-300">{s.description}</span>
                         </div>
                       )}
                       {s.data_as_of && (
                         <div>
                           <span className="text-surface-500">Data as of:</span>{' '}
-                          <span className="text-surface-700">{new Date(s.data_as_of).toLocaleDateString()}</span>
+                          <span className="text-surface-300">{new Date(s.data_as_of).toLocaleDateString()}</span>
                         </div>
                       )}
                       {s.reasoned && (
                         <>
                           <div>
                             <span className="text-surface-500">Avg confidence:</span>{' '}
-                            <span className="text-surface-700">
+                            <span className="text-surface-300">
                               {s.avg_confidence == null ? 'N/A' : `${s.avg_confidence}`}
                             </span>
                           </div>
                           <div>
                             <span className="text-surface-500">Low confidence records:</span>{' '}
-                            <span className="text-surface-700">{s.low_confidence_records ?? 0}</span>
+                            <span className="text-surface-300">{s.low_confidence_records ?? 0}</span>
                           </div>
                           <div>
                             <span className="text-surface-500">Missing provenance records:</span>{' '}
-                            <span className="text-surface-700">{s.missing_provenance_records ?? 0}</span>
+                            <span className="text-surface-300">{s.missing_provenance_records ?? 0}</span>
                           </div>
                         </>
                       )}
                       {s.record_count != null && (
                         <div>
                           <span className="text-surface-500">Registry rows:</span>{' '}
-                          <span className="text-surface-700">{s.record_count.toLocaleString()}</span>
+                          <span className="text-surface-300">{s.record_count.toLocaleString()}</span>
                         </div>
                       )}
                       {s.issues && s.issues.length > 0 && (
@@ -532,7 +532,7 @@ function SourceHealthTable({ sources }: { sources: SourceHealth[] }) {
                           <span className="text-surface-500">Reasoning / issues:</span>{' '}
                           <ul className="mt-1 space-y-1 list-disc list-inside">
                             {s.issues.map((issue) => (
-                              <li key={issue} className="text-surface-700">
+                              <li key={issue} className="text-surface-300">
                                 {issue}
                               </li>
                             ))}
@@ -542,7 +542,7 @@ function SourceHealthTable({ sources }: { sources: SourceHealth[] }) {
                       {s.recommendation && (
                         <div className="col-span-2">
                           <span className="text-surface-500">Recommendation:</span>{' '}
-                          <span className="text-surface-700">{s.recommendation}</span>
+                          <span className="text-surface-300">{s.recommendation}</span>
                         </div>
                       )}
                       {s.daysSinceSync !== null && (
@@ -555,7 +555,7 @@ function SourceHealthTable({ sources }: { sources: SourceHealth[] }) {
                       )}
                       {s.regulator_url && (
                         <div className="flex items-center gap-1">
-                          <Link2 className="h-3 w-3 text-surface-400" />
+                          <Link2 className="h-3 w-3 text-surface-500" />
                           <a href={s.regulator_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
                             Regulator site
                           </a>
@@ -563,7 +563,7 @@ function SourceHealthTable({ sources }: { sources: SourceHealth[] }) {
                       )}
                       {s.data_url && (
                         <div className="flex items-center gap-1">
-                          <Link2 className="h-3 w-3 text-surface-400" />
+                          <Link2 className="h-3 w-3 text-surface-500" />
                           <a href={s.data_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
                             Data endpoint
                           </a>
@@ -589,11 +589,11 @@ function SyncJobTimeline({ jobs }: { jobs: SyncJob[] }) {
     <div>
       <div className="space-y-1">
         {visible.map(j => (
-          <div key={j.id} className="flex items-center gap-3 py-1.5 px-2 rounded hover:bg-surface-50 text-sm">
+          <div key={j.id} className="flex items-center gap-3 py-1.5 px-2 rounded hover:bg-surface-900 text-sm">
             {statusIcon(j.status)}
-            <span className="font-medium text-surface-700 w-40 truncate">{j.source}</span>
+            <span className="font-medium text-surface-300 w-40 truncate">{j.source}</span>
             <span className="text-surface-500 tabular-nums">{j.records_processed.toLocaleString()} records</span>
-            <span className="text-surface-400 ml-auto text-xs">{ago(j.completed_at ?? j.created_at)}</span>
+            <span className="text-surface-500 ml-auto text-xs">{ago(j.completed_at ?? j.created_at)}</span>
             {j.error && (
               <span className="text-red-500 text-xs max-w-48 truncate" title={j.error}>
                 {j.error}
@@ -619,7 +619,7 @@ function SyncBySourceTable({ sources }: { sources: SyncBySource[] }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-surface-200 text-left">
+          <tr className="border-b border-surface-700 text-left">
             <th className="pb-2 font-medium text-surface-500">Source</th>
             <th className="pb-2 font-medium text-surface-500">Last Status</th>
             <th className="pb-2 font-medium text-surface-500">Last Run</th>
@@ -632,13 +632,13 @@ function SyncBySourceTable({ sources }: { sources: SyncBySource[] }) {
           {sources.map(s => {
             const successRate = s.totalRuns > 0 ? ((s.totalRuns - s.totalFailed) / s.totalRuns) * 100 : 0;
             return (
-              <tr key={s.source} className="border-b border-surface-100 hover:bg-surface-50">
-                <td className="py-2 font-medium text-surface-800">{s.source}</td>
+              <tr key={s.source} className="border-b border-surface-800 hover:bg-surface-900">
+                <td className="py-2 font-medium text-surface-200">{s.source}</td>
                 <td className="py-2">{statusIcon(s.lastStatus)}</td>
-                <td className="py-2 text-surface-600">{ago(s.lastRun)}</td>
-                <td className="py-2 text-right tabular-nums text-surface-700">{s.totalRuns}</td>
+                <td className="py-2 text-surface-400">{ago(s.lastRun)}</td>
+                <td className="py-2 text-right tabular-nums text-surface-300">{s.totalRuns}</td>
                 <td className="py-2 text-right tabular-nums">
-                  <span className={s.totalFailed > 0 ? 'text-red-600 font-medium' : 'text-surface-400'}>
+                  <span className={s.totalFailed > 0 ? 'text-red-600 font-medium' : 'text-surface-500'}>
                     {s.totalFailed}
                   </span>
                 </td>
@@ -701,13 +701,13 @@ export default function AuditDashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-3 mb-8">
           <ShieldCheck className="h-7 w-7 text-primary-600" />
-          <h1 className="text-2xl font-bold text-surface-900">Data Audit</h1>
+          <h1 className="text-2xl font-bold text-surface-100">Data Audit</h1>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-surface-200 p-4 h-24 animate-pulse">
-              <div className="h-4 w-20 bg-surface-100 rounded mb-2" />
-              <div className="h-8 w-16 bg-surface-100 rounded" />
+            <div key={i} className="bg-white rounded-xl border border-surface-700 p-4 h-24 animate-pulse">
+              <div className="h-4 w-20 bg-surface-800 rounded mb-2" />
+              <div className="h-8 w-16 bg-surface-800 rounded" />
             </div>
           ))}
         </div>
@@ -720,7 +720,7 @@ export default function AuditDashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-3 mb-8">
           <ShieldCheck className="h-7 w-7 text-red-500" />
-          <h1 className="text-2xl font-bold text-surface-900">Data Audit</h1>
+          <h1 className="text-2xl font-bold text-surface-100">Data Audit</h1>
         </div>
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">
           Failed to load audit data. Make sure the database is accessible.
@@ -748,13 +748,13 @@ export default function AuditDashboardPage() {
         <div className="flex items-center gap-3">
           <ShieldCheck className="h-7 w-7 text-primary-600" />
           <div>
-            <h1 className="text-2xl font-bold text-surface-900">Data Audit & Traceability</h1>
+            <h1 className="text-2xl font-bold text-surface-100">Data Audit & Traceability</h1>
             <p className="text-sm text-surface-500">
               Where every data point comes from, when it was last verified, and why
             </p>
           </div>
         </div>
-        <div className="text-xs text-surface-400">
+        <div className="text-xs text-surface-500">
           Generated {new Date(data.generatedAt).toLocaleString()}
           {hasAdminSourceHealth && adminData && (
             <span className="ml-2">· Admin score {adminData.summary.overall_audibility_score.toFixed(1)}</span>
@@ -763,7 +763,7 @@ export default function AuditDashboardPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-surface-200">
+      <div className="flex gap-1 mb-6 border-b border-surface-700">
         {tabs.map(t => (
           <button
             key={t.key}
@@ -771,7 +771,7 @@ export default function AuditDashboardPage() {
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               tab === t.key
                 ? 'border-primary-600 text-primary-700'
-                : 'border-transparent text-surface-500 hover:text-surface-700'
+                : 'border-transparent text-surface-500 hover:text-surface-300'
             }`}
           >
             <t.icon className="h-4 w-4" />
@@ -802,7 +802,7 @@ export default function AuditDashboardPage() {
               value={data.syncJobSummary.total}
               icon={RefreshCw}
               sub={`${data.syncJobSummary.failed} failed (${pct(data.syncJobSummary.failed, data.syncJobSummary.total)} failure rate)`}
-              color={data.syncJobSummary.failed > 0 ? 'text-amber-600' : 'text-surface-900'}
+              color={data.syncJobSummary.failed > 0 ? 'text-amber-600' : 'text-surface-100'}
             />
             <StatCard
               label="Data Sources"
@@ -814,15 +814,15 @@ export default function AuditDashboardPage() {
 
           {/* Confidence + Source kind */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-surface-200 p-5">
-              <h3 className="font-semibold text-surface-800 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl border border-surface-700 p-5">
+              <h3 className="font-semibold text-surface-200 mb-4 flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-primary-500" />
                 Entity Confidence Distribution
               </h3>
               <ConfidenceBar distribution={data.confidenceDistribution} />
             </div>
-            <div className="bg-white rounded-xl border border-surface-200 p-5">
-              <h3 className="font-semibold text-surface-800 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl border border-surface-700 p-5">
+              <h3 className="font-semibold text-surface-200 mb-4 flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary-500" />
                 Fact Source Classification
               </h3>
@@ -832,63 +832,63 @@ export default function AuditDashboardPage() {
 
           {/* Confidence histograms */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-surface-200 p-5">
+            <div className="bg-white rounded-xl border border-surface-700 p-5">
               <ScoreHistogram data={data.scoreHistogram} label="Entity Confidence Scores" />
             </div>
-            <div className="bg-white rounded-xl border border-surface-200 p-5">
+            <div className="bg-white rounded-xl border border-surface-700 p-5">
               <ScoreHistogram data={data.factScoreHistogram} label="Fact Confidence Scores" />
             </div>
           </div>
 
           {/* Provenance + Lineage summary */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-surface-200 p-5">
-              <h3 className="font-semibold text-surface-800 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl border border-surface-700 p-5">
+              <h3 className="font-semibold text-surface-200 mb-4 flex items-center gap-2">
                 <Layers className="h-4 w-4 text-primary-500" />
                 Provenance Coverage
               </h3>
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-surface-600">Entities with provenance metadata</span>
+                    <span className="text-surface-400">Entities with provenance metadata</span>
                     <span className="font-medium">
                       {data.provenanceCoverage.withProvenance} / {data.provenanceCoverage.total}
                     </span>
                   </div>
-                  <div className="h-3 bg-surface-100 rounded-full overflow-hidden">
+                  <div className="h-3 bg-surface-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-primary-500 rounded-full"
                       style={{ width: `${data.provenanceCoverage.total > 0 ? (data.provenanceCoverage.withProvenance / data.provenanceCoverage.total) * 100 : 0}%` }}
                     />
                   </div>
-                  <p className="text-xs text-surface-400 mt-2">
+                  <p className="text-xs text-surface-500 mt-2">
                     Provenance tracks which data source contributed each field, when it was fetched, and the confidence level
                   </p>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-xl border border-surface-200 p-5">
-              <h3 className="font-semibold text-surface-800 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl border border-surface-700 p-5">
+              <h3 className="font-semibold text-surface-200 mb-4 flex items-center gap-2">
                 <Link2 className="h-4 w-4 text-primary-500" />
                 Sync Job Lineage
               </h3>
               <LineageCompleteness lineage={data.lineage} />
-              <p className="text-xs text-surface-400 mt-3">
+              <p className="text-xs text-surface-500 mt-3">
                 Rows linked to a sync job have full traceability: who ran it, when, how many records, success/failure
               </p>
             </div>
           </div>
 
           {/* Warehouse inventory */}
-          <div className="bg-white rounded-xl border border-surface-200 p-5">
-            <h3 className="font-semibold text-surface-800 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl border border-surface-700 p-5">
+            <h3 className="font-semibold text-surface-200 mb-4 flex items-center gap-2">
               <Database className="h-4 w-4 text-primary-500" />
               Warehouse Inventory
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               {Object.entries(data.warehouseCounts).map(([table, count]) => (
-                <div key={table} className="text-center p-3 rounded-lg bg-surface-50">
-                  <p className="text-lg font-semibold text-surface-800">{count.toLocaleString()}</p>
+                <div key={table} className="text-center p-3 rounded-lg bg-surface-900">
+                  <p className="text-lg font-semibold text-surface-200">{count.toLocaleString()}</p>
                   <p className="text-xs text-surface-500 mt-0.5">{table.replace(/_/g, ' ')}</p>
                 </div>
               ))}
@@ -919,12 +919,12 @@ export default function AuditDashboardPage() {
             </div>
           )}
           {isAdminLoading && !hasAdminSourceHealth && (
-            <div className="bg-surface-50 border border-surface-200 rounded-xl p-4 text-sm text-surface-500">
+            <div className="bg-surface-900 border border-surface-700 rounded-xl p-4 text-sm text-surface-500">
               Loading source confidence metadata from /api/admin/data-health...
             </div>
           )}
-          <div className="bg-white rounded-xl border border-surface-200 p-5">
-            <h3 className="font-semibold text-surface-800 mb-4">
+          <div className="bg-white rounded-xl border border-surface-700 p-5">
+            <h3 className="font-semibold text-surface-200 mb-4">
               Data Source Registry ({sourceHealthRows.length} sources)
             </h3>
             <SourceHealthTable sources={sourceHealthRows} />
@@ -936,41 +936,41 @@ export default function AuditDashboardPage() {
       {tab === 'lineage' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-surface-200 p-5">
-              <h3 className="font-semibold text-surface-800 mb-4">Provenance Coverage</h3>
+            <div className="bg-white rounded-xl border border-surface-700 p-5">
+              <h3 className="font-semibold text-surface-200 mb-4">Provenance Coverage</h3>
               <div className="mb-4">
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-surface-600">Registry entities with provenance</span>
+                  <span className="text-surface-400">Registry entities with provenance</span>
                   <span className="font-medium">
                     {pct(data.provenanceCoverage.withProvenance, data.provenanceCoverage.total)}
                   </span>
                 </div>
-                <div className="h-3 bg-surface-100 rounded-full overflow-hidden">
+                <div className="h-3 bg-surface-800 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary-500 rounded-full"
                     style={{ width: `${data.provenanceCoverage.total > 0 ? (data.provenanceCoverage.withProvenance / data.provenanceCoverage.total) * 100 : 0}%` }}
                   />
                 </div>
               </div>
-              <div className="bg-surface-50 rounded-lg p-4 text-sm space-y-2">
-                <p className="font-medium text-surface-700">What provenance tracks:</p>
-                <ul className="text-surface-600 space-y-1 list-disc list-inside">
-                  <li><code className="text-xs bg-surface-200 px-1 rounded">source_key</code> — which data source (FDIC, NCUA, OSFI, etc.)</li>
-                  <li><code className="text-xs bg-surface-200 px-1 rounded">source_url</code> — exact API endpoint or file URL</li>
-                  <li><code className="text-xs bg-surface-200 px-1 rounded">fetched_at</code> — when the data was retrieved</li>
-                  <li><code className="text-xs bg-surface-200 px-1 rounded">sync_job_id</code> — FK to the sync job that created it</li>
-                  <li><code className="text-xs bg-surface-200 px-1 rounded">confidence</code> — 0-100 numeric score</li>
-                  <li><code className="text-xs bg-surface-200 px-1 rounded">conflicts</code> — when sources disagree on a value</li>
+              <div className="bg-surface-900 rounded-lg p-4 text-sm space-y-2">
+                <p className="font-medium text-surface-300">What provenance tracks:</p>
+                <ul className="text-surface-400 space-y-1 list-disc list-inside">
+                  <li><code className="text-xs bg-surface-700 px-1 rounded">source_key</code> — which data source (FDIC, NCUA, OSFI, etc.)</li>
+                  <li><code className="text-xs bg-surface-700 px-1 rounded">source_url</code> — exact API endpoint or file URL</li>
+                  <li><code className="text-xs bg-surface-700 px-1 rounded">fetched_at</code> — when the data was retrieved</li>
+                  <li><code className="text-xs bg-surface-700 px-1 rounded">sync_job_id</code> — FK to the sync job that created it</li>
+                  <li><code className="text-xs bg-surface-700 px-1 rounded">confidence</code> — 0-100 numeric score</li>
+                  <li><code className="text-xs bg-surface-700 px-1 rounded">conflicts</code> — when sources disagree on a value</li>
                 </ul>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-surface-200 p-5">
-              <h3 className="font-semibold text-surface-800 mb-4">Sync Job Lineage Completeness</h3>
+            <div className="bg-white rounded-xl border border-surface-700 p-5">
+              <h3 className="font-semibold text-surface-200 mb-4">Sync Job Lineage Completeness</h3>
               <LineageCompleteness lineage={data.lineage} />
-              <div className="bg-surface-50 rounded-lg p-4 text-sm mt-4 space-y-2">
-                <p className="font-medium text-surface-700">Traceability chain:</p>
-                <div className="flex items-center gap-2 text-xs text-surface-600">
+              <div className="bg-surface-900 rounded-lg p-4 text-sm mt-4 space-y-2">
+                <p className="font-medium text-surface-300">Traceability chain:</p>
+                <div className="flex items-center gap-2 text-xs text-surface-400">
                   <span className="bg-primary-100 text-primary-700 px-2 py-1 rounded font-mono">data_sources</span>
                   <span>→</span>
                   <span className="bg-primary-100 text-primary-700 px-2 py-1 rounded font-mono">sync_jobs</span>
@@ -986,15 +986,15 @@ export default function AuditDashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-surface-200 p-5">
-              <h3 className="font-semibold text-surface-800 mb-4">Entity Confidence Scores</h3>
+            <div className="bg-white rounded-xl border border-surface-700 p-5">
+              <h3 className="font-semibold text-surface-200 mb-4">Entity Confidence Scores</h3>
               <ConfidenceBar distribution={data.confidenceDistribution} />
               <div className="mt-4">
                 <ScoreHistogram data={data.scoreHistogram} label="Score distribution (0-100)" />
               </div>
             </div>
-            <div className="bg-white rounded-xl border border-surface-200 p-5">
-              <h3 className="font-semibold text-surface-800 mb-4">Fact Confidence Scores</h3>
+            <div className="bg-white rounded-xl border border-surface-700 p-5">
+              <h3 className="font-semibold text-surface-200 mb-4">Fact Confidence Scores</h3>
               <SourceKindPie breakdown={data.sourceKindBreakdown} />
               <div className="mt-4">
                 <ScoreHistogram data={data.factScoreHistogram} label="Score distribution (0-100)" />
@@ -1003,46 +1003,46 @@ export default function AuditDashboardPage() {
           </div>
 
           {/* Calculation methodology */}
-          <div className="bg-white rounded-xl border border-surface-200 p-5">
-            <h3 className="font-semibold text-surface-800 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl border border-surface-700 p-5">
+            <h3 className="font-semibold text-surface-200 mb-4 flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary-500" />
               Scoring Methodology
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
               <div>
-                <h4 className="font-medium text-surface-800 mb-2">Confidence Levels</h4>
+                <h4 className="font-medium text-surface-200 mb-2">Confidence Levels</h4>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className={`w-3 h-3 rounded-full ${confidenceColor('high')}`} />
-                    <span className="text-surface-700"><strong>High</strong> — Official regulatory data (FDIC, NCUA, OSFI)</span>
+                    <span className="text-surface-300"><strong>High</strong> — Official regulatory data (FDIC, NCUA, OSFI)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`w-3 h-3 rounded-full ${confidenceColor('medium')}`} />
-                    <span className="text-surface-700"><strong>Medium</strong> — Company-reported or curated data</span>
+                    <span className="text-surface-300"><strong>Medium</strong> — Company-reported or curated data</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`w-3 h-3 rounded-full ${confidenceColor('low')}`} />
-                    <span className="text-surface-700"><strong>Low</strong> — Inferred or estimated values</span>
+                    <span className="text-surface-300"><strong>Low</strong> — Inferred or estimated values</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`w-3 h-3 rounded-full ${confidenceColor('unverified')}`} />
-                    <span className="text-surface-700"><strong>Unverified</strong> — Not yet validated</span>
+                    <span className="text-surface-300"><strong>Unverified</strong> — Not yet validated</span>
                   </div>
                 </div>
               </div>
               <div>
-                <h4 className="font-medium text-surface-800 mb-2">Source Priority</h4>
-                <p className="text-surface-600 mb-2">When multiple sources disagree, priority is:</p>
-                <ol className="list-decimal list-inside space-y-1 text-surface-700">
-                  <li><code className="text-xs bg-surface-100 px-1 rounded">official</code> — Regulator filings (FDIC call reports, NCUA 5300)</li>
-                  <li><code className="text-xs bg-surface-100 px-1 rounded">company</code> — Self-reported by the institution</li>
-                  <li><code className="text-xs bg-surface-100 px-1 rounded">curated</code> — Research, agent scripts, human curation</li>
+                <h4 className="font-medium text-surface-200 mb-2">Source Priority</h4>
+                <p className="text-surface-400 mb-2">When multiple sources disagree, priority is:</p>
+                <ol className="list-decimal list-inside space-y-1 text-surface-300">
+                  <li><code className="text-xs bg-surface-800 px-1 rounded">official</code> — Regulator filings (FDIC call reports, NCUA 5300)</li>
+                  <li><code className="text-xs bg-surface-800 px-1 rounded">company</code> — Self-reported by the institution</li>
+                  <li><code className="text-xs bg-surface-800 px-1 rounded">curated</code> — Research, agent scripts, human curation</li>
                 </ol>
               </div>
               <div>
-                <h4 className="font-medium text-surface-800 mb-2">Brim Opportunity Scores</h4>
-                <p className="text-surface-600 mb-2">Composite score (0-100) from 5 signals:</p>
-                <ul className="space-y-1 text-surface-700">
+                <h4 className="font-medium text-surface-200 mb-2">Brim Opportunity Scores</h4>
+                <p className="text-surface-400 mb-2">Composite score (0-100) from 5 signals:</p>
+                <ul className="space-y-1 text-surface-300">
                   <li><strong>30pts</strong> — Too big for agent program</li>
                   <li><strong>25pts</strong> — Post-merger integration window</li>
                   <li><strong>20pts</strong> — Portfolio acquirer pattern</li>
@@ -1059,14 +1059,14 @@ export default function AuditDashboardPage() {
       {tab === 'sync' && (
         <div className="space-y-6">
           {/* Per-source summary */}
-          <div className="bg-white rounded-xl border border-surface-200 p-5">
-            <h3 className="font-semibold text-surface-800 mb-4">Sync Performance by Source</h3>
+          <div className="bg-white rounded-xl border border-surface-700 p-5">
+            <h3 className="font-semibold text-surface-200 mb-4">Sync Performance by Source</h3>
             <SyncBySourceTable sources={data.syncBySource} />
           </div>
 
           {/* Recent job timeline */}
-          <div className="bg-white rounded-xl border border-surface-200 p-5">
-            <h3 className="font-semibold text-surface-800 mb-4">Recent Sync Jobs</h3>
+          <div className="bg-white rounded-xl border border-surface-700 p-5">
+            <h3 className="font-semibold text-surface-200 mb-4">Recent Sync Jobs</h3>
             <SyncJobTimeline jobs={data.recentJobs} />
           </div>
 
@@ -1082,7 +1082,7 @@ export default function AuditDashboardPage() {
               label="Failed"
               value={data.syncJobSummary.failed}
               icon={XCircle}
-              color={data.syncJobSummary.failed > 0 ? 'text-red-600' : 'text-surface-400'}
+              color={data.syncJobSummary.failed > 0 ? 'text-red-600' : 'text-surface-500'}
             />
             <StatCard
               label="Running"

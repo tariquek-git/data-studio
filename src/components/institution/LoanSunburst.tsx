@@ -98,9 +98,9 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
   const item = payload[0]?.payload;
   if (!item) return null;
   return (
-    <div className="bg-white border border-surface-200 rounded-lg shadow-md px-3 py-2 text-sm">
-      <p className="font-semibold text-surface-900">{item.name}</p>
-      <p className="text-surface-600">{formatCurrency(item.value ?? null)}</p>
+    <div className="bg-white border border-surface-700 rounded-lg shadow-md px-3 py-2 text-sm">
+      <p className="font-semibold text-surface-100">{item.name}</p>
+      <p className="text-surface-400">{formatCurrency(item.value ?? null)}</p>
       {item.pct != null && (
         <p className="text-surface-500">{item.pct.toFixed(1)}% of total loans</p>
       )}
@@ -120,7 +120,7 @@ export function LoanSunburst({ raw, totalLoans }: LoanSunburstProps) {
   if (totalLoans == null || raw == null) {
     return (
       <Card>
-        <h3 className="text-sm font-semibold text-surface-700 mb-4">Loan Portfolio Composition</h3>
+        <h3 className="text-sm font-semibold text-surface-300 mb-4">Loan Portfolio Composition</h3>
         <p className="text-sm text-surface-400 text-center py-8">
           Loan composition data not available.
         </p>
@@ -147,7 +147,7 @@ export function LoanSunburst({ raw, totalLoans }: LoanSunburstProps) {
   if (named.length === 0) {
     return (
       <Card>
-        <h3 className="text-sm font-semibold text-surface-700 mb-4">Loan Portfolio Composition</h3>
+        <h3 className="text-sm font-semibold text-surface-300 mb-4">Loan Portfolio Composition</h3>
         <p className="text-sm text-surface-400 text-center py-8">
           Loan composition data not available.
         </p>
@@ -165,7 +165,7 @@ export function LoanSunburst({ raw, totalLoans }: LoanSunburstProps) {
   return (
     <Card padding={false}>
       <div className="p-5 pb-0">
-        <h3 className="text-sm font-semibold text-surface-700">Loan Portfolio Composition</h3>
+        <h3 className="text-sm font-semibold text-surface-300">Loan Portfolio Composition</h3>
         <p className="text-xs text-surface-400 mt-0.5">
           Total Loans: {formatCurrency(totalLoans)}
         </p>
@@ -191,7 +191,7 @@ export function LoanSunburst({ raw, totalLoans }: LoanSunburstProps) {
               className="inline-block h-2.5 w-2.5 rounded-sm shrink-0"
               style={{ backgroundColor: item.color }}
             />
-            <span className="text-xs text-surface-600">{item.name}</span>
+            <span className="text-xs text-surface-400">{item.name}</span>
             <span className="text-xs text-surface-400">({item.pct.toFixed(1)}%)</span>
           </div>
         ))}

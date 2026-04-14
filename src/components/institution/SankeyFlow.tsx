@@ -177,10 +177,10 @@ export function SankeyFlow({ data }: SankeyFlowProps) {
 
   if (!hasData || !layout) {
     return (
-      <div className="rounded-xl border border-surface-200 bg-white p-6">
+      <div className="rounded-xl border border-surface-700 bg-white p-6">
         <div className="mb-4 flex items-center gap-2">
           <DollarSign className="h-5 w-5 text-primary-600" />
-          <h3 className="text-lg font-semibold text-surface-900">Income Flow</h3>
+          <h3 className="text-lg font-semibold text-surface-100">Income Flow</h3>
         </div>
         <div className="flex h-48 items-center justify-center text-surface-500">
           No data available
@@ -192,10 +192,10 @@ export function SankeyFlow({ data }: SankeyFlowProps) {
   const linkPath = sankeyLinkHorizontal();
 
   return (
-    <div className="rounded-xl border border-surface-200 bg-white p-6">
+    <div className="rounded-xl border border-surface-700 bg-white p-6">
       <div className="mb-4 flex items-center gap-2">
         <DollarSign className="h-5 w-5 text-primary-600" />
-        <h3 className="text-lg font-semibold text-surface-900">Income Flow</h3>
+        <h3 className="text-lg font-semibold text-surface-100">Income Flow</h3>
       </div>
       <div className="relative w-full">
         <svg

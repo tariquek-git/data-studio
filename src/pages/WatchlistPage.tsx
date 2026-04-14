@@ -49,8 +49,8 @@ export default function WatchlistPage() {
   if (watchlist.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-        <Star className="h-12 w-12 text-surface-300 mx-auto mb-4" />
-        <h1 className="text-2xl font-bold text-surface-900 mb-2">Your Watchlist is Empty</h1>
+        <Star className="h-12 w-12 text-surface-600 mx-auto mb-4" />
+        <h1 className="text-2xl font-bold text-surface-100 mb-2">Your Watchlist is Empty</h1>
         <p className="text-surface-500 max-w-md mx-auto mb-8">
           No institutions in your watchlist yet. Star any institution to add it here.
         </p>
@@ -64,7 +64,7 @@ export default function WatchlistPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-surface-900">
+        <h1 className="text-2xl font-bold text-surface-100">
           Watchlist{' '}
           <span className="inline-flex items-center justify-center rounded-full bg-primary-100 text-primary-700 text-sm font-medium px-2.5 py-0.5 ml-1">
             {watchlist.length}
@@ -100,9 +100,9 @@ export default function WatchlistPage() {
         <p className="text-sm text-amber-600">Select up to 5 institutions to compare.</p>
       )}
 
-      <div className="overflow-x-auto border border-surface-200 rounded-lg">
-        <table className="min-w-full divide-y divide-surface-200">
-          <thead className="bg-surface-50">
+      <div className="overflow-x-auto border border-surface-700 rounded-lg">
+        <table className="min-w-full divide-y divide-surface-700">
+          <thead className="bg-surface-900">
             <tr>
               <th scope="col" className="px-4 py-3 w-10">
                 <span className="sr-only">Select</span>
@@ -127,12 +127,12 @@ export default function WatchlistPage() {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-surface-100">
+          <tbody className="bg-white divide-y divide-surface-800">
             {isLoading
               ? watchlist.map((cert) => (
                   <tr key={cert}>
                     <td colSpan={7} className="px-4 py-3">
-                      <div className="h-4 bg-surface-200 animate-pulse rounded w-full" />
+                      <div className="h-4 bg-surface-700 animate-pulse rounded w-full" />
                     </td>
                   </tr>
                 ))
@@ -142,21 +142,21 @@ export default function WatchlistPage() {
                   return (
                     <tr
                       key={inst.id}
-                      className={`hover:bg-primary-50/40 transition-colors ${idx % 2 === 1 ? 'bg-surface-50/50' : ''} ${isSelected ? 'ring-1 ring-inset ring-primary-300' : ''}`}
+                      className={`hover:bg-primary-50/40 transition-colors ${idx % 2 === 1 ? 'bg-surface-900/50' : ''} ${isSelected ? 'ring-1 ring-inset ring-primary-300' : ''}`}
                     >
                       <td className="px-4 py-3 w-10">
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleSelect(inst.cert_number)}
-                          className="h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+                          className="h-4 w-4 rounded border-surface-600 text-primary-600 focus:ring-primary-500"
                           aria-label={`Select ${displayName}`}
                         />
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
-                            className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${inst.active ? 'bg-green-500' : 'bg-surface-300'}`}
+                            className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${inst.active ? 'bg-green-500' : 'bg-surface-600'}`}
                             title={inst.active ? 'Active' : 'Inactive'}
                           />
                           <Link
@@ -174,17 +174,17 @@ export default function WatchlistPage() {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {inst.state ? (
-                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-surface-100 text-surface-600 ring-1 ring-inset ring-surface-300/50">
+                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-surface-800 text-surface-400 ring-1 ring-inset ring-surface-600/50">
                             {inst.state}
                           </span>
                         ) : (
-                          <span className="text-surface-400 text-sm">—</span>
+                          <span className="text-surface-500 text-sm">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-surface-900 text-right font-mono">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-surface-100 text-right font-mono">
                         {formatCurrency(inst.total_assets)}
                       </td>
-                      <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-surface-900 text-right font-mono">
+                      <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-surface-100 text-right font-mono">
                         {formatCurrency(inst.total_deposits)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
@@ -193,7 +193,7 @@ export default function WatchlistPage() {
                             {inst.roa.toFixed(2)}%
                           </span>
                         ) : (
-                          <span className="text-surface-400 text-sm font-mono">—</span>
+                          <span className="text-surface-500 text-sm font-mono">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center">
@@ -201,7 +201,7 @@ export default function WatchlistPage() {
                           <Link
                             to={`/institution/${inst.cert_number}`}
                             title="View profile"
-                            className="p-1 rounded text-surface-400 hover:text-primary-600 transition-colors"
+                            className="p-1 rounded text-surface-500 hover:text-primary-600 transition-colors"
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Link>
@@ -209,7 +209,7 @@ export default function WatchlistPage() {
                             type="button"
                             onClick={() => remove(inst.cert_number)}
                             title="Remove from watchlist"
-                            className="p-1 rounded text-surface-400 hover:text-red-500 transition-colors"
+                            className="p-1 rounded text-surface-500 hover:text-red-500 transition-colors"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -222,7 +222,7 @@ export default function WatchlistPage() {
         </table>
       </div>
 
-      <p className="text-xs text-surface-400">
+      <p className="text-xs text-surface-500">
         Watchlist is stored locally in your browser — no account needed.
       </p>
     </div>

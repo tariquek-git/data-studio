@@ -14,5 +14,12 @@ export default defineConfig({
     port: parseInt(process.env.PORT || '5174'),
     strictPort: false,
     host: '127.0.0.1',
+    proxy: {
+      '/api': {
+        target: 'https://data-studio-mu.vercel.app',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
 })

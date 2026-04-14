@@ -17,12 +17,12 @@ function charterColor(type: string | null): 'blue' | 'green' | 'purple' | 'gray'
 }
 
 function RoaBar({ value }: { value: number | null }) {
-  if (value == null) return <div className="h-1.5 bg-surface-100 rounded-full" />;
+  if (value == null) return <div className="h-1.5 bg-surface-800 rounded-full" />;
   // Typical range: -1 to 3, center at 0
   const pct = Math.max(0, Math.min(100, ((value + 1) / 4) * 100));
   const color = value >= 1 ? 'bg-green-500' : value >= 0 ? 'bg-amber-400' : 'bg-red-400';
   return (
-    <div className="h-1.5 bg-surface-100 rounded-full overflow-hidden">
+    <div className="h-1.5 bg-surface-800 rounded-full overflow-hidden">
       <div className={`h-1.5 rounded-full ${color}`} style={{ width: `${pct}%` }} />
     </div>
   );
@@ -45,12 +45,12 @@ export function ResultsCards({ institutions }: ResultsCardsProps) {
           <Link
             key={inst.id}
             to={`/institution/${inst.cert_number}`}
-            className="group block bg-white border border-surface-200 rounded-xl p-4 hover:border-primary-400 hover:shadow-md transition-all"
+            className="group block bg-white border border-surface-700 rounded-xl p-4 hover:border-primary-400 hover:shadow-md transition-all"
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-2 mb-3">
               <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-surface-900 group-hover:text-primary-700 truncate">
+                <h3 className="text-sm font-semibold text-surface-100 group-hover:text-primary-700 truncate">
                   {inst.name || inst.holding_company || `Cert #${inst.cert_number}`}
                 </h3>
                 <div className="flex items-center gap-1.5 mt-0.5 text-xs text-surface-500">
@@ -74,11 +74,11 @@ export function ResultsCards({ institutions }: ResultsCardsProps) {
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs mb-3">
               <div>
                 <span className="text-surface-400 flex items-center gap-1"><DollarSign className="h-3 w-3" />Assets</span>
-                <span className="font-semibold text-surface-800 mt-0.5 block">{formatCurrency(inst.total_assets)}</span>
+                <span className="font-semibold text-surface-200 mt-0.5 block">{formatCurrency(inst.total_assets)}</span>
               </div>
               <div>
                 <span className="text-surface-400 flex items-center gap-1"><DollarSign className="h-3 w-3" />Deposits</span>
-                <span className="font-semibold text-surface-800 mt-0.5 block">{formatCurrency(inst.total_deposits)}</span>
+                <span className="font-semibold text-surface-200 mt-0.5 block">{formatCurrency(inst.total_deposits)}</span>
               </div>
               <div>
                 <span className="text-surface-400 flex items-center gap-1"><TrendingUp className="h-3 w-3" />ROA</span>
@@ -104,7 +104,7 @@ export function ResultsCards({ institutions }: ResultsCardsProps) {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center gap-3 pt-2 border-t border-surface-100 text-xs text-surface-400">
+            <div className="flex items-center gap-3 pt-2 border-t border-surface-800 text-xs text-surface-400">
               {inst.num_branches != null && (
                 <span className="flex items-center gap-1">
                   <GitBranch className="h-3 w-3" />

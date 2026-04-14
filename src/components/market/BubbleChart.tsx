@@ -78,8 +78,8 @@ function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.[0]) return null;
   const d = payload[0].payload as Institution;
   return (
-    <div className="bg-white border border-surface-200 rounded-xl shadow-lg p-4 max-w-xs text-sm">
-      <p className="font-semibold text-surface-900 mb-1">{d.name}</p>
+    <div className="bg-white border border-surface-700 rounded-xl shadow-lg p-4 max-w-xs text-sm">
+      <p className="font-semibold text-surface-100 mb-1">{d.name}</p>
       <p className="text-surface-500 text-xs mb-3">{d.state} · {d.charter_type?.replace(/_/g, ' ')}</p>
       <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
         <span className="text-surface-500">Total Assets</span>
@@ -121,7 +121,7 @@ export function BubbleChart({ institutions, stats, highlightCert }: BubbleChartP
         {['mega', 'large', 'regional', 'community', 'small'].filter(b => buckets.includes(b)).map(bucket => (
           <div key={bucket} className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: BUCKET_COLORS[bucket] }} />
-            <span className="text-xs text-surface-600">{BUCKET_LABELS[bucket]}</span>
+            <span className="text-xs text-surface-400">{BUCKET_LABELS[bucket]}</span>
           </div>
         ))}
       </div>

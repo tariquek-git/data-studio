@@ -30,11 +30,11 @@ function FilterSection({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-surface-100 last:border-b-0">
+    <div className="border-b border-surface-800 last:border-b-0">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full py-3 text-sm font-medium text-surface-700 hover:text-surface-900"
+        className="flex items-center justify-between w-full py-3 text-sm font-medium text-surface-300 hover:text-surface-100"
       >
         {title}
         {open ? (
@@ -119,8 +119,8 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
 
   return (
     <div className="space-y-0">
-      <div className="flex items-center justify-between pb-2 mb-1 border-b border-surface-200">
-        <h3 className="text-sm font-semibold text-surface-900">Filters</h3>
+      <div className="flex items-center justify-between pb-2 mb-1 border-b border-surface-700">
+        <h3 className="text-sm font-semibold text-surface-100">Filters</h3>
         {hasFilters && (
           <button
             onClick={onClear}
@@ -133,7 +133,7 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
       </div>
 
       {/* Country quick-filter */}
-      <div className="flex gap-1.5 pb-3 border-b border-surface-100">
+      <div className="flex gap-1.5 pb-3 border-b border-surface-800">
         {COUNTRY_OPTIONS.map((opt) => (
           <button
             key={String(opt.value)}
@@ -142,7 +142,7 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
             className={`flex-1 px-2 py-1 rounded-full text-xs font-medium border transition-colors ${
               filters.country === opt.value
                 ? 'bg-primary-600 text-white border-primary-600'
-                : 'bg-white text-surface-600 border-surface-300 hover:border-primary-400 hover:text-primary-700'
+                : 'bg-white text-surface-400 border-surface-600 hover:border-primary-400 hover:text-primary-700'
             }`}
           >
             {opt.label}
@@ -163,15 +163,15 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
           {filteredRegions.map((region) => (
             <label
               key={region.code}
-              className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-50 cursor-pointer"
+              className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-900 cursor-pointer"
             >
               <input
                 type="checkbox"
                 checked={filters.states.includes(region.code)}
                 onChange={() => toggleState(region.code)}
-                className="h-3.5 w-3.5 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+                className="h-3.5 w-3.5 rounded border-surface-600 text-primary-600 focus:ring-primary-500"
               />
-              <span className="text-xs text-surface-700">
+              <span className="text-xs text-surface-300">
                 {region.name}{' '}
                 <span className="text-surface-400">({region.code})</span>
               </span>
@@ -185,15 +185,15 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
         {(['fdic', 'ncua', 'osfi', 'rpaa', 'ciro', 'fintrac', 'fincen'] as const).map((src) => (
           <label
             key={src}
-            className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-50 cursor-pointer"
+            className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-900 cursor-pointer"
           >
             <input
               type="checkbox"
               checked={filters.source.includes(src)}
               onChange={() => toggleSource(src)}
-              className="h-3.5 w-3.5 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+              className="h-3.5 w-3.5 rounded border-surface-600 text-primary-600 focus:ring-primary-500"
             />
-            <span className="text-xs text-surface-700">
+            <span className="text-xs text-surface-300">
               {src === 'fdic'
                 ? 'FDIC Banks (US)'
                 : src === 'ncua'
@@ -217,15 +217,15 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
         {['commercial', 'savings', 'savings_association', 'credit_union'].map((type) => (
           <label
             key={type}
-            className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-50 cursor-pointer"
+            className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-900 cursor-pointer"
           >
             <input
               type="checkbox"
               checked={filters.charter_types.includes(type)}
               onChange={() => toggleCharterType(type)}
-              className="h-3.5 w-3.5 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+              className="h-3.5 w-3.5 rounded border-surface-600 text-primary-600 focus:ring-primary-500"
             />
-            <span className="text-xs text-surface-700 capitalize">
+            <span className="text-xs text-surface-300 capitalize">
               {type.replace(/_/g, ' ')}
             </span>
           </label>
@@ -246,7 +246,7 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
                 className={`px-2.5 py-0.5 rounded-full text-xs font-medium border transition-colors ${
                   isActive
                     ? 'bg-primary-600 text-white border-primary-600'
-                    : 'bg-white text-surface-600 border-surface-300 hover:border-primary-400 hover:text-primary-700'
+                    : 'bg-white text-surface-400 border-surface-600 hover:border-primary-400 hover:text-primary-700'
                 }`}
               >
                 {preset.label}
@@ -355,16 +355,16 @@ export function FilterPanel({ filters, onChange, onClear }: FilterPanelProps) {
 
       {/* Credit Card Program */}
       <FilterSection title="Credit Card Program">
-        <label className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-50 cursor-pointer">
+        <label className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-900 cursor-pointer">
           <input
             type="checkbox"
             checked={filters.has_credit_card_program === true}
             onChange={(e) =>
               onChange({ has_credit_card_program: e.target.checked ? true : null })
             }
-            className="h-3.5 w-3.5 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+            className="h-3.5 w-3.5 rounded border-surface-600 text-primary-600 focus:ring-primary-500"
           />
-          <span className="text-xs text-surface-700">Has credit card program</span>
+          <span className="text-xs text-surface-300">Has credit card program</span>
         </label>
       </FilterSection>
 

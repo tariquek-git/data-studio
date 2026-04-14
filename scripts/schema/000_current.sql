@@ -498,21 +498,21 @@ CREATE OR REPLACE FUNCTION validate_data_provenance(prov JSONB)
 RETURNS BOOLEAN LANGUAGE plpgsql IMMUTABLE AS $$
 BEGIN
   IF prov IS NULL THEN RETURN TRUE; END IF;
-  IF jsonb_typeof(prov) != 'object' THEN RETURN FALSE; END IF;
+  IF jsonb_typeof(prov) IS DISTINCT FROM 'object' THEN RETURN FALSE; END IF;
   IF prov->>'sources' IS NULL THEN RETURN FALSE; END IF;
-  IF jsonb_typeof(prov->'sources') != 'array' THEN RETURN FALSE; END IF;
-  IF jsonb_typeof(prov->'last_verified_at') != 'string' OR btrim(prov->>'last_verified_at') = '' THEN RETURN FALSE; END IF;
+  IF jsonb_typeof(prov->'sources') IS DISTINCT FROM 'array' THEN RETURN FALSE; END IF;
+  IF jsonb_typeof(prov->'last_verified_at') IS DISTINCT FROM 'string' OR btrim(prov->>'last_verified_at') = '' THEN RETURN FALSE; END IF;
   IF EXISTS (
     SELECT 1
     FROM jsonb_array_elements(prov->'sources') AS src
-    WHERE jsonb_typeof(src) != 'object'
-      OR jsonb_typeof(src->'source_key') != 'string'
+    WHERE jsonb_typeof(src) IS DISTINCT FROM 'object'
+      OR jsonb_typeof(src->'source_key') IS DISTINCT FROM 'string'
       OR btrim(src->>'source_key') = ''
-      OR jsonb_typeof(src->'source_url') != 'string'
+      OR jsonb_typeof(src->'source_url') IS DISTINCT FROM 'string'
       OR btrim(src->>'source_url') = ''
-      OR jsonb_typeof(src->'fetched_at') != 'string'
+      OR jsonb_typeof(src->'fetched_at') IS DISTINCT FROM 'string'
       OR btrim(src->>'fetched_at') = ''
-      OR jsonb_typeof(src->'confidence') != 'number'
+      OR jsonb_typeof(src->'confidence') IS DISTINCT FROM 'number'
       OR (src->>'confidence')::numeric < 0
       OR (src->>'confidence')::numeric > 100
   ) THEN

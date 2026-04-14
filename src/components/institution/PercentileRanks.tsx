@@ -36,10 +36,10 @@ export function PercentileRanks({ rankings }: PercentileRanksProps) {
   const peerGroupLabel = rankings.length > 0 ? rankings[0].peer_group_label : '';
 
   return (
-    <div className="rounded-xl border border-surface-200 bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-surface-700 bg-white p-6 shadow-sm">
       <div className="mb-1 flex items-center gap-2">
         <BarChart3 className="h-5 w-5 text-primary-600" />
-        <h3 className="text-lg font-semibold text-surface-900">Peer Rankings</h3>
+        <h3 className="text-lg font-semibold text-surface-100">Peer Rankings</h3>
       </div>
 
       {peerGroupLabel && (
@@ -54,7 +54,7 @@ export function PercentileRanks({ rankings }: PercentileRanksProps) {
             <div key={item.metric}>
               {/* Row header: metric name + value */}
               <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                <span className="text-sm font-medium text-surface-700">
+                <span className="text-sm font-medium text-surface-300">
                   {item.metric}
                 </span>
                 <span className="shrink-0 text-sm text-surface-500">
@@ -63,11 +63,11 @@ export function PercentileRanks({ rankings }: PercentileRanksProps) {
               </div>
 
               {isNull ? (
-                <div className="flex h-6 items-center rounded bg-surface-100 px-3">
+                <div className="flex h-6 items-center rounded bg-surface-800 px-3">
                   <span className="text-xs text-surface-400">N/A</span>
                 </div>
               ) : (
-                <div className="relative h-6 w-full overflow-hidden rounded bg-surface-100">
+                <div className="relative h-6 w-full overflow-hidden rounded bg-surface-800">
                   {/* Filled bar */}
                   <div
                     className={`absolute inset-y-0 left-0 rounded ${getPercentileColor(item.percentile)}`}

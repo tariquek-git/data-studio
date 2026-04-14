@@ -53,14 +53,14 @@ export function StateMetricGrid({ states }: StateMetricGridProps) {
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-surface-200">
-              <th className="text-left py-2 px-3 text-xs font-semibold text-surface-600 w-32">State</th>
+            <tr className="border-b border-surface-700">
+              <th className="text-left py-2 px-3 text-xs font-semibold text-surface-400 w-32">State</th>
               <th className="text-center py-2 px-2 text-xs font-semibold text-surface-500"># Banks</th>
               <th className="text-center py-2 px-2 text-xs font-semibold text-surface-500">Total Assets</th>
               {METRIC_DEFS.map(m => (
                 <th
                   key={m.key}
-                  className="text-center py-2 px-3 text-xs font-semibold text-surface-600 min-w-[96px]"
+                  className="text-center py-2 px-3 text-xs font-semibold text-surface-400 min-w-[96px]"
                 >
                   {m.label}
                 </th>
@@ -71,9 +71,9 @@ export function StateMetricGrid({ states }: StateMetricGridProps) {
             {states.map((row, i) => (
               <tr
                 key={row.state}
-                className={`border-b border-surface-100 ${i % 2 === 0 ? 'bg-white' : 'bg-surface-50'}`}
+                className={`border-b border-surface-800 ${i % 2 === 0 ? 'bg-white' : 'bg-surface-900'}`}
               >
-                <td className="py-2 px-3 font-semibold text-surface-900 text-sm">{row.state}</td>
+                <td className="py-2 px-3 font-semibold text-surface-100 text-sm">{row.state}</td>
                 <td className="py-2 px-2 text-center text-xs text-surface-500">
                   {row.institution_count.toLocaleString()}
                 </td>
@@ -86,7 +86,7 @@ export function StateMetricGrid({ states }: StateMetricGridProps) {
                   const cellClass =
                     val != null && pct != null
                       ? getCellClass(pct)
-                      : 'bg-surface-100 text-surface-400';
+                      : 'bg-surface-800 text-surface-400';
 
                   return (
                     <td key={m.key} className="py-1 px-1.5">
@@ -106,7 +106,7 @@ export function StateMetricGrid({ states }: StateMetricGridProps) {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-surface-100">
+      <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-surface-800">
         <span className="text-xs font-semibold text-surface-500">Percentile rank within dataset:</span>
         {[
           { cls: 'bg-green-600 text-white', label: 'Top 25%' },

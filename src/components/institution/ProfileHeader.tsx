@@ -71,7 +71,7 @@ function BankLogo({ institution }: { institution: Institution }) {
 
   if (domain && !failed) {
     return (
-      <div className="flex items-center justify-center h-14 w-14 rounded-xl bg-white border border-surface-200 shadow-sm overflow-hidden shrink-0">
+      <div className="flex items-center justify-center h-14 w-14 rounded-xl bg-white border border-surface-700 shadow-sm overflow-hidden shrink-0">
         <img
           src={`https://logo.clearbit.com/${domain}`}
           alt={`${institution.name} logo`}
@@ -116,13 +116,13 @@ export function ProfileHeader({ institution, actions }: ProfileHeaderProps) {
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-surface-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border border-surface-700 shadow-sm overflow-hidden">
       {/* Top band */}
       <div className="p-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex items-start gap-4">
           <BankLogo institution={institution} />
           <div className="space-y-2 min-w-0">
-            <h1 className="text-2xl font-bold text-surface-900 leading-tight">{institution.name}</h1>
+            <h1 className="text-2xl font-bold text-surface-100 leading-tight">{institution.name}</h1>
             {institution.legal_name && institution.legal_name !== institution.name && (
               <p className="text-sm text-surface-500">{institution.legal_name}</p>
             )}
@@ -164,7 +164,7 @@ export function ProfileHeader({ institution, actions }: ProfileHeaderProps) {
               href={institution.website.startsWith('http') ? institution.website : `https://${institution.website}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-surface-300 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-surface-600 text-sm font-medium text-surface-300 hover:bg-surface-900 transition-colors"
             >
               Visit Website
               <ExternalLink className="h-3.5 w-3.5" />
@@ -176,11 +176,11 @@ export function ProfileHeader({ institution, actions }: ProfileHeaderProps) {
 
       {/* Hero stats strip — deposit-takers only */}
       {!isRegistryOnly && (
-        <div className="grid grid-cols-3 sm:grid-cols-6 border-t border-surface-100 divide-x divide-surface-100">
+        <div className="grid grid-cols-3 sm:grid-cols-6 border-t border-surface-800 divide-x divide-surface-800">
           {heroStats.map((s) => (
             <div key={s.label} className="px-4 py-3 text-center">
               <p className="text-[11px] font-medium text-surface-400 uppercase tracking-wide mb-0.5">{s.label}</p>
-              <p className={`text-base font-bold ${s.color ?? 'text-surface-900'}`}>{s.value}</p>
+              <p className={`text-base font-bold ${s.color ?? 'text-surface-100'}`}>{s.value}</p>
             </div>
           ))}
         </div>

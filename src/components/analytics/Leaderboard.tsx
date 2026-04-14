@@ -73,7 +73,7 @@ export function Leaderboard() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 metric === m.value
                   ? 'bg-primary-600 text-white'
-                  : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                  : 'bg-surface-800 text-surface-400 hover:bg-surface-700'
               }`}
             >
               {m.label}
@@ -82,7 +82,7 @@ export function Leaderboard() {
         </div>
         <button
           onClick={() => setOrder(o => o === 'desc' ? 'asc' : 'desc')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-100 text-surface-600 hover:bg-surface-200 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-800 text-surface-400 hover:bg-surface-700 transition-colors"
         >
           {order === 'desc' ? <TrendingDown className="h-3.5 w-3.5" /> : <TrendingUp className="h-3.5 w-3.5" />}
           {order === 'desc' ? 'Top performers' : 'Bottom performers'}
@@ -94,10 +94,10 @@ export function Leaderboard() {
           {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-surface-200">
+        <div className="overflow-hidden rounded-xl border border-surface-700">
           <table className="min-w-full">
             <thead>
-              <tr className="bg-surface-50 border-b border-surface-200">
+              <tr className="bg-surface-900 border-b border-surface-700">
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-surface-500 uppercase w-10">#</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-surface-500 uppercase">Institution</th>
                 <th className="px-4 py-2.5 text-right text-xs font-medium text-surface-500 uppercase">{metaDef.label}</th>
@@ -105,7 +105,7 @@ export function Leaderboard() {
                 <th className="px-4 py-2.5 text-right text-xs font-medium text-surface-500 uppercase hidden md:table-cell">State</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-100">
+            <tbody className="divide-y divide-surface-800">
               {(data?.institutions || []).map((inst, i) => {
                 const value = getValue(inst);
                 const isPositive = value != null && (['roa', 'roi', 'net_income'].includes(metric) ? value >= 0 : true);
@@ -132,11 +132,11 @@ export function Leaderboard() {
                     <td className={`px-4 py-3 text-right text-sm font-mono font-semibold ${
                       ['roa', 'roi', 'net_income'].includes(metric)
                         ? isPositive ? 'text-green-700' : 'text-red-600'
-                        : 'text-surface-900'
+                        : 'text-surface-100'
                     }`}>
                       {value != null ? metaDef.format(value) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-mono text-surface-600 hidden sm:table-cell">
+                    <td className="px-4 py-3 text-right text-sm font-mono text-surface-400 hidden sm:table-cell">
                       {formatCurrency(inst.total_assets)}
                     </td>
                     <td className="px-4 py-3 text-right text-sm text-surface-500 hidden md:table-cell">

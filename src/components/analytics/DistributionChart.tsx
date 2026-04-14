@@ -33,11 +33,11 @@ function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.[0]) return null;
   const d = payload[0].payload as Bin;
   return (
-    <div className="bg-white border border-surface-200 rounded-lg shadow-md p-3 text-xs">
-      <p className="font-semibold text-surface-900">
+    <div className="bg-white border border-surface-700 rounded-lg shadow-md p-3 text-xs">
+      <p className="font-semibold text-surface-100">
         {d.min.toFixed(2)}% – {d.max.toFixed(2)}%
       </p>
-      <p className="text-surface-600 mt-0.5">{d.count.toLocaleString()} institutions</p>
+      <p className="text-surface-400 mt-0.5">{d.count.toLocaleString()} institutions</p>
     </div>
   );
 }
@@ -68,7 +68,7 @@ export function DistributionChart({
           <div key={s.label} className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
             <span className="text-surface-500">{s.label}:</span>
-            <span className="font-semibold text-surface-700">{s.value.toFixed(2)}{unit}</span>
+            <span className="font-semibold text-surface-300">{s.value.toFixed(2)}{unit}</span>
           </div>
         ))}
       </div>

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
+    "@formkit/auto-animate": "^0.9.0",
     "@react-pdf/renderer": "^4.3.2",
     "@remotion/cli": "^4.0.448",
     "@supabase/supabase-js": "^2.100.1",
@@ -31,6 +32,7 @@
     "d3-zoom": "^3.0.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.7.0",
+    "matter-js": "^0.20.0",
     "pg": "^8.20.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -45,6 +47,7 @@
     "@tailwindcss/vite": "^4.2.2",
     "@types/d3-sankey": "^0.12.5",
     "@types/d3-shape": "^3.1.8",
+    "@types/matter-js": "^0.20.2",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

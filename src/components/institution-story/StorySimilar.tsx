@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui';
 import { formatCurrency } from '@/lib/format';
 import type { SimilarInstitution } from '@/hooks/useInstitutionStory';
@@ -35,7 +36,10 @@ export function StorySimilar({ similar, embeddingAvailable, isLoading }: StorySi
       )}
 
       {!isLoading && (!embeddingAvailable || similar.length === 0) && (
-        <p className="text-sm text-slate-400">Similarity data coming soon.</p>
+        <div className="flex items-center gap-2 text-sm text-slate-400">
+          <Sparkles className="h-4 w-4" />
+          <p>Similarity data coming soon — embeddings will be generated shortly.</p>
+        </div>
       )}
 
       {!isLoading && similar.length > 0 && (

@@ -30,8 +30,8 @@ function BrimBadge({ score, tier }: { score: number | null; tier: string | null 
     A: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     B: 'bg-blue-100 text-blue-800 border-blue-200',
     C: 'bg-amber-100 text-amber-700 border-amber-200',
-    D: 'bg-surface-200 text-content-secondary border-surface-300',
-    F: 'bg-surface-100 text-content-tertiary border-surface-200',
+    D: 'bg-surface-200 text-content-secondary border-surface-600',
+    F: 'bg-surface-800 text-content-tertiary border-surface-700',
   };
   const cls = colors[tier ?? 'F'] ?? colors['F'];
   return (
@@ -91,7 +91,7 @@ function InstitutionLogo({ institution }: { institution: Institution }) {
         alt={`${displayName} logo`}
         width={28}
         height={28}
-        className="w-7 h-7 rounded-full object-contain border border-surface-100 bg-white shrink-0"
+        className="w-7 h-7 rounded-full object-contain border border-surface-800 bg-white shrink-0"
         onError={() => setImgFailed(true)}
       />
     );
@@ -161,9 +161,9 @@ export function ResultsTable({ institutions, sortBy, sortDir, onSort }: ResultsT
   }
 
   return (
-    <div className="overflow-x-auto border border-surface-200 rounded-lg">
-      <table className="min-w-full divide-y divide-surface-200">
-        <thead className="bg-surface-50">
+    <div className="overflow-x-auto border border-surface-700 rounded-lg">
+      <table className="min-w-full divide-y divide-surface-700">
+        <thead className="bg-surface-900">
           <tr>
             {/* Logo column — not sortable */}
             <th scope="col" className="px-3 py-3 w-10" aria-hidden="true" />
@@ -172,7 +172,7 @@ export function ResultsTable({ institutions, sortBy, sortDir, onSort }: ResultsT
               <th
                 key={col.key}
                 scope="col"
-                className={`px-4 py-3 text-xs font-medium text-surface-500 uppercase tracking-wider cursor-pointer select-none hover:text-surface-700 ${col.align === 'right' ? 'text-right' : 'text-left'} ${col.hideMobile ? 'hidden sm:table-cell' : ''}`}
+                className={`px-4 py-3 text-xs font-medium text-surface-500 uppercase tracking-wider cursor-pointer select-none hover:text-surface-300 ${col.align === 'right' ? 'text-right' : 'text-left'} ${col.hideMobile ? 'hidden sm:table-cell' : ''}`}
                 onClick={() => onSort(col.key)}
               >
                 <span className="inline-flex items-center gap-1">
@@ -186,13 +186,13 @@ export function ResultsTable({ institutions, sortBy, sortDir, onSort }: ResultsT
             <th scope="col" className="px-3 py-3 w-10" aria-label="Watchlist" />
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-surface-100">
+        <tbody className="bg-white divide-y divide-surface-800">
           {institutions.map((inst, idx) => {
             const displayName = inst.name || inst.holding_company || `Cert #${inst.cert_number}`;
             return (
               <tr
                 key={inst.id}
-                className={`hover:bg-primary-50/40 transition-colors ${idx % 2 === 1 ? 'bg-surface-50/50' : ''}`}
+                className={`hover:bg-primary-50/40 transition-colors ${idx % 2 === 1 ? 'bg-surface-900/50' : ''}`}
               >
                 {/* Logo */}
                 <td className="px-3 py-3 w-10">
@@ -224,7 +224,7 @@ export function ResultsTable({ institutions, sortBy, sortDir, onSort }: ResultsT
                 {/* State badge */}
                 <td className="px-4 py-3 whitespace-nowrap">
                   {inst.state ? (
-                    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-surface-100 text-surface-600 ring-1 ring-inset ring-surface-300/50">
+                    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-surface-800 text-surface-400 ring-1 ring-inset ring-surface-600/50">
                       {inst.state}
                     </span>
                   ) : (
@@ -233,17 +233,17 @@ export function ResultsTable({ institutions, sortBy, sortDir, onSort }: ResultsT
                 </td>
 
                 {/* Total Assets */}
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-surface-900 text-right font-mono">
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-surface-100 text-right font-mono">
                   {formatCurrency(inst.total_assets)}
                 </td>
 
                 {/* Total Deposits — hidden on mobile */}
-                <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-surface-900 text-right font-mono">
+                <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-surface-100 text-right font-mono">
                   {formatCurrency(inst.total_deposits)}
                 </td>
 
                 {/* Branches — hidden on mobile */}
-                <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-surface-600 text-right">
+                <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-surface-400 text-right">
                   {formatNumber(inst.num_branches)}
                 </td>
 

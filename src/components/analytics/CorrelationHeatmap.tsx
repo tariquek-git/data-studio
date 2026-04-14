@@ -42,7 +42,7 @@ export function CorrelationHeatmap({ matrix, metrics, count }: CorrelationHeatma
               {metrics.map(m => (
                 <th
                   key={m}
-                  className="p-2 text-xs font-semibold text-surface-600 text-center whitespace-nowrap min-w-[90px]"
+                  className="p-2 text-xs font-semibold text-surface-400 text-center whitespace-nowrap min-w-[90px]"
                 >
                   {m}
                 </th>
@@ -52,7 +52,7 @@ export function CorrelationHeatmap({ matrix, metrics, count }: CorrelationHeatma
           <tbody>
             {matrix.map((row, ri) => (
               <tr key={metrics[ri]}>
-                <td className="p-2 text-xs font-semibold text-surface-600 text-right whitespace-nowrap pr-3">
+                <td className="p-2 text-xs font-semibold text-surface-400 text-right whitespace-nowrap pr-3">
                   {metrics[ri]}
                 </td>
                 {row.map((r, ci) => {
@@ -130,8 +130,8 @@ export function CorrelationHeatmap({ matrix, metrics, count }: CorrelationHeatma
       </div>
 
       {/* Interpretation guide */}
-      <div className="bg-surface-50 border border-surface-200 rounded-xl p-4">
-        <p className="text-xs font-semibold text-surface-700 mb-1">How to read this matrix</p>
+      <div className="bg-surface-900 border border-surface-700 rounded-xl p-4">
+        <p className="text-xs font-semibold text-surface-300 mb-1">How to read this matrix</p>
         <p className="text-xs text-surface-500 leading-relaxed">
           <strong>Strong positive (&gt;0.7):</strong> metrics consistently move together across institutions. &nbsp;
           <strong>Near zero (±0.1):</strong> no meaningful linear relationship — one metric tells you nothing about the other. &nbsp;

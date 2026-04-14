@@ -1,4 +1,5 @@
 import { getSupabase } from './supabase.js';
+import { SOURCE_CATALOG } from './source-registry.js';
 import type {
   EntityContextResponse,
   EntityDetail,
@@ -91,6 +92,15 @@ const TABLE_EXISTENCE_CACHE_TTL_MS = 60_000;
 const TABLE_EXISTENCE_CACHE = new Map<string, { exists: boolean; checkedAt: number }>();
 const ENTITY_ID_CHUNK_SIZE = 100;
 const CERT_CHUNK_SIZE = 400;
+const SOURCE_URLS = new Map(
+  SOURCE_CATALOG.map((source) => [
+    source.source_key,
+    {
+      dataUrl: source.data_url,
+      regulatorUrl: source.regulator_url,
+    },
+  ])
+);
 
 const SOURCE_META: Record<
   string,
@@ -201,6 +211,12 @@ function formatSourceAuthority(sourceKey: string, fallback?: string | null) {
   return fallback ?? SOURCE_META[sourceKey]?.authority ?? sourceKey.toUpperCase();
 }
 
+function sourceUrlForKey(sourceKey: string | null | undefined) {
+  if (!sourceKey) return null;
+  const source = SOURCE_URLS.get(sourceKey);
+  return source?.dataUrl ?? source?.regulatorUrl ?? null;
+}
+
 function chunkValues<T>(values: T[], size = 400) {
   const chunks: T[][] = [];
   for (let index = 0; index < values.length; index += size) {
@@ -245,7 +261,7 @@ function externalIdRowsFromInstitution(row: InstitutionRow) {
       id_type: 'cert_number',
       id_value: String(row.cert_number),
       is_primary: true,
-      source_url: null,
+      source_url: sourceUrlForKey(row.source),
     });
   }
   if (row.holding_company) {
@@ -255,7 +271,7 @@ function externalIdRowsFromInstitution(row: InstitutionRow) {
       id_type: 'holding_company',
       id_value: row.holding_company,
       is_primary: false,
-      source_url: null,
+      source_url: sourceUrlForKey(row.source),
     });
   }
   if (row.raw_data && typeof row.raw_data === 'object') {
@@ -274,7 +290,7 @@ function externalIdRowsFromInstitution(row: InstitutionRow) {
         id_type: idType,
         id_value: String(idValue).trim(),
         is_primary: isPrimary,
-        source_url: null,
+        source_url: sourceUrlForKey(row.source),
       });
     }
   }
@@ -290,7 +306,7 @@ function externalIdRowsFromRegistry(row: RegistryEntityRow) {
       id_type: 'registration_number',
       id_value: row.registration_number,
       is_primary: true,
-      source_url: null,
+      source_url: sourceUrlForKey(row.source_key),
     });
   }
   return ids;
@@ -362,7 +378,7 @@ function deriveInstitutionTags(row: InstitutionRow, capability: CapabilityRow | 
       tag_key: 'business_role',
       tag_value: role,
       source_kind: 'curated',
-      source_url: null,
+      source_url: sourceUrlForKey(row.source),
       confidence_score: 0.6,
       effective_start: null,
       effective_end: null,
@@ -376,7 +392,7 @@ function deriveInstitutionTags(row: InstitutionRow, capability: CapabilityRow | 
       tag_key: 'charter_family',
       tag_value: row.charter_type,
       source_kind: 'curated',
-      source_url: null,
+      source_url: sourceUrlForKey(row.source),
       confidence_score: 0.5,
       effective_start: null,
       effective_end: null,
@@ -395,7 +411,7 @@ function deriveRegistryTags(row: RegistryEntityRow) {
       tag_key: 'business_role',
       tag_value: row.entity_subtype,
       source_kind: 'curated',
-      source_url: null,
+      source_url: sourceUrlForKey(row.source_key),
       confidence_score: 0.5,
       effective_start: null,
       effective_end: null,
@@ -922,7 +938,7 @@ async function loadEntityFacts(storageTable: EntityStorageTable, entityId: strin
         ? [{
             id: `legacy-cert-${entity.id}`,
             source_kind: 'curated',
-            source_url: null,
+            source_url: sourceUrlForKey(entity.source_key),
             fact_type: 'identity',
             fact_key: 'cert_number',
             fact_value_text: String(entity.cert_number),
@@ -938,7 +954,7 @@ async function loadEntityFacts(storageTable: EntityStorageTable, entityId: strin
   fallbackFacts.push({
     id: `legacy-source-${entity.id}`,
     source_kind: entity.source_kind,
-    source_url: null,
+    source_url: sourceUrlForKey(entity.source_key),
     fact_type: 'source',
     fact_key: 'source_authority',
     fact_value_text: entity.source_authority,
@@ -961,9 +977,7 @@ export async function getEntitySources(entityId: string): Promise<EntitySourceRe
 
   sources.push({
     label: entity.source_authority,
-    url: SOURCE_META[entity.source_key]?.sourceKind === 'official'
-      ? null
-      : null,
+    url: sourceUrlForKey(entity.source_key),
     source_key: entity.source_key,
     source_kind: entity.source_kind,
     authority: entity.source_authority,
@@ -1088,18 +1102,85 @@ async function loadCharterEvents(storageTable: EntityStorageTable, entityId: str
 }
 
 async function resolveEntityRefs(refs: Array<{ table: EntityStorageTable; id: string }>) {
+  if (refs.length === 0) return new Map<string, EntitySummary>();
+
   const unique = Array.from(new Set(refs.map((ref) => `${ref.table}:${ref.id}`))).map((key) => {
     const [table, id] = key.split(':');
     return { table: table as EntityStorageTable, id };
   });
 
+  const supabase = getSupabase();
+  const institutionIds = unique
+    .filter((ref) => ref.table === 'institutions')
+    .map((ref) => ref.id);
+  const registryIds = unique
+    .filter((ref) => ref.table === 'registry_entities')
+    .map((ref) => ref.id);
+
+  const [institutionRows, registryRows] = await Promise.all([
+    (async () => {
+      if (institutionIds.length === 0) return [] as InstitutionRow[];
+      const rows: InstitutionRow[] = [];
+      for (const idChunk of chunkValues(institutionIds, ENTITY_ID_CHUNK_SIZE)) {
+        const chunkRows = await safeRows<InstitutionRow>(
+          supabase
+            .from('institutions')
+            .select('id, cert_number, source, name, legal_name, charter_type, active, city, state, website, regulator, holding_company, total_assets, total_deposits, total_loans, net_income, roa, roi, raw_data, data_as_of, last_synced_at, created_at, updated_at')
+            .in('id', idChunk)
+        );
+        rows.push(...chunkRows);
+      }
+      return rows;
+    })(),
+    (async () => {
+      if (registryIds.length === 0) return [] as RegistryEntityRow[];
+      const rows: RegistryEntityRow[] = [];
+      for (const idChunk of chunkValues(registryIds, ENTITY_ID_CHUNK_SIZE)) {
+        const chunkRows = await safeRows<RegistryEntityRow>(
+          supabase
+            .from('registry_entities')
+            .select('id, source_key, name, legal_name, entity_subtype, active, city, state, website, regulator, registration_number, status, description, raw_data, data_as_of, last_synced_at, created_at, updated_at, country')
+            .in('id', idChunk)
+        );
+        rows.push(...chunkRows);
+      }
+      return rows;
+    })(),
+  ]);
+
+  const entityRefs = [
+    ...institutionRows.map((row) => ({ entity_table: 'institutions' as const, entity_id: row.id })),
+    ...registryRows.map((row) => ({ entity_table: 'registry_entities' as const, entity_id: row.id })),
+  ];
+
+  const [tagsMap, capabilityMap] = await Promise.all([
+    loadTags(entityRefs),
+    loadCapabilityMap(
+      institutionRows
+        .map((row) => row.cert_number)
+        .filter((value): value is number => typeof value === 'number')
+    ),
+  ]);
+
   const resolved = new Map<string, EntitySummary>();
-  for (const ref of unique) {
-    const entity = await getEntityById(ref.id, ref.table);
-    if (entity) {
-      resolved.set(`${ref.table}:${ref.id}`, entity);
-    }
+
+  for (const row of institutionRows) {
+    const summary = mapInstitutionToSummary(
+      row,
+      tagsMap.get(`institutions:${row.id}`) ?? [],
+      row.cert_number != null ? capabilityMap.get(row.cert_number) : null
+    );
+    resolved.set(`institutions:${row.id}`, summary);
   }
+
+  for (const row of registryRows) {
+    const summary = mapRegistryToSummary(
+      row,
+      tagsMap.get(`registry_entities:${row.id}`) ?? []
+    );
+    resolved.set(`registry_entities:${row.id}`, summary);
+  }
+
   return resolved;
 }
 

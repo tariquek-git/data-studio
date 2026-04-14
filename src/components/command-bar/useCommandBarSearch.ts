@@ -9,7 +9,7 @@ export interface CommandBarAction {
   id: string;
   label: string;
   href: string;
-  icon: 'explore' | 'compare' | 'map';
+  icon: 'explore' | 'compare' | 'map' | 'brim';
 }
 
 export interface AiQueryResult {
@@ -190,6 +190,40 @@ export function useCommandBarSearch(): CommandBarSearchState {
 
   // Build actions
   const actions: CommandBarAction[] = [];
+
+  // Brim Mode quick actions — appear for whale/brim/prospect keywords or empty query
+  const lowerQuery = debouncedQuery.trim().toLowerCase();
+  const isBrimIntent =
+    !lowerQuery ||
+    /\b(brim|whale|prospect|migration|target|spear|hunt|opportunity|pipeline)\b/.test(lowerQuery);
+
+  if (isBrimIntent) {
+    if (!lowerQuery) {
+      // Show Brim quick-launch when command bar first opens (no query)
+      actions.push({
+        id: 'brim-mode',
+        label: 'Whale Hunt — enter Brim Mode (find migration targets)',
+        href: '/explore?brim=1',
+        icon: 'brim',
+      });
+    }
+    if (lowerQuery && /\b(migration|target|convert)\b/.test(lowerQuery)) {
+      actions.push({
+        id: 'brim-migration',
+        label: 'Spearfish migration targets',
+        href: '/explore?brim=1&migration_targets_only=true',
+        icon: 'brim',
+      });
+    }
+    if (lowerQuery && /\b(pipeline|opportunity|opp)\b/.test(lowerQuery)) {
+      actions.push({
+        id: 'brim-opportunities',
+        label: 'View BD opportunities pipeline',
+        href: '/brim',
+        icon: 'brim',
+      });
+    }
+  }
 
   if (hasStructuredFilters && parsedFilters) {
     actions.push({

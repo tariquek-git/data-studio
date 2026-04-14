@@ -70,7 +70,7 @@ export function ExportButton({ institution, history }: ExportButtonProps) {
       <button
         onClick={() => setOpen((prev) => !prev)}
         disabled={pdfLoading}
-        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-surface-300 bg-white text-sm font-medium text-surface-700 hover:bg-surface-50 hover:border-surface-400 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
+        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-surface-600 bg-white text-sm font-medium text-surface-300 hover:bg-surface-900 hover:border-surface-400 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
         aria-haspopup="true"
         aria-expanded={open}
       >
@@ -87,10 +87,10 @@ export function ExportButton({ institution, history }: ExportButtonProps) {
 
       {/* Dropdown menu */}
       {open && (
-        <div className="absolute right-0 mt-1.5 w-48 bg-white rounded-xl border border-surface-200 shadow-lg z-50 overflow-hidden">
+        <div className="absolute right-0 mt-1.5 w-48 bg-white rounded-xl border border-surface-700 shadow-lg z-50 overflow-hidden">
           <button
             onClick={handleExcelExport}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-surface-300 hover:bg-surface-900 transition-colors text-left"
           >
             <Download className="h-4 w-4 text-green-600 shrink-0" />
             <div>
@@ -99,11 +99,11 @@ export function ExportButton({ institution, history }: ExportButtonProps) {
             </div>
           </button>
 
-          <div className="border-t border-surface-100" />
+          <div className="border-t border-surface-800" />
 
           <button
             onClick={handlePDFExport}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-primary-50 hover:text-primary-700 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-surface-300 hover:bg-primary-50 hover:text-primary-700 transition-colors text-left"
           >
             <FileText className="h-4 w-4 text-primary-600 shrink-0" />
             <div>
@@ -112,11 +112,11 @@ export function ExportButton({ institution, history }: ExportButtonProps) {
             </div>
           </button>
 
-          <div className="border-t border-surface-100" />
+          <div className="border-t border-surface-800" />
 
           <button
             onClick={handleCopyLink}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-surface-300 hover:bg-surface-900 transition-colors text-left"
           >
             <Link2 className="h-4 w-4 text-primary-600 shrink-0" />
             <div>

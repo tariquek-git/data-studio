@@ -134,10 +134,10 @@ export function WaterfallChart({ data }: WaterfallChartProps) {
 
   if (!steps) {
     return (
-      <div className="rounded-xl border border-surface-200 bg-white p-6">
+      <div className="rounded-xl border border-surface-700 bg-white p-6">
         <div className="mb-4 flex items-center gap-2">
           <TrendingDown className="h-5 w-5 text-primary-600" />
-          <h3 className="text-lg font-semibold text-surface-900">
+          <h3 className="text-lg font-semibold text-surface-100">
             Revenue Breakdown &mdash; Per $1 Earned
           </h3>
         </div>
@@ -167,10 +167,10 @@ export function WaterfallChart({ data }: WaterfallChartProps) {
   const yScale = (v: number) => paddingTop + chartHeight * (1 - v);
 
   return (
-    <div className="rounded-xl border border-surface-200 bg-white p-6">
+    <div className="rounded-xl border border-surface-700 bg-white p-6">
       <div className="mb-4 flex items-center gap-2">
         <TrendingDown className="h-5 w-5 text-primary-600" />
-        <h3 className="text-lg font-semibold text-surface-900">
+        <h3 className="text-lg font-semibold text-surface-100">
           Revenue Breakdown &mdash; Per $1 Earned
         </h3>
       </div>

@@ -61,6 +61,7 @@ interface InstitutionRow {
   country: string;
   active: boolean;
   bd_exclusion_reason: string | null;
+  raw_data: Record<string, unknown> | null;
   bank_capabilities: BankCapabilities | BankCapabilities[] | null;
   [key: string]: unknown;
 }
@@ -113,8 +114,15 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   const hasCreditCards =
     req.query.has_credit_cards === 'true' ||
     req.query.has_credit_card_program === 'true';
+  const equityRatioMin = parseNumber(req.query.equity_ratio_min);
+  const ldrMin = parseNumber(req.query.ldr_min);
+  const ldrMax = parseNumber(req.query.ldr_max);
+  const craRating = parseIntList(req.query.cra_rating);
   const minBrimScore = parseNumber(req.query.min_brim_score);
-  const brimTier = (req.query.brim_tier as string || '').trim().toUpperCase() || null;
+  const brimTiers = (req.query.brim_tier as string || '')
+    .split(',')
+    .map((t) => t.trim().toUpperCase())
+    .filter(Boolean);
   const excludeBdExclusions = req.query.exclude_bd_exclusions === 'true';
   const migrationTargetsOnly = req.query.migration_targets_only === 'true';
   const sortBy = (req.query.sort_by as string) || 'total_assets';
@@ -123,10 +131,14 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   const perPage = parseIntParam(req.query.per_page, 25, 1, 100);
   const offset = (page - 1) * perPage;
 
-  const needsBrimFilter =
+  const needsPostFilter =
     minBrimScore != null ||
-    Boolean(brimTier) ||
-    migrationTargetsOnly;
+    brimTiers.length > 0 ||
+    migrationTargetsOnly ||
+    equityRatioMin != null ||
+    ldrMin != null ||
+    ldrMax != null ||
+    craRating.length > 0;
 
   const buildInstitutionsQuery = (rangeStart?: number, rangeEnd?: number, withCount = false) => {
     let query = supabase
@@ -195,16 +207,44 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
       };
     });
 
-  const applyBrimFilters = (rows: FlattenedInstitution[]) => {
+  const applyPostFilters = (rows: FlattenedInstitution[]) => {
     let filtered = rows;
     if (minBrimScore != null) {
       filtered = filtered.filter((i) => (i.brim_score ?? 0) >= minBrimScore);
     }
-    if (brimTier) {
-      filtered = filtered.filter((i) => i.brim_tier === brimTier);
+    if (brimTiers.length > 0) {
+      filtered = filtered.filter((i) => i.brim_tier != null && brimTiers.includes(i.brim_tier));
     }
     if (migrationTargetsOnly) {
       filtered = filtered.filter((i) => i.agent_bank_program != null && i.agent_bank_program !== '');
+    }
+    if (equityRatioMin != null) {
+      filtered = filtered.filter((i) => {
+        if (!i.equity_capital || !i.total_assets || i.total_assets === 0) return false;
+        return (i.equity_capital / i.total_assets) * 100 >= equityRatioMin;
+      });
+    }
+    if (ldrMin != null) {
+      filtered = filtered.filter((i) => {
+        if (!i.total_loans || !i.total_deposits || i.total_deposits === 0) return false;
+        return (i.total_loans / i.total_deposits) * 100 >= ldrMin;
+      });
+    }
+    if (ldrMax != null) {
+      filtered = filtered.filter((i) => {
+        if (!i.total_loans || !i.total_deposits || i.total_deposits === 0) return false;
+        return (i.total_loans / i.total_deposits) * 100 <= ldrMax;
+      });
+    }
+    if (craRating.length > 0) {
+      filtered = filtered.filter((i) => {
+        const raw = (i as Record<string, unknown>).raw_data;
+        if (!raw || typeof raw !== 'object') return false;
+        const crara = (raw as Record<string, unknown>)['CRARA'];
+        if (crara == null) return false;
+        const rating = typeof crara === 'number' ? crara : Number.parseInt(String(crara), 10);
+        return !Number.isNaN(rating) && craRating.includes(rating);
+      });
     }
     return filtered;
   };
@@ -212,7 +252,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
   let total = 0;
   let pageInstitutions: FlattenedInstitution[] = [];
 
-  if (needsBrimFilter) {
+  if (needsPostFilter) {
     // For derived brim/migration filters, filter after full page candidate resolution so
     // `offset/page` semantics remain stable across post-filtered results.
     const fetchLimit = 500;
@@ -226,7 +266,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
         return res.status(500).json({ error: 'Search failed' });
       }
 
-      const mappedBatch = applyBrimFilters(flattenAndMap(batch as InstitutionRow[]));
+      const mappedBatch = applyPostFilters(flattenAndMap(batch as InstitutionRow[]));
       filteredInstitutions.push(...mappedBatch);
       cursor += fetchLimit;
 

@@ -132,19 +132,22 @@ Follow `CODEX.md` ordering unless the current slice makes another area more urge
 Note: Sections below contain historical review notes. For live coordination, use the "Current Slice" and "Current lockstep slice" blocks first.
 
 ## Current Slice
-Status: active
+Status: idle (all prior slices resolved)
 
-Primary files in recent review:
-- `api/institutions/search.ts`
-- `api/institutions/screen.ts`
-- `src/pages/AuditDashboardPage.tsx`
-- `api/relationships/graph.ts`
+### Completed since last review (2026-04-13)
+- Light theme conversion: 23+ files, CSS scale inversion, all dark remnants removed
+- Brim scores populated: 8,699 institutions scored via SQL (15 A-tier, 412 B-tier)
+- Regulated_by relationships: 9,176 edges created, 11 regulator entities seeded
+- MV refreshed post-scoring
+- Deployed to Vercel production
+- API routes (sources/*, sync/*) confirmed already using service patterns — no migration needed
+- agent_relationships.py fixed: slug→source_key, sibling cap at 20
 
-Other files likely to matter soon:
-- `scripts/schema/000_current.sql`
-- `src/pages/RelationshipGraphPage.tsx`
-- `src/types/entity.ts`
-- related API/entity files touched by current merge work
+### Previously reviewed files (all issues resolved):
+- `api/institutions/search.ts` — pagination hardened
+- `api/institutions/screen.ts` — pagination hardened
+- `api/relationships/graph.ts` — composite keys, table-aware hops, entity filter
+- `src/pages/AuditDashboardPage.tsx` — admin health integration
 
 ## Review Findings Logged So Far
 ### High
@@ -189,9 +192,9 @@ Other files likely to matter soon:
    Each hop uses `.limit(limit)` without stable ordering or pagination/continuation.
    Fix: added `.order('id')` before `.limit()` on both the first-hop query and each traversal hop query.
 
-6. `scripts/schema/000_current.sql`, `src/types/entity.ts`
+6. `scripts/schema/000_current.sql`, `src/types/entity.ts` — FIXED (2026-04-13)
    `validate_data_provenance()` only checks that `sources` exists and is an array, while the TypeScript shape expects required fields like `source_key`, `source_url`, `fetched_at`, `confidence`, and `last_verified_at`.
-   Risk: invalid provenance payloads can satisfy the database constraint but still violate the application contract.
+   Fix: Tightened DB function to require top-level object, `last_verified_at`, and per-source `source_key`, `source_url`, `fetched_at` (non-empty strings) + numeric `confidence` in [0,100]. Used `IS DISTINCT FROM` to handle NULL returns from `jsonb_typeof` on missing keys. Applied live to Supabase + updated schema source of truth.
 
 7. `api/entities/[entityId]/similar.ts`, `scripts/schema/000_current.sql`
    The route is named generically under `/api/entities/:entityId/similar` and falls back to `registry_entities` embeddings, but the backing RPC only returns rows from `institutions`.
@@ -301,7 +304,8 @@ Other files likely to matter soon:
    of this pass to restore `npm run build`.
 
 ## In-Flight Files
-- Populated from the current dirty worktree on 2026-04-12 so review can tell temporary churn from likely bugs.
+- Updated 2026-04-13 after light-theme pass, data population, and provenance hardening.
+- `api/audit/overview.ts` — import extension fix
 - `api/analytics/overview.ts`
 - `api/institutions/[certNumber]/enrich.ts`
 - `api/relationships/graph.ts`
@@ -310,29 +314,31 @@ Other files likely to matter soon:
 - `lib/entity-service.ts`
 - `lib/provenance.ts`
 - `lib/warehouse-readiness.ts`
-- `scripts/agent_relationships.py`
+- `scripts/agent_relationships.py` — slug→source_key, sibling cap
 - `scripts/generate-embeddings.mjs`
-- `scripts/schema/000_current.sql`
+- `scripts/schema/000_current.sql` — provenance validator IS DISTINCT FROM fix
 - `scripts/sync-ffiec-nic-relationships.mjs`
 - `src/components/command-bar/`
-- `src/components/entity/EntityFacetRail.tsx`
+- `src/components/entity/` — all 9 entity components (light theme pass)
 - `src/components/institution/SimilarInstitutions.tsx`
 - `src/components/layout/Footer.tsx`
 - `src/components/layout/Header.tsx`
 - `src/lib/pdf/InstitutionReport.tsx`
-- `src/pages/AnalyticsPage.tsx`
-- `src/pages/EntitiesPage.tsx`
+- `src/pages/AnalyticsPage.tsx` — light theme: gradient, badges, tabs, info boxes
+- `src/pages/EntitiesPage.tsx` — light theme: hero, cards, badges
+- `src/pages/EntityPage.tsx` — light theme: delta tones, shadows
 - `src/pages/InstitutionPage.tsx`
 - `src/pages/RelationshipGraphPage.tsx`
 - `src/types/entity.ts`
 
 ## Suggested Next Review Queue
-- `lib/entity-service.ts`
-- `api/relationships/graph.ts`
-- `scripts/schema/000_current.sql`
-- `src/types/entity.ts`
-- `src/pages/RelationshipGraphPage.tsx`
-- `api/entities/[entityId]/similar.ts`
+- `src/pages/AnalyticsPage.tsx` — light theme conversion (new)
+- `src/pages/EntitiesPage.tsx` — light theme conversion (new)
+- `src/pages/EntityPage.tsx` — light theme conversion (new)
+- `src/components/entity/*` — 9 components updated for light theme (new)
+- `scripts/schema/000_current.sql` — provenance validator `IS DISTINCT FROM` fix (updated)
+- `api/audit/overview.ts` — import extension fix (new)
+- `scripts/agent_relationships.py` — slug→source_key, sibling cap (updated)
 
 ## Active Slice
 
@@ -432,10 +438,8 @@ Other files likely to matter soon:
    - Impact: page navigation drift (duplicate/missing rows once post-filters activate).
 5. `api/institutions/search.ts` — still uses raw PostgREST `.or(...)` interpolation and broad `any` usage.
    - Impact: type erosion and query injection-risk behavior on legacy endpoint.
-6. `scripts/schema/000_current.sql` — `validate_data_provenance()` still accepts incomplete source entries.
-   - Impact: malformed provenance data can pass DB constraint despite contract mismatch in app/runtime.
-7. `scripts/sync-ffiec-nic.mjs` + `scripts/sync-ffiec-cdr.mjs` — `insert()` remains in paths that should be idempotent.
-   - Impact: duplicate relationship/charts on re-runs and drift in downstream QA metrics.
+6. `scripts/schema/000_current.sql` — FIXED (2026-04-13). `validate_data_provenance()` now uses `IS DISTINCT FROM` and enforces full contract (source_key, source_url, fetched_at, confidence range). Applied live.
+7. `scripts/sync-ffiec-nic.mjs` + `scripts/sync-ffiec-cdr.mjs` — CONFIRMED RESOLVED (2026-04-13). All sync scripts use upsert with onConflict.
 
 #### Low / Follow-on
 8. `api/institutions/opportunities.ts` — fallback enrichment can emit placeholder rows with `id/name` empty while `total` reflects source counts.
@@ -690,6 +694,107 @@ Status: `Slice complete: api-params-hardening`
 **Recommended handling:**
 - Treat this as an architectural follow-up, not a local patch
 - Use `CODEX_FEEDBACK.md` as the decision memo for the bigger trust-system direction
+
+### Review pass: reliability-speed-trust (2026-04-13)
+
+**High**
+
+1. `lib/entity-service.ts:962-966` — the primary source record in `getEntitySources()` still hardcodes `url: null` for every entity, including official sources. That means the source list starts with a trust anchor that cannot actually link to the regulator/data page, even though the source catalog already knows those URLs. This undercuts the auditability work we just tightened elsewhere.
+
+2. `lib/entity-service.ts:680-777` — `searchEntities()` still materializes every matched institution/registry row, loads tags and capabilities for all of them, computes all summaries, then filters/aggregates/sorts/paginates in memory. The first page may only need 24 rows, but latency and memory cost still scale with total match cardinality. As registry coverage grows, this endpoint is likely to become one of the main performance bottlenecks.
+
+3. `api/audit/overview.ts:61-81` and `api/audit/overview.ts:111-120` — the audit overview endpoint still scans full `sync_jobs`, `registry_entities`, and `entity_facts` datasets to build dashboard distributions on each request. On a growing warehouse this is likely to push serverless latency and make the dashboard one of the most expensive endpoints to render.
+
+**Medium**
+
+1. `lib/entity-service.ts:1090-1103` and `lib/entity-service.ts:1155-1161` — relationship counterparties are resolved with sequential `await getEntityById(...)` calls inside a loop. That makes relationship latency grow linearly with edge count and creates avoidable head-of-line blocking on pages with larger graphs.
+
+2. `api/audit/overview.ts:14-18` — `safeCount()` converts any count failure into `0`. If a table is unavailable, permissions drift, or the DB call fails transiently, the dashboard will present “empty but valid” counts instead of surfacing degraded health. That is a reliability bug on an audit screen.
+
+3. `lib/admin-data-health.ts:7-8`, `lib/admin-data-health.ts:156-170`, and `lib/admin-data-health.ts:349-365` — admin data-health metrics silently cap registry audit coverage at `40 * 1000` rows. Once the table grows past that, provenance/confidence summaries will undercount without any warning or degraded-state indicator.
+
+**Low**
+
+1. `lib/entity-service.ts:919-949` and `lib/entity-service.ts:1122-1151` — several fallback/derived entity facts and relationships still emit `source_url: null`. These are not as urgent as the live writer/backfill paths, but they still weaken the consistency of the evidence model and should eventually point to a concrete source or explicitly mark themselves as inference-only.
+
+**Positive**
+
+1. The recent direction is strong: query-parameter hardening landed, paging got deterministic ordering, admin link truthfulness is better, provenance validation is stricter, and the backfill helpers no longer discard known source URLs by default. The system is clearly moving toward a more trustworthy evidence model even though live coverage is still catching up.
+
+### Slice: entity-service-source-truth (2026-04-13)
+**Status:** Slice complete: entity-service-source-truth
+
+**Files changed:**
+- `lib/entity-service.ts`
+
+**Changes:**
+1. Wired `entity-service` to the central source catalog URLs via a `sourceUrlForKey()` helper
+2. `getEntitySources()` now gives the primary source record a real URL instead of always returning `null`
+3. Fallback external IDs, derived tags, and fallback facts now carry the known source URL for the originating source where one exists
+
+**Why this was needed:**
+- The entity source list started with a source anchor that could not actually link to anything
+- Several fallback evidence rows were still structurally valid but not meaningfully auditable because they dropped known source URLs
+
+**Risk notes:**
+- `npm run build` passes after this slice
+- This change does not alter ranking/search logic; it only improves evidence metadata and source drill-through
+
+**Next slice:** either batch relationship counterparty resolution for performance, or start reducing the full-table scan behavior in `api/audit/overview.ts`
+
+### Slice: relationship-counterparty-batching (2026-04-13)
+**Status:** Slice complete: relationship-counterparty-batching
+
+**Files changed:**
+- `lib/entity-service.ts`
+
+**Changes:**
+1. Replaced sequential `getEntityById()` counterparty resolution inside `resolveEntityRefs()` with batched table-grouped fetches
+2. Counterparty summaries are now built in bulk using one institution fetch pass, one registry fetch pass, one tag load, and one capability load
+3. Preserved the same relationship output contract; this is a performance-only refactor
+
+**Why this was needed:**
+- Relationship pages were doing one awaited entity lookup per edge, which makes latency grow linearly with graph size
+- This is an easy hotspot to hit as relationship density increases
+
+**Risk notes:**
+- `npm run build` passes after this slice
+- The summary mapping still goes through the same `mapInstitutionToSummary()` / `mapRegistryToSummary()` paths, so display behavior should remain stable
+
+**Next slice:** reduce full-table scan behavior in `api/audit/overview.ts`, or harden audit metrics so DB failures cannot masquerade as healthy zero counts
+
+### Slice: graph-route-live-schema-hotfix (2026-04-13)
+**Status:** Slice complete locally: graph-route-live-schema-hotfix
+
+**Files changed:**
+- `api/relationships/graph.ts`
+
+**Live incident context:**
+1. Vercel production runtime logs for deployment `dpl_GDJuQHSvLDyH3sKq9qfX4B6S6Xx3` showed repeated `500` errors on `GET /api/relationships/graph`
+2. The runtime error class was Postgres/Supabase `42703` (`undefined column`), not a generic handler crash
+3. Direct public-schema probes confirmed the exact mismatches:
+   - `registry_entities.jurisdiction` does not exist in live Supabase
+   - `ecosystem_entities.entity_subtype` does not exist in live Supabase
+
+**Changes:**
+1. Updated the registry node hydration query to use live columns: `state`, `country`, and `source_key`
+2. Updated the ecosystem node hydration query to use live columns: `entity_type` and `source_key`
+3. Kept the API response shape stable by mapping those live fields back into the existing graph node contract
+
+**Why this was needed:**
+- The graph route was written against an aspirational schema shape, but production currently has a different live column set for non-institution nodes
+- Any graph touching registry or ecosystem entities would 500 before it could return nodes/edges
+
+**Risk notes:**
+- `npm run build` passes after this slice
+- `node --check api/relationships/graph.ts` passes
+- This fixes the code path locally, but production will still error until Claude deploys a build including this patch
+
+**Ask for Claude:**
+- Please pull this hotfix into the active deployment path quickly; it is a real live incident, not just a review note
+- After deploy, re-check `GET /api/relationships/graph` error rate in Vercel anomalies/runtime logs
+
+**Next slice:** audit other routes/helpers for live-schema drift against `registry_entities` and `ecosystem_entities`, because this mismatch is likely not isolated to the graph route
 
 ## Resolved
 

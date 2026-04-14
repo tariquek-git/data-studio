@@ -1,36 +1,19 @@
-import { useState, type FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router';
+import { useState } from 'react';
+import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   Search,
-  Building2,
-  BarChart3,
   Target,
   TrendingUp,
-  Database,
-  Users,
-  MapPin,
-  CalendarDays,
   TrendingDown,
   AlertTriangle,
   Sparkles,
   ArrowRight,
+  Network,
+  ShieldCheck,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
-
-const QUICK_FILTERS = [
-  { label: 'Banks over $1B', params: 'min_assets=1000000000&source=fdic' },
-  { label: 'Credit Unions', params: 'source=ncua' },
-  { label: 'Texas Banks', params: 'states=TX&source=fdic' },
-  { label: 'Has Credit Card Program', params: 'has_credit_card_program=true' },
-];
-
-const STATIC_STATS = [
-  { label: 'Banks', value: '4,700+', icon: Building2, accent: 'text-primary-400' },
-  { label: 'Credit Unions', value: '4,700+', icon: Users, accent: 'text-emerald-600' },
-  { label: 'Branches', value: '80,000+', icon: MapPin, accent: 'text-amber-600' },
-  { label: 'Updated', value: 'Quarterly', icon: CalendarDays, accent: 'text-cyan-600' },
-];
+import { PhysicsHero } from '@/components/physics/PhysicsHero';
 
 const FEATURES = [
   {
@@ -40,21 +23,21 @@ const FEATURES = [
     accent: 'text-primary-400 bg-primary-500/10',
   },
   {
-    title: 'Financial Analytics',
-    description: 'Explore assets, deposits, loans, capital ratios, and profitability across institutions.',
-    icon: BarChart3,
-    accent: 'text-emerald-600 bg-emerald-50',
-  },
-  {
-    title: 'Whale Hunting',
-    description: 'Identify migration targets, credit card prospects, and high-value BD opportunities.',
-    icon: Target,
+    title: 'Relationship Graph',
+    description: 'Explore 9,300+ entity relationships — holding companies, regulators, and affiliates.',
+    icon: Network,
     accent: 'text-violet-600 bg-violet-50',
   },
   {
-    title: 'Historical Trends',
-    description: 'Track financial performance over time with quarterly historical data.',
-    icon: TrendingUp,
+    title: 'BD Intelligence',
+    description: 'Identify migration targets, credit card prospects, and high-value opportunities with Brim scoring.',
+    icon: Target,
+    accent: 'text-emerald-600 bg-emerald-50',
+  },
+  {
+    title: 'Compliance & Audit',
+    description: 'Track provenance, data freshness, and regulatory source coverage across 10+ agencies.',
+    icon: ShieldCheck,
     accent: 'text-amber-600 bg-amber-50',
   },
 ];
@@ -141,8 +124,8 @@ function DiscoverySection() {
 
       {/* Stat snapshot */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) => (
-          <div key={card.label} className={`glass-card p-5 border ${card.border}`}>
+        {statCards.map((card, i) => (
+          <div key={card.label} className={`glass-card p-5 border ${card.border} animate-fade-in-up`} style={{ animationDelay: `${i * 0.1}s`, animationFillMode: 'both' }}>
             <p className={`text-2xl font-bold font-mono ${card.accent}`}>
               {isLoading ? (
                 <span className="inline-block h-7 w-20 rounded bg-surface-700 animate-pulse" />
@@ -196,7 +179,10 @@ function DiscoverySection() {
 
             {!isLoading && !isError && activeTab === 'movers' &&
               (data?.top_movers.length === 0 ? (
-                <div className="p-5 text-sm text-surface-500 text-center">No mover data available.</div>
+                <div className="p-8 text-center">
+                    <TrendingUp className="h-6 w-6 text-surface-600 mx-auto mb-2" />
+                    <p className="text-sm text-surface-500">No mover data available yet.</p>
+                  </div>
               ) : (
                 data?.top_movers.map((m) => {
                   const isPositive = m.asset_change >= 0;
@@ -228,7 +214,10 @@ function DiscoverySection() {
 
             {!isLoading && !isError && activeTab === 'enforcement' &&
               (data?.recent_regulatory_events.length === 0 ? (
-                <div className="p-5 text-sm text-surface-500 text-center">No recent regulatory events.</div>
+                <div className="p-8 text-center">
+                    <AlertTriangle className="h-6 w-6 text-surface-600 mx-auto mb-2" />
+                    <p className="text-sm text-surface-500">No recent regulatory events.</p>
+                  </div>
               ) : (
                 data?.recent_regulatory_events.map((e, i) => (
                   <div key={i} className="flex items-center justify-between px-5 py-3 hover:bg-surface-700/30 transition-colors">
@@ -259,7 +248,10 @@ function DiscoverySection() {
 
             {!isLoading && !isError && activeTab === 'new' &&
               (data?.new_registrations.length === 0 ? (
-                <div className="p-5 text-sm text-surface-500 text-center">No new registrations recently.</div>
+                <div className="p-8 text-center">
+                    <Sparkles className="h-6 w-6 text-surface-600 mx-auto mb-2" />
+                    <p className="text-sm text-surface-500">No new registrations recently.</p>
+                  </div>
               ) : (
                 data?.new_registrations.map((r) => (
                   <div key={r.cert_number} className="flex items-center justify-between px-5 py-3 hover:bg-surface-700/30 transition-colors">
@@ -291,7 +283,7 @@ function DiscoverySection() {
               <Link
                 key={screen.label}
                 to={`/explore?${screen.params}`}
-                className="flex items-center justify-between px-3 py-3 rounded-lg border border-surface-700/50 hover:border-primary-500/30 hover:bg-primary-500/5 transition-all group"
+                className="flex items-center justify-between px-3 py-3 rounded-lg border border-surface-700/50 hover:border-primary-500/30 hover:bg-primary-500/5 transition-all group card-hover-lift"
               >
                 <span className="text-sm font-medium text-surface-300 group-hover:text-primary-300">
                   {screen.label}
@@ -307,93 +299,10 @@ function DiscoverySection() {
 }
 
 export default function HomePage() {
-  const [query, setQuery] = useState('');
-  const navigate = useNavigate();
-
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (query.trim()) {
-      navigate(`/explore?q=${encodeURIComponent(query.trim())}`);
-    } else {
-      navigate('/explore');
-    }
-  }
-
   return (
     <div>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-grid-pattern">
-        {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary-950/50 via-surface-900 to-surface-900" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-primary-500/8 rounded-full blur-3xl" />
-
-        <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-800/80 backdrop-blur border border-surface-700/50 text-xs text-surface-300 mb-8">
-            <Database className="h-3.5 w-3.5 text-primary-400" />
-            10,000+ institutions across FDIC, NCUA, OSFI &amp; Bank of Canada
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight text-surface-50 glow-text-indigo">
-            Hunt the Big Catch
-          </h1>
-          <p className="mt-5 text-lg sm:text-xl text-surface-400 max-w-2xl mx-auto leading-relaxed">
-            Whale hunt prospects and spearfish targets across 10,000+ North American banks
-            and credit unions. Intelligence that lands the deal.
-          </p>
-
-          {/* Search bar */}
-          <form onSubmit={handleSubmit} className="mt-10 max-w-2xl mx-auto">
-            <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative flex items-center">
-                <Search className="absolute left-4 h-5 w-5 text-surface-500" />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search banks, credit unions, holding companies..."
-                  className="w-full pl-12 pr-28 py-4 rounded-xl bg-surface-800/80 backdrop-blur border border-surface-700/50 text-surface-100 text-base placeholder:text-surface-500 focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/30 transition-all"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-2 px-5 py-2.5 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-400 transition-colors shadow-sm shadow-primary-500/20"
-                >
-                  Search
-                </button>
-              </div>
-            </div>
-          </form>
-
-          {/* Quick filters */}
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            {QUICK_FILTERS.map((chip) => (
-              <Link
-                key={chip.label}
-                to={`/explore?${chip.params}`}
-                className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-surface-800/60 backdrop-blur border border-surface-700/30 text-xs font-medium text-surface-400 hover:text-surface-200 hover:border-surface-600 transition-all"
-              >
-                {chip.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Static stats row */}
-      <section className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {STATIC_STATS.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div key={stat.label} className="glass-card p-5 text-center glass-card-hover transition-all">
-                <Icon className={`h-5 w-5 ${stat.accent} mx-auto mb-2`} />
-                <p className="text-xl font-bold font-mono text-surface-100">{stat.value}</p>
-                <p className="text-xs text-surface-500 mt-0.5 uppercase tracking-wider">{stat.label}</p>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      {/* Physics hero — full viewport */}
+      <PhysicsHero />
 
       {/* Discovery section */}
       <DiscoverySection />
@@ -413,7 +322,7 @@ export default function HomePage() {
             const Icon = feature.icon;
             const [iconColor, iconBg] = feature.accent.split(' ');
             return (
-              <div key={feature.title} className="glass-card glass-card-hover p-5 transition-all">
+              <div key={feature.title} className="glass-card card-hover-lift p-5 transition-all cursor-default">
                 <div className={`flex items-center justify-center h-10 w-10 rounded-lg ${iconBg} mb-4`}>
                   <Icon className={`h-5 w-5 ${iconColor}`} />
                 </div>

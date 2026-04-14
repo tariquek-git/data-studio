@@ -20,6 +20,12 @@ export interface ExploreFilters {
   depositMax: number | null;
   roaMin: number | null;
   roaMax: number | null;
+  roeMin: number | null;
+  roeMax: number | null;
+  equityRatioMin: number | null;
+  ldrMin: number | null;
+  ldrMax: number | null;
+  craRating: number[];
   hasCreditCards: boolean;
   brimTier: string | null;
   // Brim Mode filters
@@ -74,6 +80,12 @@ const DEFAULT_FILTERS: ExploreFilters = {
   depositMax: null,
   roaMin: null,
   roaMax: null,
+  roeMin: null,
+  roeMax: null,
+  equityRatioMin: null,
+  ldrMin: null,
+  ldrMax: null,
+  craRating: [],
   hasCreditCards: false,
   brimTier: null,
   minBrimScore: null,
