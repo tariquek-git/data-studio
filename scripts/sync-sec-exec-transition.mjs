@@ -37,10 +37,16 @@ const EDGAR_FILING_DOC = (cik, accessionClean, primaryDoc) =>
 const LOOKBACK_MONTHS = 6;
 const MIN_DELAY_MS = 120; // ~8 req/sec ceiling, well under 10/sec SEC limit
 
-// C-suite title patterns — match "Chief Executive Officer", "CEO", "President", etc.
-const CSUITE_TITLES = /\b(chief\s+executive\s+officer|chief\s+financial\s+officer|chief\s+operating\s+officer|chief\s+technology\s+officer|chief\s+information\s+officer|chief\s+risk\s+officer|\bCEO\b|\bCFO\b|\bCOO\b|\bCTO\b|\bCIO\b|\bCRO\b|president(?:\s+and)?|executive\s+vice\s+president)\b/i;
-// Transition verbs — departure, appointment, resignation, retirement
-const TRANSITION_VERBS = /\b(resign|retire|depart|terminat|appoint|elect|succeed|replac|step(?:ped|ping)?\s+down|separation|transition)\b/i;
+// C-suite titles — deliberately NARROW. "President" alone is too broad (matches
+// "President of [some subsidiary]") and "Executive Vice President" is middle
+// management for BD purposes. We only want top-of-house changes.
+const CSUITE_TITLES = /\b(chief\s+executive\s+officer|chief\s+financial\s+officer|chief\s+operating\s+officer|chief\s+risk\s+officer|\bCEO\b|\bCFO\b|\bCOO\b|\bCRO\b)\b/i;
+// Departure/appointment verbs — excludes "transition" (too generic, matches
+// "transition services agreement" in every 8-K's legal boilerplate).
+const TRANSITION_VERBS = /\b(resign(?:ed|ation)?|retire(?:d|ment)?|depart(?:ed|ure)?|terminat(?:ed|ion)?|step(?:ped|ping)?\s+down|appoint(?:ed|ment)?\s+(?:\w+\s+){0,5}(?:chief|ceo|cfo|coo)|succeed(?:ed|ing)?\s+(?:\w+\s+){0,5}(?:as|chief))/i;
+// Proximity requirement: a C-suite title must appear within this many chars of
+// a transition verb in order to count. Filters out unrelated mentions on page.
+const PROXIMITY_CHARS = 300;
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -67,14 +73,30 @@ async function checkFilingForCsuiteTransition(cik, accession, primaryDoc) {
     });
     if (!resp.ok) return null;
     // Only read first 50KB — the Item 5.02 section is near the top
-    const text = (await resp.text()).substring(0, 50000).replace(/<[^>]+>/g, ' ');
-    const hasTitle = CSUITE_TITLES.test(text);
-    const hasVerb = TRANSITION_VERBS.test(text);
-    return {
-      isCsuite: hasTitle && hasVerb,
-      matchedTitle: hasTitle ? text.match(CSUITE_TITLES)?.[0] : null,
-      matchedVerb: hasVerb ? text.match(TRANSITION_VERBS)?.[0] : null,
-    };
+    const text = (await resp.text())
+      .substring(0, 50000)
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ');
+
+    // Proximity check: a title match and verb match must sit within
+    // PROXIMITY_CHARS of each other. This filters out cases where "CEO" appears
+    // in a header and "resignation" appears elsewhere for unrelated reasons.
+    const titleMatches = [...text.matchAll(new RegExp(CSUITE_TITLES.source, 'gi'))];
+    const verbMatches = [...text.matchAll(new RegExp(TRANSITION_VERBS.source, 'gi'))];
+
+    for (const t of titleMatches) {
+      for (const v of verbMatches) {
+        if (Math.abs(t.index - v.index) <= PROXIMITY_CHARS) {
+          return {
+            isCsuite: true,
+            matchedTitle: t[0],
+            matchedVerb: v[0],
+            distance: Math.abs(t.index - v.index),
+          };
+        }
+      }
+    }
+    return { isCsuite: false, matchedTitle: null, matchedVerb: null };
   } catch {
     return null;
   }
@@ -203,6 +225,7 @@ async function main() {
                 items: f.items,
                 ...(textResult?.matchedTitle && { matched_title: textResult.matchedTitle }),
                 ...(textResult?.matchedVerb && { matched_verb: textResult.matchedVerb }),
+                ...(textResult?.distance != null && { match_distance: textResult.distance }),
               },
               source_kind: 'official',
               source_url: docUrl,

@@ -1,0 +1,64 @@
+name: Weekly Brim scoring
+
+# Weekly pipeline:
+#   1. Refresh signal collectors that aren't covered by the quarterly cron
+#      (SEC exec_transition, NCUA enforcement)
+#   2. Snapshot Brim scores for all active institutions
+#   3. Post a digest to Slack summarizing tier changes + top prospects
+#
+# Schedule: every Monday at 12:00 UTC (08:00 ET / 05:00 PT) — so the digest
+# lands in Slack before the US BD team starts their day.
+#
+# Secrets required:
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+#   SLACK_WEBHOOK_URL  (incoming webhook for the #brim-bd channel)
+
+on:
+  schedule:
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+    inputs:
+      skip_digest:
+        description: 'Skip posting to Slack (snapshot only)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  score:
+    name: Refresh signals and post digest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Write .env.local from secrets
+        run: |
+          printf 'SUPABASE_URL=%s\n' "${{ secrets.SUPABASE_URL }}" >> .env.local
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env.local
+          printf 'SLACK_WEBHOOK_URL=%s\n' "${{ secrets.SLACK_WEBHOOK_URL }}" >> .env.local
+
+      # Refresh fast-moving signals so the snapshot reflects the last 7 days.
+      # Quarterly-moving signals (NCUA CU data, FDIC financials) are refreshed
+      # by sync-quarterly.yml and don't need to run weekly.
+      - name: Sync NCUA enforcement actions
+        run: node scripts/sync-ncua-enforcement.mjs
+        continue-on-error: true
+
+      - name: Sync SEC 8-K exec transitions
+        run: node scripts/sync-sec-exec-transition.mjs
+        continue-on-error: true
+
+      - name: Snapshot Brim scores
+        run: node scripts/cron-snapshot-scores.mjs
+
+      - name: Post Slack digest
+        if: github.event.inputs.skip_digest != 'true'
+        run: node scripts/cron-slack-digest.mjs
