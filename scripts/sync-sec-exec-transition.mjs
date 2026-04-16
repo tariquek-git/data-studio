@@ -28,13 +28,19 @@ import {
 } from './_sync-utils.mjs';
 
 const DRY_RUN = process.argv.includes('--dry-run');
+const SKIP_TEXT_FILTER = process.argv.includes('--skip-text-filter');
 const USER_AGENT = 'data-studio brim-bd-intelligence (tarique@brimfinancial.com)';
 const EDGAR_SUBMISSIONS = (cik) => `https://data.sec.gov/submissions/CIK${cik}.json`;
-const EDGAR_FILING_INDEX = (cik, accession) =>
-  `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=8-K&dateb=&owner=include&count=40`;
+const EDGAR_FILING_DOC = (cik, accessionClean, primaryDoc) =>
+  `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${accessionClean}/${primaryDoc}`;
 // 6-month window: recency matters for BD. A 12-month-old exec change is stale.
 const LOOKBACK_MONTHS = 6;
 const MIN_DELAY_MS = 120; // ~8 req/sec ceiling, well under 10/sec SEC limit
+
+// C-suite title patterns — match "Chief Executive Officer", "CEO", "President", etc.
+const CSUITE_TITLES = /\b(chief\s+executive\s+officer|chief\s+financial\s+officer|chief\s+operating\s+officer|chief\s+technology\s+officer|chief\s+information\s+officer|chief\s+risk\s+officer|\bCEO\b|\bCFO\b|\bCOO\b|\bCTO\b|\bCIO\b|\bCRO\b|president(?:\s+and)?|executive\s+vice\s+president)\b/i;
+// Transition verbs — departure, appointment, resignation, retirement
+const TRANSITION_VERBS = /\b(resign|retire|depart|terminat|appoint|elect|succeed|replac|step(?:ped|ping)?\s+down|separation|transition)\b/i;
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -44,6 +50,34 @@ async function fetchJson(url) {
   const resp = await fetch(url, { headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' } });
   if (!resp.ok) throw new Error(`${url} → ${resp.status}`);
   return resp.json();
+}
+
+/**
+ * Fetch the primary document of an 8-K filing and check if it mentions
+ * C-suite titles + transition verbs. Returns { isCsuite, matchedTitle, matchedVerb }
+ * or null if the document couldn't be fetched.
+ */
+async function checkFilingForCsuiteTransition(cik, accession, primaryDoc) {
+  if (!primaryDoc) return null;
+  const accessionClean = accession.replace(/-/g, '');
+  const url = EDGAR_FILING_DOC(cik, accessionClean, primaryDoc);
+  try {
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': USER_AGENT, Accept: 'text/html, text/plain' },
+    });
+    if (!resp.ok) return null;
+    // Only read first 50KB — the Item 5.02 section is near the top
+    const text = (await resp.text()).substring(0, 50000).replace(/<[^>]+>/g, ' ');
+    const hasTitle = CSUITE_TITLES.test(text);
+    const hasVerb = TRANSITION_VERBS.test(text);
+    return {
+      isCsuite: hasTitle && hasVerb,
+      matchedTitle: hasTitle ? text.match(CSUITE_TITLES)?.[0] : null,
+      matchedVerb: hasVerb ? text.match(TRANSITION_VERBS)?.[0] : null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -90,7 +124,7 @@ async function main() {
   const supabase = createSupabaseServiceClient(env);
 
   console.log('=== sync-sec-exec-transition.mjs ===');
-  console.log(`Mode: ${DRY_RUN ? 'DRY RUN' : 'LIVE'}`);
+  console.log(`Mode: ${DRY_RUN ? 'DRY RUN' : 'LIVE'}${SKIP_TEXT_FILTER ? ' (text filter OFF)' : ''}`);
 
   // Load CIKs from entity_external_ids and join back to institution
   const { data: cikRows, error: cikErr } = await supabase
@@ -114,6 +148,9 @@ async function main() {
   const facts = [];
   let ciksScanned = 0;
   let ciksWith502 = 0;
+  let filingsChecked = 0;
+  let filingsPassedFilter = 0;
+  let filingsSkippedNoDoc = 0;
   const errors = [];
 
   for (const [cik, entityIds] of byCik) {
@@ -123,10 +160,36 @@ async function main() {
       if (filings.length > 0) {
         ciksWith502++;
         for (const f of filings) {
+          filingsChecked++;
           const accessionClean = f.accession.replace(/-/g, '');
           const docUrl = f.primaryDoc
             ? `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${accessionClean}/${f.primaryDoc}`
             : `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=8-K`;
+
+          // Text-level filter: fetch the filing and check for C-suite keywords
+          let textResult = null;
+          let confidence = 85;
+          if (!SKIP_TEXT_FILTER && f.primaryDoc) {
+            textResult = await checkFilingForCsuiteTransition(cik, f.accession, f.primaryDoc);
+            await sleep(MIN_DELAY_MS); // rate limit the extra fetch
+            if (textResult && !textResult.isCsuite) {
+              // Filing doesn't mention C-suite transition — skip it
+              continue;
+            }
+            if (!textResult) {
+              // Couldn't fetch/parse — keep it but lower confidence
+              filingsSkippedNoDoc++;
+              confidence = 60;
+            } else {
+              filingsPassedFilter++;
+            }
+          } else if (!f.primaryDoc) {
+            filingsSkippedNoDoc++;
+            confidence = 60;
+          } else {
+            filingsPassedFilter++;
+          }
+
           for (const entityId of entityIds) {
             facts.push({
               entity_table: 'institutions',
@@ -138,14 +201,14 @@ async function main() {
                 accession: f.accession,
                 filed_at: f.filedAt,
                 items: f.items,
+                ...(textResult?.matchedTitle && { matched_title: textResult.matchedTitle }),
+                ...(textResult?.matchedVerb && { matched_verb: textResult.matchedVerb }),
               },
               source_kind: 'official',
               source_url: docUrl,
               observed_at: new Date(f.filedAt).toISOString(),
-              // 0–100 percent scale, matching compute_brim_score() expectations
-              // and the existing signal.* facts (asset_band_fit=90, card_portfolio=95, etc.).
-              confidence_score: 85,
-              notes: `SEC 8-K Item 5.02 filed ${f.filedAt} (items: ${f.items})`,
+              confidence_score: confidence,
+              notes: `SEC 8-K Item 5.02 filed ${f.filedAt}${textResult?.matchedTitle ? ` (${textResult.matchedTitle})` : ''} (items: ${f.items})`,
               sync_job_id: jobId,
             });
           }
@@ -163,6 +226,7 @@ async function main() {
   console.log();
   console.log(`Scanned ${ciksScanned} CIKs`);
   console.log(`${ciksWith502} had Item 5.02 filings in last ${LOOKBACK_MONTHS} months`);
+  console.log(`${filingsChecked} filings checked, ${filingsPassedFilter} passed C-suite filter, ${filingsSkippedNoDoc} had no doc`);
   console.log(`${facts.length} facts to write`);
   if (errors.length > 0) console.log(`${errors.length} CIKs errored (first 3): ${errors.slice(0, 3).join(' | ')}`);
 

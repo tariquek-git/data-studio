@@ -33,15 +33,47 @@ const supabase = createSupabaseServiceClient(env);
 // NCUA charter numbers overlap with FDIC cert numbers — offset by 1M to avoid conflicts
 const NCUA_CERT_OFFSET = 1_000_000;
 
-// Primary source: NCUA quarterly federally-insured CU list (December 2025 = Q4 2025)
-const NCUA_ZIP_URL = 'https://ncua.gov/files/publications/analysis/federally-insured-credit-union-list-december-2025.zip';
+// Dynamically compute the most recent completed quarter for NCUA data.
+// NCUA publishes quarterly files named like:
+//   federally-insured-credit-union-list-december-2025.zip
+//   FederallyInsuredCreditUnions_2025q4.xlsx
+// Data typically lands ~6 weeks after quarter end, so we use the quarter
+// that ended at least 45 days ago.
+function getLatestQuarter() {
+  const now = new Date();
+  // Walk back to find the most recent quarter end at least 45 days ago
+  const quarters = [
+    { month: 12, label: 'december', q: 4 },
+    { month: 9,  label: 'september', q: 3 },
+    { month: 6,  label: 'june', q: 2 },
+    { month: 3,  label: 'march', q: 1 },
+  ];
+  for (let yearOffset = 0; yearOffset <= 1; yearOffset++) {
+    const year = now.getFullYear() - yearOffset;
+    for (const { month, label, q } of quarters) {
+      const quarterEnd = new Date(year, month, 0); // last day of quarter-end month
+      const daysSince = (now - quarterEnd) / (1000 * 60 * 60 * 24);
+      if (daysSince >= 45) {
+        return { year, q, label, endDate: `${year}-${String(month).padStart(2, '0')}-${quarterEnd.getDate()}` };
+      }
+    }
+  }
+  // Fallback: Q4 of previous year
+  const y = now.getFullYear() - 1;
+  return { year: y, q: 4, label: 'december', endDate: `${y}-12-31` };
+}
+
+const LATEST_Q = getLatestQuarter();
+
+// Primary source: NCUA quarterly federally-insured CU list
+const NCUA_ZIP_URL = `https://ncua.gov/files/publications/analysis/federally-insured-credit-union-list-${LATEST_Q.label}-${LATEST_Q.year}.zip`;
 
 // Fallback: search for the latest available quarter
 const NCUA_DATA_PAGE = 'https://ncua.gov/analysis/credit-union-corporate-call-report-data/quarterly-data-summary-reports';
 
 const TMP_DIR = join(__dirname, '..', '.tmp');
 const ZIP_PATH = join(TMP_DIR, 'ncua-cu-list.zip');
-const XLSX_NAME = 'FederallyInsuredCreditUnions_2025q4.xlsx';
+const XLSX_NAME = `FederallyInsuredCreditUnions_${LATEST_Q.year}q${LATEST_Q.q}.xlsx`;
 const XLSX_PATH = join(TMP_DIR, XLSX_NAME);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -264,6 +296,8 @@ function mapRow(row, dataAsOf) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   console.log('Starting NCUA credit union sync...');
+  console.log(`Target quarter: Q${LATEST_Q.q} ${LATEST_Q.year} (${LATEST_Q.label})`);
+  console.log(`ZIP URL: ${NCUA_ZIP_URL}`);
   console.log(`cert_number = charter_number + ${NCUA_CERT_OFFSET} (to avoid FDIC conflicts)`);
 
   // Create sync job
@@ -309,7 +343,7 @@ async function main() {
 
     // Determine the reporting period from the first data row
     const samplePeriod = data[0]?.[1];
-    let dataAsOf = '2025-12-31';
+    let dataAsOf = LATEST_Q.endDate;
     if (samplePeriod) {
       const yq = samplePeriod.toString();
       const [year, qFrac] = yq.split('.');

@@ -12,6 +12,9 @@
 --
 -- confidence_score convention: 0-100 (integer percent).
 -- CHECK constraint entity_facts_confidence_score_range enforces this.
+--
+-- completeness: signals_populated / signals_possible ratio (0-1).
+-- Added 2026-04-16.
 
 CREATE OR REPLACE FUNCTION public.compute_brim_score(p_entity_table text, p_entity_id uuid)
  RETURNS TABLE(score integer, tier text, factors jsonb, computed_at timestamp with time zone)
@@ -25,7 +28,13 @@ DECLARE
   v_disq_list JSONB := '[]'::jsonb;
   v_score_int INTEGER;
   v_tier      TEXT;
+  v_signals_populated INTEGER := 0;
+  v_signals_possible  INTEGER;
 BEGIN
+  -- Count total v1 signals from signal_registry
+  SELECT count(*) INTO v_signals_possible
+  FROM signal_registry WHERE version = 'v1';
+
   WITH latest_facts AS (
     SELECT DISTINCT ON (ef.fact_type, ef.source_kind)
       ef.fact_type,
@@ -104,8 +113,9 @@ BEGIN
         'disqualifier', disqualifier
       ) ORDER BY (scaled_weight * freshness * conf) DESC
     ) FILTER (WHERE fact_type IS NOT NULL), '[]'::jsonb),
-    COALESCE(jsonb_agg(fact_type) FILTER (WHERE disqualifier AND freshness > 0), '[]'::jsonb)
-  INTO v_raw_score, v_disq, v_factors, v_disq_list
+    COALESCE(jsonb_agg(fact_type) FILTER (WHERE disqualifier AND freshness > 0), '[]'::jsonb),
+    COUNT(DISTINCT fact_type)
+  INTO v_raw_score, v_disq, v_factors, v_disq_list, v_signals_populated
   FROM scored;
 
   IF v_disq THEN
@@ -134,7 +144,10 @@ BEGIN
       'disqualifiers', v_disq_list,
       'raw_score', round(v_raw_score::numeric, 2),
       'max_possible', 150,
-      'disqualified', v_disq
+      'disqualified', v_disq,
+      'signals_populated', v_signals_populated,
+      'signals_possible', v_signals_possible,
+      'completeness', round(v_signals_populated::numeric / GREATEST(v_signals_possible, 1)::numeric, 3)
     ),
     now();
 END;
