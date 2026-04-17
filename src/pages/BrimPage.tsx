@@ -32,13 +32,14 @@ const TIER_COLORS: Record<string, { bg: string; text: string; border: string }> 
   F: { bg: 'bg-surface-900', text: 'text-surface-500', border: 'border-surface-800' },
 };
 
-async function fetchBrimTargets(tier: string, minScore: number): Promise<BrimInstitution[]> {
+async function fetchBrimTargets(tier: string, minScore: number, vendor: string): Promise<BrimInstitution[]> {
   const params = new URLSearchParams({
     per_page: '100',
     sort_by: 'total_assets',
     sort_dir: 'desc',
     ...(tier !== 'ALL' ? { brim_tier: tier } : {}),
     ...(minScore > 0 ? { min_brim_score: String(minScore) } : {}),
+    ...(vendor !== 'ALL' ? { agent_bank_vendor: vendor } : {}),
   });
   const res = await fetch(`/api/institutions/search?${params}`);
   if (!res.ok) throw new Error('Failed to fetch');
@@ -46,14 +47,29 @@ async function fetchBrimTargets(tier: string, minScore: number): Promise<BrimIns
   return data.institutions;
 }
 
+// Agent-bank vendors Brim cares about. Label + filter value. These correspond
+// to the fact_value_text values we write to signal.agent_bank_dependency
+// (which also land in bank_capabilities.agent_bank_program).
+const AGENT_BANK_VENDORS = [
+  { value: 'ALL',            label: 'All vendors',        hint: '' },
+  { value: 'fnbo',           label: 'FNBO',               hint: 'First Bankcard' },
+  { value: 'elan_financial', label: 'Elan',               hint: 'U.S. Bank agent' },
+  { value: 'tcm_bank',       label: 'TCM Bank',           hint: 'ICBA Payments' },
+  { value: 'corserv',        label: 'CorServ',            hint: 'CaaS platform' },
+  { value: 'in_house',       label: 'In-house',           hint: 'Self-issued' },
+];
+
 export default function BrimPage() {
-  const [selectedTier, setSelectedTier] = useState<string>('B');
-  const [minScore, setMinScore] = useState(0);
+  // Default to showing B+C combined for the initial view — that's the
+  // actionable target set. Power users can switch to A-only or ALL.
+  const [selectedTier, setSelectedTier] = useState<string>('ALL');
+  const [minScore, setMinScore] = useState(25);  // C-threshold; filters out F-tier noise
+  const [selectedVendor, setSelectedVendor] = useState<string>('ALL');
   const parentRef = useRef<HTMLDivElement>(null);
 
   const { data: institutions = [], isLoading } = useQuery({
-    queryKey: ['brim-targets', selectedTier, minScore],
-    queryFn: () => fetchBrimTargets(selectedTier, minScore),
+    queryKey: ['brim-targets', selectedTier, minScore, selectedVendor],
+    queryFn: () => fetchBrimTargets(selectedTier, minScore, selectedVendor),
   });
 
   const rowVirtualizer = useVirtualizer({
@@ -132,6 +148,37 @@ export default function BrimPage() {
           </div>
         </div>
 
+        {/* Agent-bank vendor filter — surface our card-program research in a
+            single click. 'All vendors' shows everything; clicking FNBO/Elan/
+            TCM/CorServ/in_house narrows to banks on that platform. */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className="text-xs font-medium text-surface-400 uppercase tracking-wide mr-1">
+            Agent bank
+          </span>
+          {AGENT_BANK_VENDORS.map(({ value, label, hint }) => {
+            const active = selectedVendor === value;
+            return (
+              <button
+                key={value}
+                onClick={() => setSelectedVendor(value)}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-all inline-flex items-center gap-1.5 ${
+                  active
+                    ? 'bg-violet-600 text-white border-violet-600'
+                    : 'bg-white text-surface-500 border-surface-700 hover:border-surface-600'
+                }`}
+                title={hint}
+              >
+                {label}
+                {hint && (
+                  <span className={`text-[10px] ${active ? 'opacity-80' : 'opacity-50'}`}>
+                    {hint}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Stats bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
           {[
@@ -177,7 +224,7 @@ export default function BrimPage() {
         {/* Virtual scroll table */}
         <div className="bg-white border border-surface-700 rounded-lg overflow-hidden">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_60px_140px_110px_100px_80px_80px_100px] gap-0 border-b border-surface-700 bg-surface-900 px-4 py-2 text-xs font-medium text-surface-400 uppercase tracking-wide">
+          <div className="grid grid-cols-[1fr_60px_140px_110px_100px_80px_80px_130px] gap-0 border-b border-surface-700 bg-surface-900 px-4 py-2 text-xs font-medium text-surface-400 uppercase tracking-wide">
             <div>Institution</div>
             <div className="text-right">State</div>
             <div className="text-right">Assets</div>
@@ -185,7 +232,7 @@ export default function BrimPage() {
             <div className="text-right">ROA</div>
             <div className="text-center">Score</div>
             <div className="text-center">Tier</div>
-            <div>Core</div>
+            <div>Vendor</div>
           </div>
 
           {isLoading ? (
@@ -219,7 +266,7 @@ export default function BrimPage() {
                         height: `${virtualRow.size}px`,
                         transform: `translateY(${virtualRow.start}px)`,
                       }}
-                      className="grid grid-cols-[1fr_60px_140px_110px_100px_80px_80px_100px] gap-0 px-4 items-center border-b border-surface-800 hover:bg-surface-900 transition-colors"
+                      className="grid grid-cols-[1fr_60px_140px_110px_100px_80px_80px_130px] gap-0 px-4 items-center border-b border-surface-800 hover:bg-surface-900 transition-colors"
                     >
                       <div className="truncate">
                         <Link
@@ -256,8 +303,30 @@ export default function BrimPage() {
                           {tier}
                         </span>
                       </div>
-                      <div className="text-xs text-surface-400 truncate">
-                        {inst.core_processor ?? inst.agent_bank_program ?? '—'}
+                      <div className="text-xs truncate">
+                        {inst.agent_bank_program ? (
+                          <span
+                            className={`inline-block px-1.5 py-0.5 rounded text-[11px] font-medium ${
+                              inst.agent_bank_program === 'in_house'
+                                ? 'bg-surface-800 text-surface-400'
+                                : 'bg-violet-50 text-violet-700 border border-violet-200'
+                            }`}
+                            title={`Agent bank: ${inst.agent_bank_program}`}
+                          >
+                            {inst.agent_bank_program === 'in_house'
+                              ? 'in-house'
+                              : inst.agent_bank_program
+                                  .replace('_financial', '')
+                                  .replace('_bank', '')
+                                  .replace('_', ' ')}
+                          </span>
+                        ) : inst.core_processor ? (
+                          <span className="text-surface-500" title={`Core: ${inst.core_processor}`}>
+                            core: {inst.core_processor}
+                          </span>
+                        ) : (
+                          <span className="text-surface-700">—</span>
+                        )}
                       </div>
                     </div>
                   );

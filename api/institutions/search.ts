@@ -125,6 +125,12 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     .filter(Boolean);
   const excludeBdExclusions = req.query.exclude_bd_exclusions === 'true';
   const migrationTargetsOnly = req.query.migration_targets_only === 'true';
+  // Comma-separated list of agent-bank vendors to keep (e.g. "fnbo,elan_financial").
+  // Case-insensitive on query; matches bank_capabilities.agent_bank_program.
+  const agentBankVendors = (req.query.agent_bank_vendor as string || '')
+    .split(',')
+    .map((v) => v.trim().toLowerCase())
+    .filter(Boolean);
   const sortBy = (req.query.sort_by as string) || 'total_assets';
   const sortDir = (req.query.sort_dir as string) === 'asc';
   const page = parseIntParam(req.query.page, 1, 1);
@@ -135,6 +141,7 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     minBrimScore != null ||
     brimTiers.length > 0 ||
     migrationTargetsOnly ||
+    agentBankVendors.length > 0 ||
     equityRatioMin != null ||
     ldrMin != null ||
     ldrMax != null ||
@@ -217,6 +224,12 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     }
     if (migrationTargetsOnly) {
       filtered = filtered.filter((i) => i.agent_bank_program != null && i.agent_bank_program !== '');
+    }
+    if (agentBankVendors.length > 0) {
+      filtered = filtered.filter((i) => {
+        if (!i.agent_bank_program) return false;
+        return agentBankVendors.includes(i.agent_bank_program.toLowerCase());
+      });
     }
     if (equityRatioMin != null) {
       filtered = filtered.filter((i) => {
