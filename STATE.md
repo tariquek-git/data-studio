@@ -2,7 +2,7 @@
 
 > **This is the single source of truth for humans and AI sessions working on Data Studio.**
 > If a claim in this file conflicts with anything in `docs/archive/`, this file wins.
-> Last updated: 2026-04-12
+> Last updated: 2026-04-17
 
 ---
 
@@ -48,6 +48,88 @@ Brim is a filter + a few extra columns (`brim_score`, `brim_tier`, `core_process
 ### 3. `codex/entity-intelligence-foundation` branch → archive
 
 **Discovered during Phase 0:** the branch is fully contained in `main`. `main` is 6 commits ahead of it. No cherry-pick is needed. The branch should be renamed `archive/codex-entity-intelligence-foundation` and removed from default branch lists. AGENTS.md's claim that it was "20 commits ahead" was stale.
+
+---
+
+## Session progress log — Brim BD intelligence (2026-04-14 → 2026-04-17)
+
+Five consecutive sessions added a full Brim BD intelligence layer on top of
+the data foundation. What landed:
+
+**Scoring + signals infrastructure:**
+- `compute_brim_score()` plpgsql function with per-signal scaling (scoring function persisted at `scripts/schema/functions/compute_brim_score.sql`).
+- Tier thresholds recalibrated to A≥55, B≥40, C≥25, D≥15, F<15.
+- ICP cohort: $10B-$250B US FDIC + NCUA (view `icp_cohort_10b_250b_us`, 164 institutions). Earlier ICP of $1-10B was superseded 2026-04-17.
+- `score_snapshots` table + `snapshot_all_scores()` + `detect_tier_changes()` for weekly-cron snapshotting.
+- `agent_bank_dependency` scaled by `fact_value_text`: 1.0x for agent-bank vendors (TCM, Elan, FNBO, Synovus, Cardworks), 0.9x for CorServ + CU vendors (PSCU, Co-Op) + Visa DPS, 0.65x for CaaS vendors (Marqeta, Galileo), 0.33x for in-house.
+
+**Signal collectors:**
+- `sync-sec-exec-transition.mjs` with C-suite text filter (220 → 67 filings, 70% noise reduction).
+- `sync-ncua-enforcement.mjs` (58 facts).
+- `sync-occ-enforcement.mjs` (140 facts).
+- Enforcement false-positive fix: 152 individual-level actions moved to `regulatory.individual_prohibition` (not scored). `signal.enforcement_action` now 55 institution-level facts only. Collector scripts patched to filter individuals going forward.
+- `sync-ncua.mjs` dynamic-quarter (no more hardcoded `december-2025`).
+
+**Agent-bank partner research (44+ targets identified):**
+- FNBO / First Bankcard: 12 partners (6 in cohort). URL pattern discovery via `card.fnbo.com/mpp/fi/<slug>/`.
+- Elan Financial Services: 8 partners (4 in cohort). Disclosure-phrase Google search.
+- TCM Bank (ICBA Payments): 5 partners (1 in cohort — First-Citizens flagship).
+- CorServ Solutions: 19 partners (2 in cohort). Logo-grid discovery.
+- Synovus Cards: deferred (no public partner list).
+- Target list markdowns: `docs/card-program-profiles/_fnbo-*.md`, `_elan-*.md`, `_tcm-*.md`, `_corserv-*.md`, `_synovus-*.md`.
+- Vendor tags land in both `entity_facts.signal.agent_bank_dependency` AND `bank_capabilities.agent_bank_program`.
+
+**Per-bank deep research (9 analyst briefs):**
+- `docs/card-program-profiles/11063-first-citizens-bank-trust.md` (TCM, B-tier flagship)
+- `docs/card-program-profiles/6560-huntington-national-bank.md` (in-house Mastercard)
+- `docs/card-program-profiles/1005536-navy-federal-credit-union.md` (tri-network in-house)
+- `docs/card-program-profiles/1000227-penfed-pentagon-federal.md` (Visa in-house CU)
+- `docs/card-program-profiles/24998-commerce-bank-kansas-city.md` (dual-network in-house)
+- `docs/card-program-profiles/17266-columbia-bank-umpqua.md` (Elan + direct Visa + inherited FNBO, post-M&A)
+- `docs/card-program-profiles/30788-glacier-bank.md` (FNBO serial acquirer, 27 deals since 2000)
+- `docs/card-program-profiles/35583-pinnacle-financial-partners.md` (in-house Mastercard; **DATA CORRECTION** — logo-gallery mis-tag fixed)
+- `docs/card-program-profiles/8273-umb-bank.md` (peer/competitor, flagged `bd_exclusion_reason`)
+
+**Product surface:**
+- `StoryBrimSignals.tsx` — per-signal contribution bars on institution story page.
+- `ScoreDeltaChip` + `CoverageChip` — week-over-week score delta + signal completeness.
+- `api/institutions/[certNumber]/signals.ts` — signal breakdown endpoint with previous snapshot for delta.
+- `api/institutions/export.ts` — CSV export with Brim tier/score/top-signals columns.
+- `cron-snapshot-scores.mjs` — weekly score-snapshot cron.
+- `cron-slack-digest.mjs` — weekly Slack digest of tier changes + top prospects + new signal facts.
+- `.github/workflows/weekly-scoring.yml` — GitHub Actions cron (needs `SLACK_WEBHOOK_URL` secret to activate).
+- **Navigation revision (2026-04-17)**: Brim BD promoted to primary nav; Watchlist promoted from icon to primary; More dropdown groups Data Sources / Audit / Entities / Compare / Failures / QA.
+- **BrimPage enhancements**: agent-bank vendor filter pills (FNBO/Elan/TCM/CorServ/in-house/All). Vendor column in table. Default view tier=ALL, min_score=25.
+
+**Data corrections / scoring fixes this session:**
+- Sept 2025 URL `vite.config.ts` proxies `/api/*` → prod Vercel (so `agent_bank_vendor` filter needs prod deploy to work).
+- Synced `score_snapshots` → `bank_capabilities.brim_score/tier` 2026-04-17. Otherwise BrimPage would still show months-old legacy scoring.
+- Pinnacle Financial Partners (cert 35583): `corserv` tag corrected to `in_house`. Vallant Bank (cert 14065, formerly Pinnacle Bank GA/Elberton) is the real CorServ partner.
+- Navy Federal: "skip / not a target" framing removed from analyst report. BD should be lane-specific (business card modernization, Amex expansion, secured sub-platform), not core-issuer displacement.
+- UMB Bank: tagged `bd_exclusion_reason='peer'`. They run UMB Card Services + UMB Cobrand + UMB Healthcare — direct Brim competitors.
+
+**Current ICP tier distribution (after all fixes, 2026-04-17):**
+- 🔵 B-tier: 6 — Columbia Bank OR, Glacier Bank, Huntington, Commerce, First-Citizens, Pinnacle FP (dropped UMB to peer exclusion)
+- 🟡 C-tier: 36
+- 🟠 D-tier: 306
+- 🔴 F-tier: 9,757
+
+**Signal coverage (entity_facts, fact_type LIKE 'signal.%'):**
+- `signal.asset_band_fit`: 8,699 (reclassified 2026-04-17 for new ICP)
+- `signal.card_portfolio_size`: 698
+- `signal.agent_bank_dependency`: 49 (19 corserv, 12 fnbo, 8 elan, 5 in-house, 5 tcm)
+- `signal.card_network_membership`: ~13
+- `signal.post_merger_window`: 284
+- `signal.card_program_decline`: 130
+- `signal.enforcement_action`: 55 (institution-level only after 2026-04-17 fix)
+- `signal.regulatory_capital_stress`: 15
+- `signal.exec_transition`: 89
+
+**Still deferred:**
+- PSCU / Co-Op Financial partner discovery (would illuminate the 21 NCUA cohort CUs — all currently dark).
+- Automated card-program research agent (approved plan from 2026-04-16; manual pattern has been productive enough so far).
+- BD workflow surface (saved prospect lists beyond watchlist, per-prospect notes, cadence). User is ad-hoc solo; build when needed.
+- Phase 1 entity warehouse migration per the original roadmap below.
 
 ---
 
