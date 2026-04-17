@@ -45,11 +45,24 @@
 - Quiet on the card platform side — they've had a stable in-house program for years.
 - 2024: membership eligibility expanded (household members, veterans with any discharge). Grows the card funnel.
 
-## BD assessment — **skip** (not a Brim target)
+## BD assessment — high-value target, different angle than most
 
-**Rationale:** Navy Federal is the platonic ideal of an in-house card program at CU scale. They've built direct relationships with all three major networks (including the rare Amex relationship), issue 7 distinct products, and administer them themselves. They are not outsourcing anything. Their $197B in assets means they have the scale to justify every ounce of infrastructure investment. They will not switch vendors.
+**Why they're a target:** $197B, 15.1M members, and a credit card portfolio likely in the $25-40B range (NCUA reporting doesn't expose CC-line-item at cert level so we can't size it exactly, but the product depth and member count implies one of the largest CU portfolios in the US). Even at full in-house maturity, they have real modernization needs:
 
-**Opening hook:** None — this is a peer-reference, not a target. Mention them as the example of "what in-house looks like at scale" when prospecting mid-size CUs debating build vs. buy.
+- **Business card program (GO BIZ Rewards)** is single-tier and feature-light vs. their consumer lineup. Ripe for modernization or a co-developed premium business product.
+- **Amex issuer relationship** is unusual — if they ever wanted to expand that line (more Amex products, corporate travel, concierge), Brim could bring platform tooling they don't build in-house.
+- **Secured card portfolio** is positioned as a credit-builder — if they want to scale that to serve members with thin files (veterans with early-career credit), Brim could provide a specialized sub-platform.
+- **Digital / mobile-first product lines** — if they ever decide to launch a digital-native younger-member sub-brand, that's a BaaS-style conversation.
+- **Post-acquisition absorption** — if they acquire another CU's card book (they've grown via portfolio purchases historically), Brim could run the transition.
+
+The angle with Navy Federal is NOT "replace your core issuer" (they won't). It's "modernize a specific line you haven't invested in yet" or "run a new thing you want to launch but don't want to build in-house."
+
+**Opening hook ideas:**
+- "Your GO BIZ business card is a single-tier product in a peer set that's offering 3-4 segmented business products. Want to talk about expanding that line?"
+- "Saw you're the only CU at scale with a direct Amex relationship. If you ever want to add concierge tooling or corporate travel, that's our specialty."
+- "Secured card strategy — if you're serving more veterans with thin files, we have a sub-platform for credit-builder + migration-to-unsecured automation."
+
+**Important:** their Brim Fit score is low (4) because NCUA data doesn't expose card portfolio size — NOT because they're a weak target. The scoring is data-limited, not judgment-complete.
 
 ## Gaps
 
