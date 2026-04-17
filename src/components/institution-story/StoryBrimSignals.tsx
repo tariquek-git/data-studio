@@ -28,6 +28,10 @@ interface SignalsResponse {
   disqualified: boolean;
   raw_score?: number;
   max_possible?: number;
+  completeness?: number;
+  signals_populated?: number;
+  signals_possible?: number;
+  previous?: { snapshot_date: string; score: number; tier: 'A' | 'B' | 'C' | 'D' | 'F' } | null;
   computed_at: string;
 }
 
@@ -69,6 +73,65 @@ function formatAge(observedAt: string | null): string {
   if (ageDays < 30) return `${ageDays}d ago`;
   if (ageDays < 365) return `${Math.floor(ageDays / 30)}mo ago`;
   return `${(ageDays / 365).toFixed(1)}y ago`;
+}
+
+/**
+ * Coverage chip showing "X of Y signals populated". Color-codes based on the
+ * fraction — low coverage means the score is computed against a narrow view
+ * of the institution and should be taken with a grain of salt.
+ */
+function CoverageChip({ populated, possible }: { populated: number; possible: number }) {
+  const frac = possible > 0 ? populated / possible : 0;
+  const pct = Math.round(frac * 100);
+  let cls = 'bg-slate-100 text-slate-600';
+  if (frac >= 0.5) cls = 'bg-emerald-100 text-emerald-700';
+  else if (frac >= 0.25) cls = 'bg-amber-100 text-amber-700';
+  else if (frac > 0) cls = 'bg-orange-100 text-orange-700';
+  return (
+    <span
+      title={`${populated} of ${possible} signals populated. Missing signals are treated as zero contribution.`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold ${cls}`}
+    >
+      {populated}/{possible} signals ({pct}%)
+    </span>
+  );
+}
+
+/**
+ * Week-over-week score delta chip. Only renders when a previous snapshot exists.
+ * Shows an up/down arrow and the change magnitude.
+ */
+function ScoreDeltaChip({
+  current,
+  previous,
+  previousDate,
+}: {
+  current: number;
+  previous: number;
+  previousDate: string;
+}) {
+  const delta = current - previous;
+  if (delta === 0) {
+    return (
+      <span
+        title={`No change since ${previousDate}`}
+        className="ml-3 inline-flex items-center align-middle text-xs font-semibold rounded-full bg-slate-100 text-slate-500 px-2 py-0.5"
+      >
+        no change
+      </span>
+    );
+  }
+  const isUp = delta > 0;
+  return (
+    <span
+      title={`${isUp ? 'Up' : 'Down'} ${Math.abs(delta)} since ${previousDate}`}
+      className={`ml-3 inline-flex items-center align-middle text-xs font-semibold rounded-full px-2 py-0.5 ${
+        isUp ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+      }`}
+    >
+      {isUp ? '↑' : '↓'} {Math.abs(delta)}
+    </span>
+  );
 }
 
 interface StoryBrimSignalsProps {
@@ -125,18 +188,38 @@ export function StoryBrimSignals({ certNumber }: StoryBrimSignalsProps) {
       </div>
 
       <div className="rounded-xl bg-gradient-to-br from-slate-50 to-blue-50/50 border border-slate-200 p-6">
-        {/* Header: score + tier */}
-        <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-200">
-          <div>
+        {/* Header: score + tier + coverage + week-over-week delta */}
+        <div className="flex items-start justify-between mb-6 pb-6 border-b border-slate-200 gap-4">
+          <div className="min-w-0">
             <div className="text-5xl font-semibold text-slate-900 tabular-nums">
               {data.score}
               <span className="text-xl text-slate-400 font-normal"> / 100</span>
+              {data.previous && (
+                <ScoreDeltaChip
+                  current={data.score}
+                  previous={data.previous.score}
+                  previousDate={data.previous.snapshot_date}
+                />
+              )}
             </div>
-            <div className="mt-1 text-xs text-slate-500">
-              Brim prospect score · {data.signals.length} signal{data.signals.length === 1 ? '' : 's'} populated
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <span>Brim prospect score</span>
+              <span className="text-slate-300">·</span>
+              <CoverageChip
+                populated={data.signals_populated ?? data.signals.length}
+                possible={data.signals_possible ?? 14}
+              />
+              {data.previous && data.previous.tier !== data.tier && (
+                <>
+                  <span className="text-slate-300">·</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 text-indigo-700 px-2 py-0.5 font-semibold">
+                    tier {data.previous.tier} → {data.tier}
+                  </span>
+                </>
+              )}
             </div>
           </div>
-          <div className={`px-4 py-2 rounded-full text-sm font-semibold ${tier.bg} ${tier.text}`}>
+          <div className={`px-4 py-2 rounded-full text-sm font-semibold ${tier.bg} ${tier.text} whitespace-nowrap`}>
             {tier.label}
           </div>
         </div>

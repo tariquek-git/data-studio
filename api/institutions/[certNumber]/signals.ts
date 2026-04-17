@@ -35,8 +35,17 @@ interface ComputeBrimScoreRow {
     raw_score: number;
     max_possible: number;
     disqualified: boolean;
+    signals_populated?: number;
+    signals_possible?: number;
+    completeness?: number;
   };
   computed_at: string;
+}
+
+interface SnapshotRow {
+  snapshot_date: string;
+  score: number;
+  tier: string;
 }
 
 /**
@@ -80,9 +89,30 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
       signals: [],
       disqualifiers: [],
       disqualified: false,
+      completeness: 0,
+      signals_populated: 0,
+      signals_possible: 0,
+      previous: null,
       computed_at: new Date().toISOString(),
     });
   }
+
+  // Pull the two most recent snapshots for this institution to compute a
+  // week-over-week delta. Absent if fewer than 2 snapshots exist yet.
+  const { data: snapRows } = await supabase
+    .from('score_snapshots')
+    .select('snapshot_date, score, tier')
+    .eq('entity_table', 'institutions')
+    .eq('entity_id', inst.id)
+    .order('snapshot_date', { ascending: false })
+    .limit(2);
+
+  const snapshots = (snapRows ?? []) as SnapshotRow[];
+  // The most recent snapshot is the "current" one; the one before it is "prev".
+  // If only one snapshot exists or none, previous is null.
+  const previous = snapshots.length >= 2
+    ? { snapshot_date: snapshots[1].snapshot_date, score: snapshots[1].score, tier: snapshots[1].tier }
+    : null;
 
   return res.status(200).json({
     institution: { id: inst.id, name: inst.name, cert_number: inst.cert_number },
@@ -93,6 +123,10 @@ export default apiHandler({ methods: ['GET'] }, async (req: VercelRequest, res: 
     disqualified: scoreRow.factors.disqualified ?? false,
     raw_score: scoreRow.factors.raw_score,
     max_possible: scoreRow.factors.max_possible,
+    completeness: scoreRow.factors.completeness ?? 0,
+    signals_populated: scoreRow.factors.signals_populated ?? 0,
+    signals_possible: scoreRow.factors.signals_possible ?? 0,
+    previous,
     computed_at: scoreRow.computed_at,
   });
 });
