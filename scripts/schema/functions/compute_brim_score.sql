@@ -101,18 +101,23 @@ BEGIN
         WHEN lf.fact_type = 'signal.agent_bank_dependency' THEN
           lf.weight *
           CASE lf.fact_value_text
+            -- Pure agent-bank issuers — highest BD signal
             WHEN 'tcm_bank'        THEN 1.0
             WHEN 'elan_financial'  THEN 1.0
             WHEN 'fnbo'            THEN 1.0
             WHEN 'synovus_cards'   THEN 1.0
             WHEN 'cardworks'       THEN 1.0
+            -- CU vendors + CorServ (hybrid CaaS + agent) + Visa DPS
             WHEN 'pscu'            THEN 0.9
             WHEN 'co_op_financial' THEN 0.9
             WHEN 'visa_dps'        THEN 0.9
+            WHEN 'corserv'         THEN 0.9
             WHEN 'agent_bank'      THEN 0.9
+            -- Modern CaaS vendors — medium signal
             WHEN 'marqeta'         THEN 0.65
             WHEN 'galileo'         THEN 0.65
             WHEN 'caas_vendor'     THEN 0.65
+            -- In-house operators — lowest signal
             WHEN 'in_house'        THEN 0.33
             ELSE 0.0
           END
