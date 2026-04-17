@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
-import { Menu, X, Search, Bookmark, ChevronDown, Network, BarChart3, Compass, Database, FileCheck, Layers } from 'lucide-react';
+import { Menu, X, Search, Bookmark, ChevronDown, Network, BarChart3, Compass, Database, FileCheck, Layers, Target, GitCompare, AlertOctagon, ClipboardCheck } from 'lucide-react';
 import { useWatchlist } from '@/hooks/useWatchlist';
 import { useCommandBar } from '@/components/command-bar/CommandBarProvider';
 
@@ -49,16 +49,27 @@ function NexusIcon({ className }: { className?: string }) {
   );
 }
 
+// Primary nav — BD-first order. Brim targets first (the reason this tool exists),
+// then the discovery surface (Explore), then user's pinned prospects (Watchlist).
+// Analytics + Graph are secondary for day-to-day BD work but kept primary for
+// market-scan sessions.
 const PRIMARY_NAV = [
+  { to: '/brim', label: 'Brim BD', Icon: Target },
   { to: '/explore', label: 'Explore', Icon: Compass },
+  { to: '/watchlist', label: 'Watchlist', Icon: Bookmark, showWatchlistBadge: true as const },
   { to: '/analytics', label: 'Analytics', Icon: BarChart3 },
   { to: '/graph', label: 'Graph', Icon: Network },
-  { to: '/entities', label: 'Entities', Icon: Layers },
 ];
 
+// More dropdown — secondary surfaces (data, admin, compare, failures).
+// Grouped by purpose: data/quality first, then specialty tools.
 const MORE_NAV = [
   { to: '/sources', label: 'Data Sources', Icon: Database },
   { to: '/audit', label: 'Audit', Icon: FileCheck },
+  { to: '/entities', label: 'Entities', Icon: Layers },
+  { to: '/compare', label: 'Compare', Icon: GitCompare },
+  { to: '/failures', label: 'Bank Failures', Icon: AlertOctagon },
+  { to: '/qa', label: 'QA Dashboard', Icon: ClipboardCheck },
 ];
 
 export function Header() {
@@ -102,20 +113,29 @@ export function Header() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-0.5 flex-1">
-            {PRIMARY_NAV.map(({ to, label, Icon }) => (
-              <Link
-                key={to}
-                to={to}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
-                  location.pathname === to || (to === '/explore' && location.pathname.startsWith('/explore'))
-                    ? 'bg-primary-500/15 text-primary-300'
-                    : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/80'
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-              </Link>
-            ))}
+            {PRIMARY_NAV.map((item) => {
+              const { to, label, Icon } = item;
+              const showBadge = 'showWatchlistBadge' in item && item.showWatchlistBadge;
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
+                    location.pathname === to || (to === '/explore' && location.pathname.startsWith('/explore'))
+                      ? 'bg-primary-500/15 text-primary-300'
+                      : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/80'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                  {showBadge && watchlist.length > 0 && (
+                    <span className="inline-flex items-center justify-center h-4 min-w-[1rem] rounded-full bg-amber-500/90 text-[10px] font-bold text-white px-1 ml-0.5">
+                      {watchlist.length}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
 
             {/* More dropdown */}
             <div className="relative" ref={moreRef}>
@@ -154,24 +174,6 @@ export function Header() {
 
           {/* Right-side utilities */}
           <div className="hidden md:flex items-center gap-1.5 ml-auto">
-            {/* Watchlist icon */}
-            <Link
-              to="/watchlist"
-              className={`relative inline-flex items-center justify-center h-8 w-8 rounded-lg transition-colors ${
-                location.pathname === '/watchlist'
-                  ? 'bg-primary-500/15 text-primary-300'
-                  : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800'
-              }`}
-              title="Watchlist"
-            >
-              <Bookmark className="h-4 w-4" />
-              {watchlist.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center h-4 min-w-[1rem] rounded-full bg-amber-500/90 text-[10px] font-bold text-white px-1">
-                  {watchlist.length}
-                </span>
-              )}
-            </Link>
-
             {/* Search trigger */}
             <button
               onClick={openCommandBar}
@@ -209,7 +211,40 @@ export function Header() {
       {mobileOpen && (
         <div className="md:hidden border-t border-surface-700/50 bg-surface-900/95 backdrop-blur-xl">
           <nav className="px-4 py-3 space-y-1">
-            {[...PRIMARY_NAV, ...MORE_NAV].map(({ to, label, Icon }) => (
+            {/* Primary (BD workflow) */}
+            <div className="px-3 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-surface-500">
+              BD workflow
+            </div>
+            {PRIMARY_NAV.map((item) => {
+              const { to, label, Icon } = item;
+              const showBadge = 'showWatchlistBadge' in item && item.showWatchlistBadge;
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                    location.pathname === to
+                      ? 'bg-primary-500/15 text-primary-300'
+                      : 'text-surface-400 hover:text-surface-100 hover:bg-surface-800'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="flex-1">{label}</span>
+                  {showBadge && watchlist.length > 0 && (
+                    <span className="inline-flex items-center justify-center rounded-full bg-amber-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 min-w-[1.25rem]">
+                      {watchlist.length}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+
+            {/* More (data + admin) */}
+            <div className="px-3 pt-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-surface-500">
+              Data & admin
+            </div>
+            {MORE_NAV.map(({ to, label, Icon }) => (
               <Link
                 key={to}
                 to={to}
@@ -224,23 +259,6 @@ export function Header() {
                 {label}
               </Link>
             ))}
-            <Link
-              to="/watchlist"
-              onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium ${
-                location.pathname === '/watchlist'
-                  ? 'bg-primary-500/15 text-primary-300'
-                  : 'text-surface-400 hover:text-surface-100 hover:bg-surface-800'
-              }`}
-            >
-              <Bookmark className="h-4 w-4" />
-              Watchlist
-              {watchlist.length > 0 && (
-                <span className="inline-flex items-center justify-center rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold px-1.5 py-0.5 min-w-[1.25rem]">
-                  {watchlist.length}
-                </span>
-              )}
-            </Link>
           </nav>
         </div>
       )}
