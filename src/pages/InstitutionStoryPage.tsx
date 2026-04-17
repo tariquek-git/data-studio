@@ -8,6 +8,7 @@ import { StoryMetricCards } from '@/components/institution-story/StoryMetricCard
 import { StoryFinancialTrajectory } from '@/components/institution-story/StoryFinancialTrajectory';
 import { StoryNetwork } from '@/components/institution-story/StoryNetwork';
 import { StoryInsights } from '@/components/institution-story/StoryInsights';
+import { StoryBrimSignals } from '@/components/institution-story/StoryBrimSignals';
 import { StorySimilar } from '@/components/institution-story/StorySimilar';
 import { StoryDeepDive } from '@/components/institution-story/StoryDeepDive';
 
@@ -92,6 +93,13 @@ export default function InstitutionStoryPage() {
           lede={aiInsights?.summary ?? null}
           ledeLoading={aiLoading}
         />
+
+        {/* Brim fit — why this matters */}
+        {!isRegistryOnly && certNumber && (
+          <SectionErrorBoundary section="Brim Fit">
+            <StoryBrimSignals certNumber={certNumber} />
+          </SectionErrorBoundary>
+        )}
 
         {/* Metric cards grid */}
         {!isRegistryOnly && (

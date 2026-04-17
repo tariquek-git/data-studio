@@ -7,6 +7,7 @@ interface NavSection {
 
 const SECTIONS: NavSection[] = [
   { id: 'section-overview', label: 'Overview' },
+  { id: 'section-brim-signals', label: 'Brim Fit' },
   { id: 'section-metrics', label: 'Metrics' },
   { id: 'section-trends', label: 'Trends' },
   { id: 'section-network', label: 'Network' },

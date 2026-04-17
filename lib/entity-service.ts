@@ -2038,3 +2038,103 @@ export async function getAnalyticsCorrelationData(): Promise<AnalyticsCorrelatio
   if (error) throw error;
   return (data ?? []) as AnalyticsCorrelationRow[];
 }
+
+// ── Signal facts (Brim intelligence layer) ────────────────────────────────
+// Canonical write path for `signal.*` rows in `entity_facts`. Every collector
+// and API route that produces signal data must go through this helper so that
+// provenance, freshness, confidence, and sync_job_id lineage stay consistent.
+
+export type SignalSourceKind = 'official' | 'company' | 'curated';
+
+export interface UpsertSignalFactInput {
+  entity_table: 'institutions' | 'registry_entities' | 'ecosystem_entities';
+  entity_id: string;
+  /** Must exist in `signal_registry.fact_type`. */
+  fact_type: string;
+  /** Optional secondary key (e.g. 'tier_1_ratio'). Empty string when not needed. */
+  fact_key?: string | null;
+  fact_value_text?: string | null;
+  fact_value_number?: number | null;
+  fact_value_json?: unknown | null;
+  fact_unit?: string | null;
+  source_kind: SignalSourceKind;
+  /** Where this signal was observed. Required — no bare facts. */
+  source_url: string;
+  /** When the source data was produced. Drives freshness decay. */
+  observed_at: string;
+  /** 0–100. */
+  confidence_score: number;
+  notes?: string | null;
+  /** Must reference a row in `sync_jobs` — every signal write needs lineage. */
+  sync_job_id: string;
+}
+
+/**
+ * Upsert a single signal fact. The DB's unique index on
+ * `(entity_table, entity_id, fact_type, COALESCE(fact_key, ''), source_kind)`
+ * ensures a given source's view of a signal is updated in place, while facts
+ * from different sources coexist for conflict tracking.
+ */
+export async function upsertSignalFact(input: UpsertSignalFactInput): Promise<void> {
+  if (!input.fact_type.startsWith('signal.')) {
+    throw new Error(`fact_type must be in the signal.* namespace, got '${input.fact_type}'`);
+  }
+  if (!input.source_url) {
+    throw new Error(`source_url is required for signal '${input.fact_type}'`);
+  }
+  if (!input.sync_job_id) {
+    throw new Error(`sync_job_id is required for signal '${input.fact_type}'`);
+  }
+  if (input.confidence_score < 0 || input.confidence_score > 100) {
+    throw new Error(`confidence_score must be 0–100, got ${input.confidence_score}`);
+  }
+
+  const supabase = getSupabase();
+  const { error } = await supabase.from('entity_facts').upsert(
+    {
+      entity_table: input.entity_table,
+      entity_id: input.entity_id,
+      fact_type: input.fact_type,
+      fact_key: input.fact_key ?? null,
+      fact_value_text: input.fact_value_text ?? null,
+      fact_value_number: input.fact_value_number ?? null,
+      fact_value_json: input.fact_value_json ?? null,
+      fact_unit: input.fact_unit ?? null,
+      source_kind: input.source_kind,
+      source_url: input.source_url,
+      observed_at: input.observed_at,
+      confidence_score: input.confidence_score,
+      notes: input.notes ?? null,
+      sync_job_id: input.sync_job_id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'entity_table,entity_id,fact_type,fact_key,source_kind' },
+  );
+  if (error) throw new Error(`upsertSignalFact failed for ${input.fact_type}: ${error.message}`);
+}
+
+/** Creates a new sync_jobs row and returns its id. Used by API routes that write signals. */
+export async function createSignalSyncJob(source: string): Promise<string> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('sync_jobs')
+    .insert({ source, status: 'running', started_at: new Date().toISOString() })
+    .select('id')
+    .single();
+  if (error || !data) throw new Error(`createSignalSyncJob failed: ${error?.message ?? 'no data'}`);
+  return data.id as string;
+}
+
+/** Marks a sync_jobs row as completed with a record count. */
+export async function completeSignalSyncJob(syncJobId: string, recordsProcessed: number): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('sync_jobs')
+    .update({
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      records_processed: recordsProcessed,
+    })
+    .eq('id', syncJobId);
+  if (error) throw new Error(`completeSignalSyncJob failed: ${error.message}`);
+}
