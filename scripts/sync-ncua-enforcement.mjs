@@ -113,6 +113,21 @@ async function main() {
   let unmatched = 0;
   const unmatchedNames = [];
 
+  // Relationship values that indicate the NCUA action is against an
+  // individual (employee, board member, etc.) rather than the credit union
+  // itself. These shouldn't penalize the CU's Brim score — the CU is just
+  // named because the person worked there.
+  const INDIVIDUAL_RELATIONSHIPS = new Set([
+    'Former employee', 'Former Employee',
+    'Former Institution-Affiliated Party', 'Former Institution-affiliated Party',
+    'Supervisory Committee Chairman',
+    'Former President and CEO',
+    'Former Assistant Chief Executive Officer',
+    'Former Office Manager',
+    'Former Loan Officer',
+    'Former Branch Manager',
+  ]);
+
   for (const rec of recentRecords) {
     const instName = (rec['Institution'] || '').trim();
     const state = (rec['State'] || '').trim().toLowerCase();
@@ -122,6 +137,11 @@ async function main() {
     const relationship = rec['Relationship'] || '';
     const firstName = rec['First Name'] || '';
     const lastName = rec['Last Name'] || '';
+
+    // Skip individual-level actions (still audit-available via NCUA's CSV).
+    if (INDIVIDUAL_RELATIONSHIPS.has(relationship)) {
+      continue;
+    }
 
     // Try exact name + state match first
     let inst = byNameState.get(`${instName.toLowerCase()}|${state}`);

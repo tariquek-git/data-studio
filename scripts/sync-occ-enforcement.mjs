@@ -154,6 +154,16 @@ async function main() {
       continue;
     }
 
+    // Skip individual-level OCC actions (Section 1829 prohibition notifications,
+    // personal removal orders). The bank is named in the record because the
+    // individual worked there, but the action is about THEM, not the bank's
+    // operations. These shouldn't penalize the bank's Brim score.
+    // The record is still observable via OCC EASearch for audit purposes,
+    // we just don't write it as signal.enforcement_action.
+    if (instOrIndividual === 'Individual') {
+      continue;
+    }
+
     // Try exact name + state match first
     let inst = byNameState.get(`${bankName.toLowerCase()}|${state}`);
     // Fallback: normalized name
