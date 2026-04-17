@@ -89,6 +89,33 @@ BEGIN
         -- card_portfolio_size: scale 0-1 by log of portfolio size. $1M->0, $1B->1.0
         WHEN lf.fact_type = 'signal.card_portfolio_size' THEN
           lf.weight * LEAST(1.0, GREATEST(0, (ln(GREATEST(lf.fact_value_number, 1)) - ln(1000000)) / (ln(1000000000) - ln(1000000))))
+        -- agent_bank_dependency: scaled by value_text semantics. The signal is
+        -- "does this institution run its card program through a third party?"
+        -- Agent-bank relationships (TCM, Elan, FNBO, etc.) are the highest-
+        -- value BD signal — the bank is already outsourcing, so switching is
+        -- a conversation about vendor not a conversation about strategy.
+        -- Card-as-a-service (Marqeta, Galileo) is medium — they chose modern
+        -- but not Brim; switching cost is real but the posture is right.
+        -- In-house operators at scale are lower — they've already invested,
+        -- displacement requires more than "let us do it for you".
+        WHEN lf.fact_type = 'signal.agent_bank_dependency' THEN
+          lf.weight *
+          CASE lf.fact_value_text
+            WHEN 'tcm_bank'        THEN 1.0
+            WHEN 'elan_financial'  THEN 1.0
+            WHEN 'fnbo'            THEN 1.0
+            WHEN 'synovus_cards'   THEN 1.0
+            WHEN 'cardworks'       THEN 1.0
+            WHEN 'pscu'            THEN 0.9
+            WHEN 'co_op_financial' THEN 0.9
+            WHEN 'visa_dps'        THEN 0.9
+            WHEN 'agent_bank'      THEN 0.9
+            WHEN 'marqeta'         THEN 0.65
+            WHEN 'galileo'         THEN 0.65
+            WHEN 'caas_vendor'     THEN 0.65
+            WHEN 'in_house'        THEN 0.33
+            ELSE 0.0
+          END
         ELSE lf.weight
       END AS scaled_weight
     FROM latest_facts lf
